@@ -1,12 +1,25 @@
 package repositories
 
-import "os"
+import (
+	"errors"
+	"io/fs"
+	"os"
+)
 
 type FilesystemRepository struct {
 }
 
 func NewFilesystemRepository() *FilesystemRepository {
 	return &FilesystemRepository{}
+}
+
+func (filesystemRepository *FilesystemRepository) MakeDirRange(paths []string) error {
+	for _, path := range paths {
+		if err := filesystemRepository.MakeDir(path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (filesystemRepository *FilesystemRepository) MakeDir(path string) error {
@@ -19,7 +32,7 @@ func (filesystemRepository *FilesystemRepository) WriteFile(path string, data []
 
 func (filesystemRepository *FilesystemRepository) Exists(path string) bool {
 	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
+	return err == nil || !errors.Is(err, fs.ErrNotExist)
 }
 
 func (filesystemRepository *FilesystemRepository) ReadFile(path string) ([]byte, error) {

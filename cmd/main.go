@@ -25,13 +25,12 @@ func main() {
 				os.Exit(1)
 			}
 			initService := services.NewInitService(repository)
-			err = initService.Init(workingDirectory)
+			message, err := initService.Init(workingDirectory)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+				fmt.Fprintf(os.Stderr, "Error: %s\n", message)
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stdout, "Initialized git repository in %s\n", workingDirectory)
-
+			fmt.Fprintf(os.Stdout, "%s\n", message)
 		}
 	}
 }

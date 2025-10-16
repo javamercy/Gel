@@ -2,7 +2,7 @@ package services
 
 import (
 	"Gel/persistence/repositories"
-	"errors"
+	"fmt"
 	"path/filepath"
 )
 
@@ -16,23 +16,21 @@ func NewInitService(repository repositories.IRepository) *InitService {
 	}
 }
 
-func (initService *InitService) Init(path string) error {
-	exists := initService.repository.Exists(path)
-	if exists {
-		return errors.New("path already exists")
-	}
-
+func (initService *InitService) Init(path string) (string, error) {
 	base := filepath.Join(path, ".gel")
+
 	dirs := []string{
 		base,
 		filepath.Join(base, "objects"),
 		filepath.Join(base, "refs"),
 	}
-
-	for _, dir := range dirs {
-		if err := initService.repository.MakeDir(dir); err != nil {
-			return err
-		}
+	exists := initService.repository.Exists(base)
+	if err := initService.repository.MakeDirRange(dirs); err != nil {
+		return err.Error(), err
 	}
-	return nil
+	if exists {
+		return fmt.Sprintf("Reinitialized existing Gel repository in %s", base), nil
+	}
+
+	return fmt.Sprintf("Initialized empty Gel repository in %s", base), nil
 }
