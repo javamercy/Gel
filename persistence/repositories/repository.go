@@ -6,4 +6,5 @@ type IRepository interface {
 	WriteFile(path string, data []byte) error
 	Exists(path string) bool
 	ReadFile(path string) ([]byte, error)
+	FindGelDir(startPath string) (string, error)
 }

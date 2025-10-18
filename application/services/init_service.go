@@ -1,10 +1,15 @@
 package services
 
 import (
+	"Gel/core/constants"
 	"Gel/persistence/repositories"
 	"fmt"
 	"path/filepath"
 )
+
+type IInitService interface {
+	Init(path string) error
+}
 
 type InitService struct {
 	repository repositories.IRepository
@@ -17,12 +22,12 @@ func NewInitService(repository repositories.IRepository) *InitService {
 }
 
 func (initService *InitService) Init(path string) (string, error) {
-	base := filepath.Join(path, ".gel")
+	base := filepath.Join(path, constants.RepositoryDirName)
 
 	dirs := []string{
 		base,
-		filepath.Join(base, "objects"),
-		filepath.Join(base, "refs"),
+		filepath.Join(base, constants.ObjectsDirName),
+		filepath.Join(base, constants.RefsDirName),
 	}
 	exists := initService.repository.Exists(base)
 	if err := initService.repository.MakeDirRange(dirs); err != nil {

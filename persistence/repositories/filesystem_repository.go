@@ -1,9 +1,11 @@
 package repositories
 
 import (
+	"Gel/core/constants"
 	"errors"
 	"io/fs"
 	"os"
+	"path/filepath"
 )
 
 type FilesystemRepository struct {
@@ -37,4 +39,19 @@ func (filesystemRepository *FilesystemRepository) Exists(path string) bool {
 
 func (filesystemRepository *FilesystemRepository) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
+}
+
+func (filesystemRepository *FilesystemRepository) FindGelDir(startPath string) (string, error) {
+	for {
+		gelPath := filepath.Join(startPath, constants.RepositoryDirName)
+		if filesystemRepository.Exists(gelPath) {
+			return gelPath, nil
+		}
+		parent := filepath.Dir(startPath)
+		if parent == startPath {
+			break
+		}
+		startPath = parent
+	}
+	return "", errors.New("not a gel repository (or any of the parent directories)")
 }
