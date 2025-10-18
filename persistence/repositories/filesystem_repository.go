@@ -55,3 +55,16 @@ func (filesystemRepository *FilesystemRepository) FindGelDir(startPath string) (
 	}
 	return "", errors.New("not a gel repository (or any of the parent directories)")
 }
+
+func (filesystemRepository *FilesystemRepository) FindObjectPath(hash string, startPath string) (string, error) {
+	gelDir, err := filesystemRepository.FindGelDir(startPath)
+	if err != nil {
+		return "", err
+	}
+	objectDir := filepath.Join(gelDir, constants.ObjectsDirName, hash[:2])
+	objectPath := filepath.Join(objectDir, hash[2:])
+	if !filesystemRepository.Exists(objectPath) {
+		return "", errors.New("object not found")
+	}
+	return objectPath, nil
+}

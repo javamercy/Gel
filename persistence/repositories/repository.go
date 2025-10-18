@@ -7,4 +7,5 @@ type IRepository interface {
 	Exists(path string) bool
 	ReadFile(path string) ([]byte, error)
 	FindGelDir(startPath string) (string, error)
+	FindObjectPath(hash string, startPath string) (string, error)
 }

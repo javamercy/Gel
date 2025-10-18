@@ -28,7 +28,7 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return "", err
 	}
 
-	content := helpers.PrepareObjectContent(objectType, fileData)
+	content := helpers.ToObjectContent(objectType, fileData)
 	hash := helpers.ComputeHash(content)
 
 	if !write {

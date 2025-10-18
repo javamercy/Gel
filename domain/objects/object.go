@@ -1,9 +1,9 @@
 package objects
 
+import "Gel/core/constants"
+
 type IObject interface {
-	Type() string
-	Size() int64
-	Content() []byte
-	Header() []byte
-	Sha() string
+	GetType() constants.ObjectType
+	GetSize() int
+	GetData() []byte
 }
