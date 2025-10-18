@@ -12,12 +12,14 @@ type ICatFileService interface {
 	ObjectExists(hash string) bool
 }
 type CatFileService struct {
-	repository repositories.IRepository
+	repository        repositories.IRepository
+	compressionHelper helpers.ICompressionHelper
 }
 
-func NewCatFileService(repository repositories.IRepository) *CatFileService {
+func NewCatFileService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *CatFileService {
 	return &CatFileService{
 		repository,
+		compressionHelper,
 	}
 }
 
@@ -34,7 +36,7 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 		return nil, err
 	}
 
-	data, err := helpers.Decompress(compressedContent)
+	data, err := catFileService.compressionHelper.Decompress(compressedContent)
 	if err != nil {
 		return nil, err
 	}

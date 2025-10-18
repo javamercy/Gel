@@ -6,7 +6,19 @@ import (
 	"io"
 )
 
-func Decompress(data []byte) ([]byte, error) {
+type ICompressionHelper interface {
+	Compress(data []byte) ([]byte, error)
+	Decompress(data []byte) ([]byte, error)
+}
+
+type ZlibCompressionHelper struct {
+}
+
+func NewZlibCompressionHelper() *ZlibCompressionHelper {
+	return &ZlibCompressionHelper{}
+}
+
+func (zlibCompressionHelper *ZlibCompressionHelper) Decompress(data []byte) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -15,7 +27,7 @@ func Decompress(data []byte) ([]byte, error) {
 	return io.ReadAll(reader)
 }
 
-func Compress(data []byte) ([]byte, error) {
+func (zlibCompressionHelper *ZlibCompressionHelper) Compress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	writer := zlib.NewWriter(&buf)
 

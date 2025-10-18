@@ -12,12 +12,14 @@ type IHashObjectService interface {
 }
 
 type HashObjectService struct {
-	repository repositories.IRepository
+	repository        repositories.IRepository
+	compressionHelper helpers.ICompressionHelper
 }
 
-func NewHashObjectService(repository repositories.IRepository) *HashObjectService {
+func NewHashObjectService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *HashObjectService {
 	return &HashObjectService{
 		repository,
+		compressionHelper,
 	}
 }
 
@@ -34,7 +36,7 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return hash, nil
 	}
 
-	compressedContent, err := helpers.Compress(content)
+	compressedContent, err := hashObjectService.compressionHelper.Compress(content)
 	if err != nil {
 		return "", err
 	}
