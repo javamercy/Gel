@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"Gel/application/services"
-	"Gel/core/constants"
-	"Gel/core/helpers"
-	"Gel/persistence/repositories"
+	"Gel/src/gel/core/constants"
 
 	"github.com/spf13/cobra"
 )
@@ -19,10 +16,8 @@ var hashObjectCmd = &cobra.Command{
 		}
 		path := args[0]
 		write, _ := cmd.Flags().GetBool("write")
-		compressionHelper := helpers.NewZlibCompressionHelper()
-		repository := repositories.NewFilesystemRepository()
-		hashObjectService := services.NewHashObjectService(repository, compressionHelper)
-		hash, err := hashObjectService.HashObject(path, constants.Blob, write)
+
+		hash, err := container.HashObjectService.HashObject(path, constants.Blob, write)
 		if err != nil {
 			cmd.PrintErrln("Error hashing object:", err)
 			return

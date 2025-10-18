@@ -1,6 +1,8 @@
 package objects
 
-import "Gel/core/constants"
+import (
+	"Gel/src/gel/core/constants"
+)
 
 type Blob struct {
 	*BaseObject

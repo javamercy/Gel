@@ -1,9 +1,9 @@
 package services
 
 import (
-	"Gel/core/helpers"
-	"Gel/domain/objects"
-	"Gel/persistence/repositories"
+	helpers2 "Gel/src/gel/core/helpers"
+	"Gel/src/gel/domain/objects"
+	"Gel/src/gel/persistence/repositories"
 	"os"
 )
 
@@ -13,10 +13,10 @@ type ICatFileService interface {
 }
 type CatFileService struct {
 	repository        repositories.IRepository
-	compressionHelper helpers.ICompressionHelper
+	compressionHelper helpers2.ICompressionHelper
 }
 
-func NewCatFileService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *CatFileService {
+func NewCatFileService(repository repositories.IRepository, compressionHelper helpers2.ICompressionHelper) *CatFileService {
 	return &CatFileService{
 		repository,
 		compressionHelper,
@@ -41,7 +41,7 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 		return nil, err
 	}
 
-	object, err := helpers.ToObject(data)
+	object, err := helpers2.ToObject(data)
 	if err != nil {
 		return nil, err
 	}

@@ -1,9 +1,9 @@
 package services
 
 import (
-	"Gel/core/constants"
-	"Gel/core/helpers"
-	"Gel/persistence/repositories"
+	"Gel/src/gel/core/constants"
+	helpers2 "Gel/src/gel/core/helpers"
+	"Gel/src/gel/persistence/repositories"
 	"os"
 )
 
@@ -13,10 +13,10 @@ type IHashObjectService interface {
 
 type HashObjectService struct {
 	repository        repositories.IRepository
-	compressionHelper helpers.ICompressionHelper
+	compressionHelper helpers2.ICompressionHelper
 }
 
-func NewHashObjectService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *HashObjectService {
+func NewHashObjectService(repository repositories.IRepository, compressionHelper helpers2.ICompressionHelper) *HashObjectService {
 	return &HashObjectService{
 		repository,
 		compressionHelper,
@@ -29,8 +29,8 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return "", err
 	}
 
-	content := helpers.ToObjectContent(objectType, fileData)
-	hash := helpers.ComputeHash(content)
+	content := helpers2.ToObjectContent(objectType, fileData)
+	hash := helpers2.ComputeHash(content)
 
 	if !write {
 		return hash, nil

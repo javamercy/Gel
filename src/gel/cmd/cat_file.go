@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"Gel/application/services"
-	"Gel/core/helpers"
-	"Gel/persistence/repositories"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -18,28 +15,24 @@ var catFileCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		hash := args[0]
-		compressionHelper := helpers.NewZlibCompressionHelper()
-		repository := repositories.NewFilesystemRepository()
-		catFileService := services.NewCatFileService(repository, compressionHelper)
 
 		exists, _ := cmd.Flags().GetBool("exists")
 
 		if exists {
-			exists := catFileService.ObjectExists(hash)
-			if exists {
+			if container.CatFileService.ObjectExists(hash) {
 				cmd.Println("Object exists")
 				os.Exit(0)
 			}
+			os.Exit(1)
 		}
 
-		object, err := catFileService.GetObject(hash)
+		object, err := container.CatFileService.GetObject(hash)
 		if err != nil {
 			cmd.Println(err)
 			os.Exit(1)
 		}
 
 		cmd.Println("Object:", string(object.Data()))
-
 	},
 }
 

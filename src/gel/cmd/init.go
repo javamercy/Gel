@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"Gel/application/services"
-	"Gel/persistence/repositories"
-
 	"github.com/spf13/cobra"
 )
 
@@ -16,9 +13,8 @@ var initCmd = &cobra.Command{
 		if len(args) > 0 {
 			path = args[0]
 		}
-		repository := repositories.NewFilesystemRepository()
-		initService := services.NewInitService(repository)
-		message, err := initService.Init(path)
+
+		message, err := container.InitService.Init(path)
 		if err != nil {
 			cmd.PrintErrln("Error initializing repository:", err)
 			return

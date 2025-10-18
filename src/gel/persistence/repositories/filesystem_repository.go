@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"Gel/core/constants"
+	"Gel/src/gel/core/constants"
 	"errors"
 	"io/fs"
 	"os"

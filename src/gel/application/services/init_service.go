@@ -1,14 +1,14 @@
 package services
 
 import (
-	"Gel/core/constants"
-	"Gel/persistence/repositories"
+	"Gel/src/gel/core/constants"
+	"Gel/src/gel/persistence/repositories"
 	"fmt"
 	"path/filepath"
 )
 
 type IInitService interface {
-	Init(path string) error
+	Init(path string) (string, error)
 }
 
 type InitService struct {
