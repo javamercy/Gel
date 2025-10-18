@@ -30,7 +30,7 @@ func (initService *InitService) Init(path string) (string, error) {
 		filepath.Join(base, constants.RefsDirName),
 	}
 	exists := initService.repository.Exists(base)
-	if err := initService.repository.MakeDirRange(dirs); err != nil {
+	if err := initService.repository.MakeDirRange(dirs, constants.DirPermission); err != nil {
 		return err.Error(), err
 	}
 	if exists {

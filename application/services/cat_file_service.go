@@ -5,7 +5,6 @@ import (
 	"Gel/domain/objects"
 	"Gel/persistence/repositories"
 	"os"
-	"path/filepath"
 )
 
 type ICatFileService interface {
@@ -31,7 +30,6 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 
 	path, err := catFileService.repository.FindObjectPath(hash, cwd)
 	compressedContent, err := catFileService.repository.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +47,15 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 }
 
 func (catFileService *CatFileService) ObjectExists(hash string) bool {
-	objectDir := hash[:2]
-	objectFile := hash[2:]
-	path := filepath.Join(objectDir, objectFile)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false
+	}
+
+	path, err := catFileService.repository.FindObjectPath(hash, cwd)
+	if err != nil {
+		return false
+	}
+
 	return catFileService.repository.Exists(path)
 }

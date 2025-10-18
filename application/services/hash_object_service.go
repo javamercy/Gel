@@ -5,7 +5,6 @@ import (
 	"Gel/core/helpers"
 	"Gel/persistence/repositories"
 	"os"
-	"path/filepath"
 )
 
 type IHashObjectService interface {
@@ -39,23 +38,25 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 	if err != nil {
 		return "", err
 	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	gelDir, err := hashObjectService.repository.FindGelDir(cwd)
+
+	objectPath, err := hashObjectService.repository.FindObjectPath(hash, cwd)
 	if err != nil {
 		return "", err
 	}
 
-	objectDir := filepath.Join(gelDir, constants.ObjectsDirName, hash[:2])
-	objectPath := filepath.Join(objectDir, hash[2:])
-
-	if err := hashObjectService.repository.MakeDir(objectDir); err != nil {
-		return "", err
+	if hashObjectService.repository.Exists(objectPath) {
+		return hash, nil
 	}
-	if err := hashObjectService.repository.WriteFile(objectPath, compressedContent); err != nil {
-		return "", err
+
+	writeErr := hashObjectService.repository.WriteFile(objectPath, compressedContent, true, constants.FilePermission)
+
+	if writeErr != nil {
+		return "", writeErr
 	}
 
 	return hash, nil

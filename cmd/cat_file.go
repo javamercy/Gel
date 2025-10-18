@@ -14,6 +14,7 @@ var catFileCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			_ = cmd.Help()
+			os.Exit(1)
 		}
 		hash := args[0]
 		repository := repositories.NewFilesystemRepository()
@@ -35,7 +36,7 @@ var catFileCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cmd.Println("Object:", string(object.GetData()))
+		cmd.Println("Object:", string(object.Data()))
 
 	},
 }

@@ -15,21 +15,27 @@ func NewFilesystemRepository() *FilesystemRepository {
 	return &FilesystemRepository{}
 }
 
-func (filesystemRepository *FilesystemRepository) MakeDirRange(paths []string) error {
+func (filesystemRepository *FilesystemRepository) MakeDirRange(paths []string, permission os.FileMode) error {
 	for _, path := range paths {
-		if err := filesystemRepository.MakeDir(path); err != nil {
+		if err := filesystemRepository.MakeDir(path, permission); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (filesystemRepository *FilesystemRepository) MakeDir(path string) error {
-	return os.MkdirAll(path, 0755)
+func (filesystemRepository *FilesystemRepository) MakeDir(path string, permission os.FileMode) error {
+	return os.MkdirAll(path, permission)
 }
 
-func (filesystemRepository *FilesystemRepository) WriteFile(path string, data []byte) error {
-	return os.WriteFile(path, data, 0644)
+func (filesystemRepository *FilesystemRepository) WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error {
+	if autoCreateDir {
+		dir := filepath.Dir(path)
+		if err := filesystemRepository.MakeDir(dir, constants.DirPermission); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(path, data, permission)
 }
 
 func (filesystemRepository *FilesystemRepository) Exists(path string) bool {
@@ -57,14 +63,21 @@ func (filesystemRepository *FilesystemRepository) FindGelDir(startPath string) (
 }
 
 func (filesystemRepository *FilesystemRepository) FindObjectPath(hash string, startPath string) (string, error) {
+	objectsDir, err := filesystemRepository.FindObjectsDir(startPath)
+	if err != nil {
+		return "", err
+	}
+	dir := hash[:2]
+	file := hash[2:]
+	objectPath := filepath.Join(objectsDir, dir, file)
+	return objectPath, nil
+}
+
+func (filesystemRepository *FilesystemRepository) FindObjectsDir(startPath string) (string, error) {
 	gelDir, err := filesystemRepository.FindGelDir(startPath)
 	if err != nil {
 		return "", err
 	}
-	objectDir := filepath.Join(gelDir, constants.ObjectsDirName, hash[:2])
-	objectPath := filepath.Join(objectDir, hash[2:])
-	if !filesystemRepository.Exists(objectPath) {
-		return "", errors.New("object not found")
-	}
-	return objectPath, nil
+	objectsDir := filepath.Join(gelDir, constants.ObjectsDirName)
+	return objectsDir, nil
 }
