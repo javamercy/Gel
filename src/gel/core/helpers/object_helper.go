@@ -2,7 +2,7 @@ package helpers
 
 import (
 	"Gel/src/gel/core/constants"
-	objects2 "Gel/src/gel/domain/objects"
+	"Gel/src/gel/domain/objects"
 	"errors"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ func ToObjectContent(objectType constants.ObjectType, fileData []byte) []byte {
 }
 
 // ToObject converts raw object data into an IObject
-func ToObject(data []byte) (objects2.IObject, error) {
+func ToObject(data []byte) (objects.IObject, error) {
 	nullIndex := -1
 	for i, b := range data {
 		if b == 0 {
@@ -49,7 +49,7 @@ func ToObject(data []byte) (objects2.IObject, error) {
 	objType := constants.ObjectType(objStr)
 	switch objType {
 	case constants.Blob:
-		return objects2.NewBlob(content), nil
+		return objects.NewBlob(content), nil
 	default:
 		return nil, errors.New("unsupported object type: " + objStr)
 	}

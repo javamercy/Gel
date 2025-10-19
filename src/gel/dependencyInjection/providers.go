@@ -1,16 +1,16 @@
 package dependencyInjection
 
 import (
-	services2 "Gel/src/gel/application/services"
+	"Gel/src/gel/application/services"
 	"Gel/src/gel/core/helpers"
-	repositories2 "Gel/src/gel/persistence/repositories"
+	"Gel/src/gel/persistence/repositories"
 
 	"github.com/google/wire"
 )
 
 var RepositoryProviderSet = wire.NewSet(
-	repositories2.NewFilesystemRepository,
-	wire.Bind(new(repositories2.IRepository), new(*repositories2.FilesystemRepository)),
+	repositories.NewFilesystemRepository,
+	wire.Bind(new(repositories.IRepository), new(*repositories.FilesystemRepository)),
 )
 
 var HelperProviderSet = wire.NewSet(
@@ -19,12 +19,12 @@ var HelperProviderSet = wire.NewSet(
 )
 
 var ServiceProviderSet = wire.NewSet(
-	services2.NewInitService,
-	wire.Bind(new(services2.IInitService), new(*services2.InitService)),
+	services.NewInitService,
+	wire.Bind(new(services.IInitService), new(*services.InitService)),
 
-	services2.NewHashObjectService,
-	wire.Bind(new(services2.IHashObjectService), new(*services2.HashObjectService)),
+	services.NewHashObjectService,
+	wire.Bind(new(services.IHashObjectService), new(*services.HashObjectService)),
 
-	services2.NewCatFileService,
-	wire.Bind(new(services2.ICatFileService), new(*services2.CatFileService)),
+	services.NewCatFileService,
+	wire.Bind(new(services.ICatFileService), new(*services.CatFileService)),
 )
