@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-// ToObjectContent prepares the object content by adding a header
-func ToObjectContent(objectType constants.ObjectType, fileData []byte) []byte {
+// SerializeObject converts an IObject into raw object data
+func SerializeObject(objectType constants.ObjectType, fileData []byte) []byte {
 	header := string(objectType) + constants.Space + strconv.Itoa(len(fileData)) + constants.NullByte
 	return append([]byte(header), fileData...)
 }
 
-// ToObject converts raw object data into an IObject
-func ToObject(data []byte) (objects.IObject, error) {
+// DeserializeObject converts raw object data into an IObject
+func DeserializeObject(data []byte) (objects.IObject, error) {
 	nullIndex := -1
 	for i, b := range data {
 		if b == 0 {
@@ -39,7 +39,6 @@ func ToObject(data []byte) (objects.IObject, error) {
 		return nil, errors.New("invalid size in header")
 	}
 
-	// Extract content after null byte
 	content := data[nullIndex+1:]
 	if len(content) != size {
 		return nil, errors.New("content size mismatch")

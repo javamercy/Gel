@@ -13,7 +13,6 @@ type IFilesystemRepository interface {
 	WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error
 	ReadFile(path string) ([]byte, error)
 	Exists(path string) bool
-	GetFileStat(path string) (os.FileInfo, error)
 }
 
 type FilesystemRepository struct {

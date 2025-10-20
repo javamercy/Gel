@@ -43,7 +43,7 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 		return nil, err
 	}
 
-	object, err := helpers.ToObject(data)
+	object, err := helpers.DeserializeObject(data)
 	if err != nil {
 		return nil, err
 	}
