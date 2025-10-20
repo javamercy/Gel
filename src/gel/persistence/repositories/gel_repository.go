@@ -14,15 +14,17 @@ type IGelRepository interface {
 	WriteObject(hash string, data []byte, startPath string) error
 	ReadObject(hash string, startPath string) ([]byte, error)
 	ObjectExists(hash string, startPath string) bool
+	WriteIndex()
+	ReadIndex()
 }
 
 type GelRepository struct {
-	filesystemRepo IFilesystemRepository
+	filesystemRepository IFilesystemRepository
 }
 
-func NewGelRepository(filesystemRepo IFilesystemRepository) *GelRepository {
+func NewGelRepository(filesystemRepository IFilesystemRepository) *GelRepository {
 	return &GelRepository{
-		filesystemRepo: filesystemRepo,
+		filesystemRepository,
 	}
 }
 
@@ -30,7 +32,7 @@ func (gelRepository *GelRepository) FindGelDir(startPath string) (string, error)
 	currentPath := startPath
 	for {
 		gelPath := filepath.Join(currentPath, constants.RepositoryDirName)
-		if gelRepository.filesystemRepo.Exists(gelPath) {
+		if gelRepository.filesystemRepository.Exists(gelPath) {
 			return gelPath, nil
 		}
 		parent := filepath.Dir(currentPath)
@@ -76,7 +78,7 @@ func (gelRepository *GelRepository) WriteObject(hash string, data []byte, startP
 	if err != nil {
 		return err
 	}
-	return gelRepository.filesystemRepo.WriteFile(objectPath, data, true, constants.FilePermission)
+	return gelRepository.filesystemRepository.WriteFile(objectPath, data, true, constants.FilePermission)
 }
 
 func (gelRepository *GelRepository) ReadObject(hash string, startPath string) ([]byte, error) {
@@ -84,7 +86,7 @@ func (gelRepository *GelRepository) ReadObject(hash string, startPath string) ([
 	if err != nil {
 		return nil, err
 	}
-	return gelRepository.filesystemRepo.ReadFile(objectPath)
+	return gelRepository.filesystemRepository.ReadFile(objectPath)
 }
 
 func (gelRepository *GelRepository) ObjectExists(hash string, startPath string) bool {
@@ -92,5 +94,9 @@ func (gelRepository *GelRepository) ObjectExists(hash string, startPath string) 
 	if err != nil {
 		return false
 	}
-	return gelRepository.filesystemRepo.Exists(objectPath)
+	return gelRepository.filesystemRepository.Exists(objectPath)
 }
+
+func (gelRepository *GelRepository) WriteIndex() {}
+
+func (gelRepository *GelRepository) ReadIndex() {}
