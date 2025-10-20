@@ -12,19 +12,22 @@ type IHashObjectService interface {
 }
 
 type HashObjectService struct {
-	repository        repositories.IRepository
-	compressionHelper helpers.ICompressionHelper
+	filesystemRepository repositories.IFilesystemRepository
+	gelRepository        repositories.IGelRepository
+	compressionHelper    helpers.ICompressionHelper
 }
 
-func NewHashObjectService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *HashObjectService {
+func NewHashObjectService(filesystemRepository repositories.IFilesystemRepository,
+	gelRepository repositories.IGelRepository, compressionHelper helpers.ICompressionHelper) *HashObjectService {
 	return &HashObjectService{
-		repository,
+		filesystemRepository,
+		gelRepository,
 		compressionHelper,
 	}
 }
 
 func (hashObjectService *HashObjectService) HashObject(path string, objectType constants.ObjectType, write bool) (string, error) {
-	fileData, err := hashObjectService.repository.ReadFile(path)
+	fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -46,16 +49,16 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return "", err
 	}
 
-	objectPath, err := hashObjectService.repository.FindObjectPath(hash, cwd)
+	objectPath, err := hashObjectService.gelRepository.FindObjectPath(hash, cwd)
 	if err != nil {
 		return "", err
 	}
 
-	if hashObjectService.repository.Exists(objectPath) {
+	if hashObjectService.filesystemRepository.Exists(objectPath) {
 		return hash, nil
 	}
 
-	writeErr := hashObjectService.repository.WriteFile(objectPath, compressedContent, true, constants.FilePermission)
+	writeErr := hashObjectService.filesystemRepository.WriteFile(objectPath, compressedContent, true, constants.FilePermission)
 
 	if writeErr != nil {
 		return "", writeErr

@@ -12,13 +12,15 @@ type ICatFileService interface {
 	ObjectExists(hash string) bool
 }
 type CatFileService struct {
-	repository        repositories.IRepository
-	compressionHelper helpers.ICompressionHelper
+	filesystemRepository repositories.IFilesystemRepository
+	gelRepository        repositories.IGelRepository
+	compressionHelper    helpers.ICompressionHelper
 }
 
-func NewCatFileService(repository repositories.IRepository, compressionHelper helpers.ICompressionHelper) *CatFileService {
+func NewCatFileService(filesystemRepository repositories.IFilesystemRepository, gelRepository repositories.IGelRepository, compressionHelper helpers.ICompressionHelper) *CatFileService {
 	return &CatFileService{
-		repository,
+		filesystemRepository,
+		gelRepository,
 		compressionHelper,
 	}
 }
@@ -30,8 +32,8 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 		return nil, err
 	}
 
-	path, err := catFileService.repository.FindObjectPath(hash, cwd)
-	compressedContent, err := catFileService.repository.ReadFile(path)
+	path, err := catFileService.gelRepository.FindObjectPath(hash, cwd)
+	compressedContent, err := catFileService.filesystemRepository.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +56,10 @@ func (catFileService *CatFileService) ObjectExists(hash string) bool {
 		return false
 	}
 
-	path, err := catFileService.repository.FindObjectPath(hash, cwd)
+	path, err := catFileService.gelRepository.FindObjectPath(hash, cwd)
 	if err != nil {
 		return false
 	}
 
-	return catFileService.repository.Exists(path)
+	return catFileService.filesystemRepository.Exists(path)
 }

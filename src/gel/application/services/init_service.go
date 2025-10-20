@@ -12,12 +12,12 @@ type IInitService interface {
 }
 
 type InitService struct {
-	repository repositories.IRepository
+	filesystemRepository repositories.IFilesystemRepository
 }
 
-func NewInitService(repository repositories.IRepository) *InitService {
+func NewInitService(filesystemRepository repositories.IFilesystemRepository) *InitService {
 	return &InitService{
-		repository,
+		filesystemRepository,
 	}
 }
 
@@ -29,10 +29,24 @@ func (initService *InitService) Init(path string) (string, error) {
 		filepath.Join(base, constants.ObjectsDirName),
 		filepath.Join(base, constants.RefsDirName),
 	}
-	exists := initService.repository.Exists(base)
-	if err := initService.repository.MakeDirRange(dirs, constants.DirPermission); err != nil {
-		return err.Error(), err
+	files := []string{
+		filepath.Join(base, constants.IndexFileName),
 	}
+
+	exists := initService.filesystemRepository.Exists(base)
+
+	for _, dir := range dirs {
+		if err := initService.filesystemRepository.MakeDir(dir, constants.DirPermission); err != nil {
+			return "", err
+		}
+	}
+
+	for _, file := range files {
+		if err := initService.filesystemRepository.WriteFile(file, []byte{}, false, constants.FilePermission); err != nil {
+			return "", err
+		}
+	}
+
 	if exists {
 		return fmt.Sprintf("Reinitialized existing Gel repository in %s", base), nil
 	}

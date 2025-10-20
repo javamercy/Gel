@@ -7,7 +7,8 @@ import (
 )
 
 type Container struct {
-	Repository repositories.IRepository
+	FilesystemRepository repositories.IFilesystemRepository
+	GelRepository        repositories.IGelRepository
 
 	CompressionHelper helpers.ICompressionHelper
 

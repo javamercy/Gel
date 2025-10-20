@@ -16,6 +16,7 @@ const (
 	RepositoryDirName = ".gel"
 	ObjectsDirName    = "objects"
 	RefsDirName       = "refs"
+	IndexFileName     = "index"
 )
 
 // special character constants

@@ -10,7 +10,10 @@ import (
 
 var RepositoryProviderSet = wire.NewSet(
 	repositories.NewFilesystemRepository,
-	wire.Bind(new(repositories.IRepository), new(*repositories.FilesystemRepository)),
+	wire.Bind(new(repositories.IFilesystemRepository), new(*repositories.FilesystemRepository)),
+
+	repositories.NewGelRepository,
+	wire.Bind(new(repositories.IGelRepository), new(*repositories.GelRepository)),
 )
 
 var HelperProviderSet = wire.NewSet(
