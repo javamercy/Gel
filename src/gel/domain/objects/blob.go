@@ -1,7 +1,7 @@
 package objects
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 )
 
 type Blob struct {
@@ -11,7 +11,7 @@ type Blob struct {
 func NewBlob(data []byte) *Blob {
 	return &Blob{
 		&BaseObject{
-			objectType: constants.Blob,
+			objectType: constant.Blob,
 			data:       data,
 		},
 	}

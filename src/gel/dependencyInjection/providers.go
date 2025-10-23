@@ -1,14 +1,14 @@
 package dependencyInjection
 
 import (
+	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/services"
-	"Gel/src/gel/core/helpers"
 	"Gel/src/gel/persistence/repositories"
 
 	"github.com/google/wire"
 )
 
-var RepositoryProviderSet = wire.NewSet(
+var PersistenceProviderSet = wire.NewSet(
 	repositories.NewFilesystemRepository,
 	wire.Bind(new(repositories.IFilesystemRepository), new(*repositories.FilesystemRepository)),
 
@@ -16,12 +16,7 @@ var RepositoryProviderSet = wire.NewSet(
 	wire.Bind(new(repositories.IGelRepository), new(*repositories.GelRepository)),
 )
 
-var HelperProviderSet = wire.NewSet(
-	helpers.NewZlibCompressionHelper,
-	wire.Bind(new(helpers.ICompressionHelper), new(*helpers.ZlibCompressionHelper)),
-)
-
-var ServiceProviderSet = wire.NewSet(
+var ApplicationProviderSet = wire.NewSet(
 	services.NewInitService,
 	wire.Bind(new(services.IInitService), new(*services.InitService)),
 
@@ -30,4 +25,11 @@ var ServiceProviderSet = wire.NewSet(
 
 	services.NewCatFileService,
 	wire.Bind(new(services.ICatFileService), new(*services.CatFileService)),
+
+	services.NewUpdateIndexService,
+	wire.Bind(new(services.IUpdateIndexService), new(*services.UpdateIndexService)),
+	rules.NewUpdateIndexRules,
+
+	services.NewLsFilesService,
+	wire.Bind(new(services.ILsFilesService), new(*services.LsFilesService)),
 )

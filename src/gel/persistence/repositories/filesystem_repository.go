@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 	"errors"
 	"io/fs"
 	"os"
@@ -13,6 +13,7 @@ type IFilesystemRepository interface {
 	WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error
 	ReadFile(path string) ([]byte, error)
 	Exists(path string) bool
+	Stat(path string) (os.FileInfo, error)
 }
 
 type FilesystemRepository struct {
@@ -29,7 +30,7 @@ func (filesystemRepository *FilesystemRepository) MakeDir(path string, permissio
 func (filesystemRepository *FilesystemRepository) WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error {
 	if autoCreateDir {
 		dir := filepath.Dir(path)
-		if err := filesystemRepository.MakeDir(dir, constants.DirPermission); err != nil {
+		if err := filesystemRepository.MakeDir(dir, constant.DirPermission); err != nil {
 			return err
 		}
 	}
@@ -43,4 +44,8 @@ func (filesystemRepository *FilesystemRepository) Exists(path string) bool {
 
 func (filesystemRepository *FilesystemRepository) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
+}
+
+func (filesystemRepository *FilesystemRepository) Stat(path string) (os.FileInfo, error) {
+	return os.Stat(path)
 }

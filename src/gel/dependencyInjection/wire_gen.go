@@ -7,8 +7,8 @@
 package dependencyInjection
 
 import (
+	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/services"
-	"Gel/src/gel/core/helpers"
 	"Gel/src/gel/persistence/repositories"
 )
 
@@ -19,17 +19,21 @@ import (
 func InitializeContainer() *Container {
 	filesystemRepository := repositories.NewFilesystemRepository()
 	gelRepository := repositories.NewGelRepository(filesystemRepository)
-	zlibCompressionHelper := helpers.NewZlibCompressionHelper()
 	initService := services.NewInitService(filesystemRepository)
-	hashObjectService := services.NewHashObjectService(filesystemRepository, gelRepository, zlibCompressionHelper)
-	catFileService := services.NewCatFileService(filesystemRepository, gelRepository, zlibCompressionHelper)
+	hashObjectService := services.NewHashObjectService(filesystemRepository, gelRepository)
+	catFileService := services.NewCatFileService(filesystemRepository, gelRepository)
+	updateIndexRules := rules.NewUpdateIndexRules(filesystemRepository)
+	updateIndexService := services.NewUpdateIndexService(gelRepository, filesystemRepository, updateIndexRules)
+	lsFilesService := services.NewLsFilesService(gelRepository, filesystemRepository)
 	container := &Container{
 		FilesystemRepository: filesystemRepository,
 		GelRepository:        gelRepository,
-		CompressionHelper:    zlibCompressionHelper,
 		InitService:          initService,
 		HashObjectService:    hashObjectService,
 		CatFileService:       catFileService,
+		UpdateIndexService:   updateIndexService,
+		UpdateIndexRules:     updateIndexRules,
+		LsFilesService:       lsFilesService,
 	}
 	return container
 }

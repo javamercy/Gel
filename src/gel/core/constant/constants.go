@@ -1,4 +1,4 @@
-package constants
+package constant
 
 import "os"
 
@@ -13,10 +13,10 @@ const (
 
 // repository related constants
 const (
-	RepositoryDirName = ".gel"
-	ObjectsDirName    = "objects"
-	RefsDirName       = "refs"
-	IndexFileName     = "index"
+	GelDirName     = ".gel"
+	ObjectsDirName = "objects"
+	RefsDirName    = "refs"
+	IndexFileName  = "index"
 )
 
 // special character constants
@@ -36,4 +36,10 @@ const (
 	RegularFileMode = "100644"
 	ExecFileMode    = "100755"
 	DirMode         = "40000"
+)
+
+// index constants
+const (
+	IndexSignature = "GELI"
+	IndexVersion   = 2
 )

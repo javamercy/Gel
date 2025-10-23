@@ -1,20 +1,18 @@
-package helpers
+package serialization
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 	"Gel/src/gel/domain/objects"
 	"errors"
 	"strconv"
 	"strings"
 )
 
-// SerializeObject converts an IObject into raw object data
-func SerializeObject(objectType constants.ObjectType, fileData []byte) []byte {
-	header := string(objectType) + constants.Space + strconv.Itoa(len(fileData)) + constants.NullByte
+func SerializeObject(objectType constant.ObjectType, fileData []byte) []byte {
+	header := string(objectType) + constant.Space + strconv.Itoa(len(fileData)) + constant.NullByte
 	return append([]byte(header), fileData...)
 }
 
-// DeserializeObject converts raw object data into an IObject
 func DeserializeObject(data []byte) (objects.IObject, error) {
 	nullIndex := -1
 	for i, b := range data {
@@ -28,7 +26,7 @@ func DeserializeObject(data []byte) (objects.IObject, error) {
 	}
 
 	header := string(data[:nullIndex])
-	parts := strings.Split(header, constants.Space)
+	parts := strings.Split(header, constant.Space)
 	if len(parts) != 2 {
 		return nil, errors.New("invalid header format")
 	}
@@ -45,9 +43,9 @@ func DeserializeObject(data []byte) (objects.IObject, error) {
 	}
 
 	objStr := parts[0]
-	objType := constants.ObjectType(objStr)
+	objType := constant.ObjectType(objStr)
 	switch objType {
-	case constants.Blob:
+	case constant.Blob:
 		return objects.NewBlob(content), nil
 	default:
 		return nil, errors.New("unsupported object type: " + objStr)

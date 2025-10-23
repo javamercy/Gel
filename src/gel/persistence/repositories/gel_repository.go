@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 	"errors"
 	"path/filepath"
 )
@@ -14,8 +14,8 @@ type IGelRepository interface {
 	WriteObject(hash string, data []byte, startPath string) error
 	ReadObject(hash string, startPath string) ([]byte, error)
 	ObjectExists(hash string, startPath string) bool
-	WriteIndex()
-	ReadIndex()
+	ReadIndex(startPath string) ([]byte, error)
+	WriteIndex(data []byte, startPath string) error
 }
 
 type GelRepository struct {
@@ -31,7 +31,7 @@ func NewGelRepository(filesystemRepository IFilesystemRepository) *GelRepository
 func (gelRepository *GelRepository) FindGelDir(startPath string) (string, error) {
 	currentPath := startPath
 	for {
-		gelPath := filepath.Join(currentPath, constants.RepositoryDirName)
+		gelPath := filepath.Join(currentPath, constant.GelDirName)
 		if gelRepository.filesystemRepository.Exists(gelPath) {
 			return gelPath, nil
 		}
@@ -49,7 +49,7 @@ func (gelRepository *GelRepository) FindObjectsDir(startPath string) (string, er
 	if err != nil {
 		return "", err
 	}
-	objectsDir := filepath.Join(gelDir, constants.ObjectsDirName)
+	objectsDir := filepath.Join(gelDir, constant.ObjectsDirName)
 	return objectsDir, nil
 }
 
@@ -58,7 +58,7 @@ func (gelRepository *GelRepository) FindIndexFilePath(startPath string) (string,
 	if err != nil {
 		return "", err
 	}
-	indexFilePath := filepath.Join(gelDir, constants.IndexFileName)
+	indexFilePath := filepath.Join(gelDir, constant.IndexFileName)
 	return indexFilePath, nil
 }
 
@@ -78,7 +78,7 @@ func (gelRepository *GelRepository) WriteObject(hash string, data []byte, startP
 	if err != nil {
 		return err
 	}
-	return gelRepository.filesystemRepository.WriteFile(objectPath, data, true, constants.FilePermission)
+	return gelRepository.filesystemRepository.WriteFile(objectPath, data, true, constant.FilePermission)
 }
 
 func (gelRepository *GelRepository) ReadObject(hash string, startPath string) ([]byte, error) {
@@ -97,6 +97,18 @@ func (gelRepository *GelRepository) ObjectExists(hash string, startPath string) 
 	return gelRepository.filesystemRepository.Exists(objectPath)
 }
 
-func (gelRepository *GelRepository) WriteIndex() {}
+func (gelRepository *GelRepository) ReadIndex(startPath string) ([]byte, error) {
+	indexFilePath, err := gelRepository.FindIndexFilePath(startPath)
+	if err != nil {
+		return nil, err
+	}
+	return gelRepository.filesystemRepository.ReadFile(indexFilePath)
+}
 
-func (gelRepository *GelRepository) ReadIndex() {}
+func (gelRepository *GelRepository) WriteIndex(data []byte, startPath string) error {
+	indexFilePath, err := gelRepository.FindIndexFilePath(startPath)
+	if err != nil {
+		return err
+	}
+	return gelRepository.filesystemRepository.WriteFile(indexFilePath, data, false, constant.FilePermission)
+}

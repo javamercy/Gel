@@ -1,20 +1,20 @@
 package objects
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 )
 
 type IObject interface {
-	Type() constants.ObjectType
+	Type() constant.ObjectType
 	Size() int
 	Data() []byte
 }
 type BaseObject struct {
-	objectType constants.ObjectType
+	objectType constant.ObjectType
 	data       []byte
 }
 
-func (baseObject *BaseObject) Type() constants.ObjectType {
+func (baseObject *BaseObject) Type() constant.ObjectType {
 	return baseObject.objectType
 }
 

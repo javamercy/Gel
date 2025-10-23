@@ -1,7 +1,8 @@
 package services
 
 import (
-	"Gel/src/gel/core/helpers"
+	"Gel/src/gel/core/encoding"
+	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
 	"os"
@@ -14,14 +15,12 @@ type ICatFileService interface {
 type CatFileService struct {
 	filesystemRepository repositories.IFilesystemRepository
 	gelRepository        repositories.IGelRepository
-	compressionHelper    helpers.ICompressionHelper
 }
 
-func NewCatFileService(filesystemRepository repositories.IFilesystemRepository, gelRepository repositories.IGelRepository, compressionHelper helpers.ICompressionHelper) *CatFileService {
+func NewCatFileService(filesystemRepository repositories.IFilesystemRepository, gelRepository repositories.IGelRepository) *CatFileService {
 	return &CatFileService{
 		filesystemRepository,
 		gelRepository,
-		compressionHelper,
 	}
 }
 
@@ -38,12 +37,12 @@ func (catFileService *CatFileService) GetObject(hash string) (objects.IObject, e
 		return nil, err
 	}
 
-	data, err := catFileService.compressionHelper.Decompress(compressedContent)
+	data, err := encoding.Decompress(compressedContent)
 	if err != nil {
 		return nil, err
 	}
 
-	object, err := helpers.DeserializeObject(data)
+	object, err := serialization.DeserializeObject(data)
 	if err != nil {
 		return nil, err
 	}

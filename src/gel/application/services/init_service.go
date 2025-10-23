@@ -1,7 +1,7 @@
 package services
 
 import (
-	"Gel/src/gel/core/constants"
+	"Gel/src/gel/core/constant"
 	"Gel/src/gel/persistence/repositories"
 	"fmt"
 	"path/filepath"
@@ -22,27 +22,18 @@ func NewInitService(filesystemRepository repositories.IFilesystemRepository) *In
 }
 
 func (initService *InitService) Init(path string) (string, error) {
-	base := filepath.Join(path, constants.RepositoryDirName)
+	base := filepath.Join(path, constant.GelDirName)
 
 	dirs := []string{
 		base,
-		filepath.Join(base, constants.ObjectsDirName),
-		filepath.Join(base, constants.RefsDirName),
-	}
-	files := []string{
-		filepath.Join(base, constants.IndexFileName),
+		filepath.Join(base, constant.ObjectsDirName),
+		filepath.Join(base, constant.RefsDirName),
 	}
 
 	exists := initService.filesystemRepository.Exists(base)
 
 	for _, dir := range dirs {
-		if err := initService.filesystemRepository.MakeDir(dir, constants.DirPermission); err != nil {
-			return "", err
-		}
-	}
-
-	for _, file := range files {
-		if err := initService.filesystemRepository.WriteFile(file, []byte{}, false, constants.FilePermission); err != nil {
+		if err := initService.filesystemRepository.MakeDir(dir, constant.DirPermission); err != nil {
 			return "", err
 		}
 	}

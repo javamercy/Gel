@@ -1,45 +1,44 @@
 package services
 
 import (
-	"Gel/src/gel/core/constants"
-	"Gel/src/gel/core/helpers"
+	"Gel/src/gel/core/constant"
+	"Gel/src/gel/core/encoding"
+	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/persistence/repositories"
 	"os"
 )
 
 type IHashObjectService interface {
-	HashObject(path string, objectType constants.ObjectType, write bool) (string, error)
+	HashObject(path string, objectType constant.ObjectType, write bool) (string, error)
 }
 
 type HashObjectService struct {
 	filesystemRepository repositories.IFilesystemRepository
 	gelRepository        repositories.IGelRepository
-	compressionHelper    helpers.ICompressionHelper
 }
 
 func NewHashObjectService(filesystemRepository repositories.IFilesystemRepository,
-	gelRepository repositories.IGelRepository, compressionHelper helpers.ICompressionHelper) *HashObjectService {
+	gelRepository repositories.IGelRepository) *HashObjectService {
 	return &HashObjectService{
 		filesystemRepository,
 		gelRepository,
-		compressionHelper,
 	}
 }
 
-func (hashObjectService *HashObjectService) HashObject(path string, objectType constants.ObjectType, write bool) (string, error) {
+func (hashObjectService *HashObjectService) HashObject(path string, objectType constant.ObjectType, write bool) (string, error) {
 	fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
 
-	content := helpers.SerializeObject(objectType, fileData)
-	hash := helpers.ComputeHash(content)
+	content := serialization.SerializeObject(objectType, fileData)
+	hash := encoding.ComputeHash(content)
 
 	if !write {
 		return hash, nil
 	}
 
-	compressedContent, err := hashObjectService.compressionHelper.Compress(content)
+	compressedContent, err := encoding.Compress(content)
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +57,7 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return hash, nil
 	}
 
-	writeErr := hashObjectService.filesystemRepository.WriteFile(objectPath, compressedContent, true, constants.FilePermission)
+	writeErr := hashObjectService.filesystemRepository.WriteFile(objectPath, compressedContent, true, constant.FilePermission)
 
 	if writeErr != nil {
 		return "", writeErr
