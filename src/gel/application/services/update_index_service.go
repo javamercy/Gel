@@ -5,17 +5,19 @@ import (
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/serialization"
+	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
 )
 
-type UpdateIndexOptions struct {
+type UpdateIndexRequest struct {
+	Paths  []string
 	Add    bool
 	Remove bool
 }
 
 type IUpdateIndexService interface {
-	UpdateIndex(paths []string, options UpdateIndexOptions) error
+	UpdateIndex(request UpdateIndexRequest) error
 }
 
 type UpdateIndexService struct {
@@ -34,37 +36,29 @@ func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesy
 	}
 }
 
-func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, options UpdateIndexOptions) error {
+func (updateIndexService *UpdateIndexService) UpdateIndex(request UpdateIndexRequest) error {
 
-	err := updateIndexService.updateIndexRules.AllPathsMustExist(paths)
+	err := utilities.RunAll(
+		updateIndexService.updateIndexRules.AllPathsMustExist(request.Paths),
+		updateIndexService.updateIndexRules.NoDuplicatePaths(request.Paths),
+		updateIndexService.updateIndexRules.PathsMustBeFiles(request.Paths))
+
 	if err != nil {
 		return err
 	}
 
-	err = updateIndexService.updateIndexRules.NoDuplicatePaths(paths)
-	if err != nil {
-		return err
-	}
-
-	err = updateIndexService.updateIndexRules.PathsMustBeFiles(paths)
-	if err != nil {
-		return err
-	}
-
-	// Try to read existing index, or create new one if it doesn't exist
 	index, err := updateIndexService.indexRepository.Read()
 	if err != nil {
-		// If index doesn't exist, create a new empty one
 		index = domain.NewEmptyIndex()
 	}
 
-	if options.Add {
-		err := updateIndexService.add(index, paths)
+	if request.Add {
+		err := updateIndexService.add(index, request.Paths)
 		if err != nil {
 			return err
 		}
-	} else if options.Remove {
-		err := updateIndexService.remove(index, paths)
+	} else if request.Remove {
+		err := updateIndexService.remove(index, request.Paths)
 		if err != nil {
 			return err
 		}
@@ -80,14 +74,11 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			return err
 		}
 
-		// Create blob object and get hash using HashObjectService
-		// This will write the blob to the object store
 		hash, err := updateIndexService.hashObjectService.HashObject(path, constant.Blob, true)
 		if err != nil {
 			return err
 		}
 
-		// Create or update index entry
 		newEntry := domain.IndexEntry{
 			Path:        path,
 			Hash:        hash,
@@ -102,29 +93,22 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			UpdatedTime: fileInfo.ModTime(),
 		}
 
-		// Use domain method to add or update entry
 		index.AddOrUpdateEntry(newEntry)
 	}
 
-	// Calculate checksum for the entire index
 	indexBytes := serialization.SerializeIndex(index)
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	// Write updated index to disk
 	return updateIndexService.indexRepository.Write(index)
-
 }
 
 func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths []string) error {
-	// Remove entries from index
 	for _, path := range paths {
 		index.RemoveEntry(path)
 	}
 
-	// Calculate checksum for the updated index
 	indexBytes := serialization.SerializeIndex(index)
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	// Write updated index to disk
 	return updateIndexService.indexRepository.Write(index)
 }
