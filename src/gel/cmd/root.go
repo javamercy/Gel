@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"Gel/src/gel/core/context"
 	"Gel/src/gel/dependencyInjection"
 	"os"
 
@@ -39,4 +40,8 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func requiresEnsureContextPreRun(cmd *cobra.Command, args []string) error {
+	return context.EnsureContext()
 }

@@ -13,7 +13,6 @@ var initCmd = &cobra.Command{
 		if len(args) > 0 {
 			path = args[0]
 		}
-
 		message, err := container.InitService.Init(path)
 		if err != nil {
 			cmd.PrintErrln("Error initializing repository:", err)

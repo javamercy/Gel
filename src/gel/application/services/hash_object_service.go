@@ -5,7 +5,6 @@ import (
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/persistence/repositories"
-	"os"
 )
 
 type IHashObjectService interface {
@@ -14,18 +13,19 @@ type IHashObjectService interface {
 
 type HashObjectService struct {
 	filesystemRepository repositories.IFilesystemRepository
-	gelRepository        repositories.IGelRepository
+	objectRepository     repositories.IObjectRepository
 }
 
 func NewHashObjectService(filesystemRepository repositories.IFilesystemRepository,
-	gelRepository repositories.IGelRepository) *HashObjectService {
+	objectRepository repositories.IObjectRepository) *HashObjectService {
 	return &HashObjectService{
 		filesystemRepository,
-		gelRepository,
+		objectRepository,
 	}
 }
 
 func (hashObjectService *HashObjectService) HashObject(path string, objectType constant.ObjectType, write bool) (string, error) {
+
 	fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -43,22 +43,7 @@ func (hashObjectService *HashObjectService) HashObject(path string, objectType c
 		return "", err
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	objectPath, err := hashObjectService.gelRepository.FindObjectPath(hash, cwd)
-	if err != nil {
-		return "", err
-	}
-
-	if hashObjectService.filesystemRepository.Exists(objectPath) {
-		return hash, nil
-	}
-
-	writeErr := hashObjectService.filesystemRepository.WriteFile(objectPath, compressedContent, true, constant.FilePermission)
-
+	writeErr := hashObjectService.objectRepository.Write(hash, compressedContent)
 	if writeErr != nil {
 		return "", writeErr
 	}

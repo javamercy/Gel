@@ -36,9 +36,28 @@ func NewIndex(header IndexHeader, entries []IndexEntry, checksum string) *Index 
 	}
 }
 
+func NewEmptyIndex() *Index {
+	header := IndexHeader{
+		Signature:  [4]byte{'G', 'E', 'L', 'I'},
+		Version:    1,
+		NumEntries: 0,
+	}
+	return NewIndex(header, []IndexEntry{}, "")
+}
+
 func (index *Index) AddEntry(entry IndexEntry) {
 	index.Entries = append(index.Entries, entry)
 	index.Header.NumEntries = uint32(len(index.Entries))
+}
+
+func (index *Index) AddOrUpdateEntry(entry IndexEntry) {
+	for i, _ := range index.Entries {
+		if index.Entries[i].Path == entry.Path {
+			index.Entries[i] = entry
+			return
+		}
+	}
+	index.AddEntry(entry)
 }
 
 func (index *Index) RemoveEntry(path string) {
@@ -52,7 +71,6 @@ func (index *Index) RemoveEntry(path string) {
 }
 
 func (index *Index) FindEntry(path string) *IndexEntry {
-
 	for _, entry := range index.Entries {
 		if entry.Path == path {
 			return &entry

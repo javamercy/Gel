@@ -1,7 +1,6 @@
 package services
 
 import (
-	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/persistence/repositories"
 )
 
@@ -15,30 +14,18 @@ type ILsFilesService interface {
 }
 
 type LsFilesService struct {
-	gelRepository        repositories.IGelRepository
-	filesystemRepository repositories.IFilesystemRepository
+	indexRepository repositories.IIndexRepository
 }
 
-func NewLsFilesService(gelRepository repositories.IGelRepository, filesystemRepository repositories.IFilesystemRepository) *LsFilesService {
+func NewLsFilesService(indexRepository repositories.IIndexRepository) *LsFilesService {
 	return &LsFilesService{
-		gelRepository,
-		filesystemRepository,
+		indexRepository,
 	}
 }
 
 func (lsFilesService *LsFilesService) LsFiles() ([]string, error) {
 
-	indexFilePath, err := lsFilesService.gelRepository.FindIndexFilePath(".")
-	if err != nil {
-		return nil, err
-	}
-
-	indexBytes, err := lsFilesService.filesystemRepository.ReadFile(indexFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	index, err := serialization.DeserializeIndex(indexBytes)
+	index, err := lsFilesService.indexRepository.Read()
 	if err != nil {
 		return nil, err
 	}
@@ -47,5 +34,6 @@ func (lsFilesService *LsFilesService) LsFiles() ([]string, error) {
 	for _, entry := range index.Entries {
 		files = append(files, entry.Path)
 	}
+
 	return files, nil
 }

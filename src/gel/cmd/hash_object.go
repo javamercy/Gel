@@ -7,8 +7,9 @@ import (
 )
 
 var hashObjectCmd = &cobra.Command{
-	Use:   "hash-object",
-	Short: "Compute the hash of a file",
+	Use:     "hash-object",
+	Short:   "Compute the hash of a file",
+	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.PrintErrln("Please provide a file path")

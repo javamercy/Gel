@@ -8,14 +8,14 @@ import (
 
 type Container struct {
 	FilesystemRepository repositories.IFilesystemRepository
-	GelRepository        repositories.IGelRepository
+	ObjectRepository     repositories.IObjectRepository
+	IndexRepository      repositories.IIndexRepository
 
-	InitService       services.IInitService
-	HashObjectService services.IHashObjectService
-	CatFileService    services.ICatFileService
-
+	InitService        services.IInitService
+	HashObjectService  services.IHashObjectService
+	CatFileService     services.ICatFileService
 	UpdateIndexService services.IUpdateIndexService
-	UpdateIndexRules   *rules.UpdateIndexRules
+	LsFilesService     services.ILsFilesService
 
-	LsFilesService services.ILsFilesService
+	UpdateIndexRules *rules.UpdateIndexRules
 }

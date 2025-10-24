@@ -7,8 +7,9 @@ import (
 )
 
 var updateIndexCmd = &cobra.Command{
-	Use:   "update-index",
-	Short: "Update the index with the current state of the working directory",
+	Use:     "update-index",
+	Short:   "Update the index with the current state of the working directory",
+	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		add, _ := cmd.Flags().GetBool("add")
 		remove, _ := cmd.Flags().GetBool("remove")

@@ -7,32 +7,28 @@ import (
 )
 
 var catFileCmd = &cobra.Command{
-	Use:   "cat-file",
-	Short: "Display the content of a Git object",
+	Use:     "cat-file",
+	Short:   "Display the content of a Git object",
+	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			_ = cmd.Help()
 			os.Exit(1)
 		}
+
 		hash := args[0]
-
-		exists, _ := cmd.Flags().GetBool("exists")
-
-		if exists {
-			if container.CatFileService.ObjectExists(hash) {
-				cmd.Println("Object exists")
-				os.Exit(0)
-			}
-			os.Exit(1)
-		}
-
 		object, err := container.CatFileService.GetObject(hash)
 		if err != nil {
 			cmd.Println(err)
 			os.Exit(1)
 		}
 
-		cmd.Println("Object:", string(object.Data()))
+		exists, _ := cmd.Flags().GetBool("exists")
+		if exists {
+			cmd.Println("Object exists")
+			return
+		}
+		cmd.Println(string(object.Data()))
 	},
 }
 

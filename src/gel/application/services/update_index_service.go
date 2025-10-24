@@ -7,7 +7,6 @@ import (
 	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
-	"os"
 )
 
 type UpdateIndexOptions struct {
@@ -17,20 +16,20 @@ type UpdateIndexOptions struct {
 
 type IUpdateIndexService interface {
 	UpdateIndex(paths []string, options UpdateIndexOptions) error
-	add(index *domain.Index, paths []string, indexFilePath string) error
-	remove(paths []string) error
 }
 
 type UpdateIndexService struct {
-	gelRepository        repositories.IGelRepository
+	indexRepository      repositories.IIndexRepository
 	filesystemRepository repositories.IFilesystemRepository
+	hashObjectService    IHashObjectService
 	updateIndexRules     *rules.UpdateIndexRules
 }
 
-func NewUpdateIndexService(gelRepository repositories.IGelRepository, filesystemRepository repositories.IFilesystemRepository, updateIndexRules *rules.UpdateIndexRules) *UpdateIndexService {
+func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesystemRepository repositories.IFilesystemRepository, hashObjectService IHashObjectService, updateIndexRules *rules.UpdateIndexRules) *UpdateIndexService {
 	return &UpdateIndexService{
-		gelRepository,
+		indexRepository,
 		filesystemRepository,
+		hashObjectService,
 		updateIndexRules,
 	}
 }
@@ -52,34 +51,20 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, option
 		return err
 	}
 
-	cwd, err := os.Getwd()
+	// Try to read existing index, or create new one if it doesn't exist
+	index, err := updateIndexService.indexRepository.Read()
 	if err != nil {
-		return err
-	}
-
-	indexFilePath, err := updateIndexService.gelRepository.FindIndexFilePath(cwd)
-	indexFileExists := updateIndexService.filesystemRepository.Exists(indexFilePath)
-
-	var indexBytes []byte
-	if indexFileExists {
-		indexBytes, err = updateIndexService.filesystemRepository.ReadFile(indexFilePath)
-		if err != nil {
-			return err
-		}
-	}
-
-	index, err := serialization.DeserializeIndex(indexBytes)
-	if err != nil {
-		return err
+		// If index doesn't exist, create a new empty one
+		index = domain.NewEmptyIndex()
 	}
 
 	if options.Add {
-		err := updateIndexService.add(index, paths, indexFilePath)
+		err := updateIndexService.add(index, paths)
 		if err != nil {
 			return err
 		}
 	} else if options.Remove {
-		err := updateIndexService.remove(paths)
+		err := updateIndexService.remove(index, paths)
 		if err != nil {
 			return err
 		}
@@ -87,35 +72,25 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, option
 	return nil
 }
 
-func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string, indexFilePath string) error {
+func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string) error {
 
 	for _, path := range paths {
-		fileInfo, _ := updateIndexService.filesystemRepository.Stat(path)
-		data, err := updateIndexService.filesystemRepository.ReadFile(path)
+		fileInfo, err := updateIndexService.filesystemRepository.Stat(path)
 		if err != nil {
 			return err
 		}
 
-		exists := false
-		content := serialization.SerializeObject(constant.Blob, data)
-		for i := range index.Entries {
-			if index.Entries[i].Path == path {
-				index.Entries[i].Size = uint32(fileInfo.Size())
-				index.Entries[i].Mode = uint32(fileInfo.Mode())
-				index.Entries[i].UpdatedTime = fileInfo.ModTime()
-				index.Entries[i].Hash = encoding.ComputeHash(content)
-				exists = true
-				break
-			}
+		// Create blob object and get hash using HashObjectService
+		// This will write the blob to the object store
+		hash, err := updateIndexService.hashObjectService.HashObject(path, constant.Blob, true)
+		if err != nil {
+			return err
 		}
 
-		if exists {
-			continue
-		}
-		// Add new entry
+		// Create or update index entry
 		newEntry := domain.IndexEntry{
 			Path:        path,
-			Hash:        encoding.ComputeHash(content),
+			Hash:        hash,
 			Size:        uint32(fileInfo.Size()),
 			Mode:        uint32(fileInfo.Mode()),
 			Device:      0,
@@ -127,24 +102,29 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			UpdatedTime: fileInfo.ModTime(),
 		}
 
-		index.Entries = append(index.Entries, newEntry)
-		index.Header.NumEntries = uint32(len(index.Entries))
+		// Use domain method to add or update entry
+		index.AddOrUpdateEntry(newEntry)
 	}
 
+	// Calculate checksum for the entire index
 	indexBytes := serialization.SerializeIndex(index)
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	serializedIndex := serialization.SerializeIndex(index)
-	err := updateIndexService.filesystemRepository.WriteFile(
-		indexFilePath,
-		serializedIndex,
-		false,
-		constant.FilePermission)
+	// Write updated index to disk
+	return updateIndexService.indexRepository.Write(index)
 
-	return err
 }
 
-func (updateIndexService *UpdateIndexService) remove(paths []string) error {
+func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths []string) error {
+	// Remove entries from index
+	for _, path := range paths {
+		index.RemoveEntry(path)
+	}
 
-	return nil
+	// Calculate checksum for the updated index
+	indexBytes := serialization.SerializeIndex(index)
+	index.Checksum = encoding.ComputeHash(indexBytes)
+
+	// Write updated index to disk
+	return updateIndexService.indexRepository.Write(index)
 }

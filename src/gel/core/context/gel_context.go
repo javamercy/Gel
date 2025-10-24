@@ -2,23 +2,35 @@ package context
 
 import (
 	"Gel/src/gel/core/constant"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 )
 
 type GelContext struct {
-	gelDir     string
-	objectsDir string
-	refsDir    string
-	indexPath  string
-	workingDir string
+	GelDir     string
+	ObjectsDir string
+	RefsDir    string
+	IndexPath  string
+	WorkingDir string
 }
 
 var globalContext *GelContext
 var contextOnce sync.Once
 
-func InitializeContext() (*GelContext, error) {
+func EnsureContext() error {
+	_, err := initializeContext()
+	if err != nil {
+		return errors.New("not a gel repository (or any of the parent directories): .gel")
+	}
+	return nil
+}
+
+func GetContext() *GelContext {
+	return globalContext
+}
+func initializeContext() (*GelContext, error) {
 	var err error
 	contextOnce.Do(func() {
 		cwd, e := os.Getwd()
@@ -26,7 +38,6 @@ func InitializeContext() (*GelContext, error) {
 			err = e
 			return
 		}
-
 		gelDir, e := findGelDir(cwd)
 		if e != nil {
 			err = e
@@ -34,21 +45,14 @@ func InitializeContext() (*GelContext, error) {
 		}
 
 		globalContext = &GelContext{
-			gelDir:     gelDir,
-			objectsDir: filepath.Join(gelDir, constant.ObjectsDirName),
-			refsDir:    filepath.Join(gelDir, constant.RefsDirName),
-			indexPath:  filepath.Join(gelDir, constant.IndexFileName),
-			workingDir: filepath.Dir(gelDir),
+			GelDir:     gelDir,
+			ObjectsDir: filepath.Join(gelDir, constant.ObjectsDirName),
+			RefsDir:    filepath.Join(gelDir, constant.RefsDirName),
+			IndexPath:  filepath.Join(gelDir, constant.IndexFileName),
+			WorkingDir: filepath.Dir(gelDir),
 		}
 	})
 	return globalContext, err
-}
-
-func GetContext() *GelContext {
-	if globalContext == nil {
-		panic("GelContext not initialized")
-	}
-	return globalContext
 }
 
 func findGelDir(startPath string) (string, error) {

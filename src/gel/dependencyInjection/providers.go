@@ -11,9 +11,10 @@ import (
 var PersistenceProviderSet = wire.NewSet(
 	repositories.NewFilesystemRepository,
 	wire.Bind(new(repositories.IFilesystemRepository), new(*repositories.FilesystemRepository)),
-
-	repositories.NewGelRepository,
-	wire.Bind(new(repositories.IGelRepository), new(*repositories.GelRepository)),
+	repositories.NewObjectRepository,
+	wire.Bind(new(repositories.IObjectRepository), new(*repositories.ObjectRepository)),
+	repositories.NewIndexRepository,
+	wire.Bind(new(repositories.IIndexRepository), new(*repositories.IndexRepository)),
 )
 
 var ApplicationProviderSet = wire.NewSet(
