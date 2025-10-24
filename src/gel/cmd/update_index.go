@@ -14,12 +14,13 @@ var updateIndexCmd = &cobra.Command{
 		add, _ := cmd.Flags().GetBool("add")
 		remove, _ := cmd.Flags().GetBool("remove")
 
-		options := services.UpdateIndexOptions{
+		request := services.UpdateIndexRequest{
+			Paths:  args,
 			Add:    add,
 			Remove: remove,
 		}
 
-		err := container.UpdateIndexService.UpdateIndex(args, options)
+		err := container.UpdateIndexService.UpdateIndex(request)
 		if err != nil {
 			cmd.PrintErrln("Error updating index:", err)
 			return
