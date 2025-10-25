@@ -106,11 +106,11 @@ func TestNewEmptyIndex(t *testing.T) {
 // TestAddEntry tests the AddEntry method
 func TestAddEntry(t *testing.T) {
 	tests := []struct {
-		name            string
-		initialEntries  []IndexEntry
-		entriesToAdd    []IndexEntry
-		expectedCount   int
-		expectedPaths   []string
+		name           string
+		initialEntries []IndexEntry
+		entriesToAdd   []IndexEntry
+		expectedCount  int
+		expectedPaths  []string
 	}{
 		{
 			name:           "add entry to empty index",
@@ -338,11 +338,11 @@ func TestAddOrUpdateEntry(t *testing.T) {
 // TestRemoveEntry tests the RemoveEntry method
 func TestRemoveEntry(t *testing.T) {
 	tests := []struct {
-		name            string
-		initialEntries  []IndexEntry
-		pathsToRemove   []string
-		expectedCount   int
-		expectedPaths   []string
+		name           string
+		initialEntries []IndexEntry
+		pathsToRemove  []string
+		expectedCount  int
+		expectedPaths  []string
 	}{
 		{
 			name: "remove existing entry",
@@ -364,7 +364,7 @@ func TestRemoveEntry(t *testing.T) {
 			expectedPaths: []string{"file1.txt"},
 		},
 		{
-			name: "remove from empty index",
+			name:           "remove from empty index",
 			initialEntries: []IndexEntry{},
 			pathsToRemove:  []string{"file1.txt"},
 			expectedCount:  0,
@@ -455,11 +455,11 @@ func TestRemoveEntry(t *testing.T) {
 // TestFindEntry tests the FindEntry method
 func TestFindEntry(t *testing.T) {
 	tests := []struct {
-		name           string
-		entries        []IndexEntry
-		pathToFind     string
-		expectedFound  bool
-		expectedHash   string
+		name          string
+		entries       []IndexEntry
+		pathToFind    string
+		expectedFound bool
+		expectedHash  string
 	}{
 		{
 			name: "find existing entry",
@@ -729,11 +729,11 @@ func TestIndexInvariants(t *testing.T) {
 	t.Run("RemoveEntry on non-existent path is idempotent", func(t *testing.T) {
 		index := NewEmptyIndex()
 		index.AddEntry(IndexEntry{Path: "file1.txt", Hash: "h1"})
-		
+
 		initialCount := index.Header.NumEntries
 
 		index.RemoveEntry("nonexistent.txt")
-		
+
 		if index.Header.NumEntries != initialCount {
 			t.Errorf("NumEntries changed after removing non-existent entry: %d -> %d",
 				initialCount, index.Header.NumEntries)

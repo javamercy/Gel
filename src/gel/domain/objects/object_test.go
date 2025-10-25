@@ -8,9 +8,9 @@ import (
 // TestBaseObjectType tests the Type() method of BaseObject
 func TestBaseObjectType(t *testing.T) {
 	tests := []struct {
-		name         string
-		objectType   constant.ObjectType
-		data         []byte
+		name       string
+		objectType constant.ObjectType
+		data       []byte
 	}{
 		{
 			name:       "blob type",
@@ -108,8 +108,8 @@ func TestBaseObjectSize(t *testing.T) {
 // TestBaseObjectData tests the Data() method of BaseObject
 func TestBaseObjectData(t *testing.T) {
 	tests := []struct {
-		name         string
-		data         []byte
+		name string
+		data []byte
 	}{
 		{
 			name: "empty data",
@@ -163,7 +163,7 @@ func TestBaseObjectData(t *testing.T) {
 // TestBaseObjectInterfaceCompliance tests that BaseObject implements IObject interface
 func TestBaseObjectInterfaceCompliance(t *testing.T) {
 	var _ IObject = (*BaseObject)(nil)
-	
+
 	t.Run("BaseObject implements IObject", func(t *testing.T) {
 		obj := &BaseObject{
 			objectType: constant.Blob,
