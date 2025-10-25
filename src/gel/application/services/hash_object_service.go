@@ -7,8 +7,14 @@ import (
 	"Gel/src/gel/persistence/repositories"
 )
 
+type HashObjectRequest struct {
+	Paths      []string
+	ObjectType constant.ObjectType
+	Write      bool
+}
+
 type IHashObjectService interface {
-	HashObject(path string, objectType constant.ObjectType, write bool) (string, error)
+	HashObject(request HashObjectRequest) (map[string]string, error)
 }
 
 type HashObjectService struct {
@@ -24,29 +30,52 @@ func NewHashObjectService(filesystemRepository repositories.IFilesystemRepositor
 	}
 }
 
-func (hashObjectService *HashObjectService) HashObject(path string, objectType constant.ObjectType, write bool) (string, error) {
+func (hashObjectService *HashObjectService) HashObject(request HashObjectRequest) (map[string]string, error) {
 
-	fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
+	hashMap, contentMap, err := hashObjectService.hashObjects(request.Paths, request.ObjectType)
+
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	if !request.Write {
+		return hashMap, nil
 	}
 
-	content := serialization.SerializeObject(objectType, fileData)
-	hash := encoding.ComputeHash(content)
-
-	if !write {
-		return hash, nil
-	}
-
-	compressedContent, err := encoding.Compress(content)
+	err = hashObjectService.write(contentMap)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	writeErr := hashObjectService.objectRepository.Write(hash, compressedContent)
-	if writeErr != nil {
-		return "", writeErr
-	}
+	return hashMap, nil
+}
 
-	return hash, nil
+func (hashObjectService *HashObjectService) hashObjects(paths []string, objectType constant.ObjectType) (map[string]string, map[string][]byte, error) {
+	hashMap := make(map[string]string)
+	contentMap := make(map[string][]byte)
+	for _, path := range paths {
+		fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
+		if err != nil {
+			return nil, nil, err
+		}
+		content := serialization.SerializeObject(objectType, fileData)
+		hash := encoding.ComputeHash(content)
+		hashMap[path] = hash
+		contentMap[hash] = content
+	}
+	return hashMap, contentMap, nil
+}
+
+func (hashObjectService *HashObjectService) write(contentMap map[string][]byte) error {
+	for hash, content := range contentMap {
+		compressedContent, err := encoding.Compress(content)
+		if err != nil {
+			return err
+		}
+
+		writeErr := hashObjectService.objectRepository.Write(hash, compressedContent)
+		if writeErr != nil {
+			return writeErr
+		}
+	}
+	return nil
 }

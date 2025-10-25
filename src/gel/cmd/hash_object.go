@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"Gel/src/gel/application/services"
 	"Gel/src/gel/core/constant"
 
 	"github.com/spf13/cobra"
@@ -15,19 +16,28 @@ var hashObjectCmd = &cobra.Command{
 			cmd.PrintErrln("Please provide a file path")
 			return
 		}
-		path := args[0]
 		write, _ := cmd.Flags().GetBool("write")
+		objectType := cmd.Flags().Lookup("type").Value.String()
 
-		hash, err := container.HashObjectService.HashObject(path, constant.Blob, write)
+		request := services.HashObjectRequest{
+			Paths:      args,
+			ObjectType: constant.ObjectType(objectType),
+			Write:      write,
+		}
+
+		response, err := container.HashObjectService.HashObject(request)
 		if err != nil {
 			cmd.PrintErrln("Error hashing object:", err)
 			return
 		}
-		cmd.Println(hash)
+		for path, hash := range response {
+			cmd.Printf("%s  %s\n", hash, path)
+		}
 	},
 }
 
 func init() {
 	hashObjectCmd.Flags().BoolP("write", "w", false, "Write the object to the object database")
+	hashObjectCmd.Flags().StringP("type", "t", "blob", "Specify the object type (blob, tree, commit)")
 	rootCmd.AddCommand(hashObjectCmd)
 }

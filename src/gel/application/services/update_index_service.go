@@ -74,14 +74,20 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			return err
 		}
 
-		hash, err := updateIndexService.hashObjectService.HashObject(path, constant.Blob, true)
+		hashObjectRequest := HashObjectRequest{
+			Paths:      []string{path},
+			ObjectType: constant.Blob,
+			Write:      true,
+		}
+
+		hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
 		if err != nil {
 			return err
 		}
 
 		newEntry := domain.IndexEntry{
 			Path:        path,
-			Hash:        hash,
+			Hash:        hashMap[path],
 			Size:        uint32(fileInfo.Size()),
 			Mode:        uint32(fileInfo.Mode()),
 			Device:      0,
