@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"Gel/src/gel/core/constant"
+	"time"
+)
 
 type IndexHeader struct {
 	Signature  [4]byte
@@ -38,8 +41,8 @@ func NewIndex(header IndexHeader, entries []IndexEntry, checksum string) *Index 
 
 func NewEmptyIndex() *Index {
 	header := IndexHeader{
-		Signature:  [4]byte{'G', 'E', 'L', 'I'},
-		Version:    1,
+		Signature:  [4]byte([]byte(constant.IndexSignature)),
+		Version:    constant.IndexVersion,
 		NumEntries: 0,
 	}
 	return NewIndex(header, []IndexEntry{}, "")
