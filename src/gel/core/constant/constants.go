@@ -6,9 +6,9 @@ import "os"
 type ObjectType string
 
 const (
-	Blob   ObjectType = "blob"
-	Tree   ObjectType = "tree"
-	Commit ObjectType = "commit"
+	GelBlobObjectType   ObjectType = "blob"
+	GelTreeObjectType   ObjectType = "tree"
+	GelCommitObjectType ObjectType = "commit"
 )
 
 // repository related constants

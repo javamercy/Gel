@@ -11,7 +11,7 @@ type Blob struct {
 func NewBlob(data []byte) *Blob {
 	return &Blob{
 		&BaseObject{
-			objectType: constant.Blob,
+			objectType: constant.GelBlobObjectType,
 			data:       data,
 		},
 	}

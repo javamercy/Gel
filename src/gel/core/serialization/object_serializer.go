@@ -45,7 +45,7 @@ func DeserializeObject(data []byte) (objects.IObject, error) {
 	objStr := parts[0]
 	objType := constant.ObjectType(objStr)
 	switch objType {
-	case constant.Blob:
+	case constant.GelBlobObjectType:
 		return objects.NewBlob(content), nil
 	default:
 		return nil, errors.New("unsupported object type: " + objStr)
