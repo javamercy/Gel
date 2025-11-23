@@ -1,6 +1,8 @@
 package services
 
 import (
+	"Gel/src/gel/application/dto"
+	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/persistence/repositories"
 	"fmt"
@@ -8,7 +10,7 @@ import (
 )
 
 type IInitService interface {
-	Init(path string) (string, error)
+	Init(request *dto.InitRequest) (string, error)
 }
 
 type InitService struct {
@@ -21,19 +23,25 @@ func NewInitService(filesystemRepository repositories.IFilesystemRepository) *In
 	}
 }
 
-func (initService *InitService) Init(path string) (string, error) {
-	base := filepath.Join(path, constant.GelDirName)
+func (initService *InitService) Init(request *dto.InitRequest) (string, error) {
+
+	validator := validators.NewInitValidator()
+	if err := validator.Validate(request); err != nil {
+		return "", fmt.Errorf("validation error: %s", err.Error())
+	}
+
+	base := filepath.Join(request.Path, constant.GelDirName)
 
 	dirs := []string{
 		base,
-		filepath.Join(base, constant.ObjectsDirName),
-		filepath.Join(base, constant.RefsDirName),
+		filepath.Join(base, constant.GelObjectsDirName),
+		filepath.Join(base, constant.GelRefsDirName),
 	}
 
 	exists := initService.filesystemRepository.Exists(base)
 
 	for _, dir := range dirs {
-		if err := initService.filesystemRepository.MakeDir(dir, constant.DirPermission); err != nil {
+		if err := initService.filesystemRepository.MakeDir(dir, constant.GelDirPermission); err != nil {
 			return "", err
 		}
 	}
