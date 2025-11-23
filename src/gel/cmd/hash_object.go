@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"Gel/src/gel/application/services"
+	"Gel/src/gel/application/dto"
 	"Gel/src/gel/core/constant"
 
 	"github.com/spf13/cobra"
@@ -19,11 +19,7 @@ var hashObjectCmd = &cobra.Command{
 		write, _ := cmd.Flags().GetBool("write")
 		objectType := cmd.Flags().Lookup("type").Value.String()
 
-		request := services.HashObjectRequest{
-			Paths:      args,
-			ObjectType: constant.ObjectType(objectType),
-			Write:      write,
-		}
+		request := dto.NewHashObjectRequest(args, constant.ObjectType(objectType), write)
 
 		response, err := container.HashObjectService.HashObject(request)
 		if err != nil {

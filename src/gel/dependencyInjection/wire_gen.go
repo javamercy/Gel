@@ -21,7 +21,8 @@ func InitializeContainer() *Container {
 	objectRepository := repositories.NewObjectRepository(filesystemRepository)
 	indexRepository := repositories.NewIndexRepository(filesystemRepository)
 	initService := services.NewInitService(filesystemRepository)
-	hashObjectService := services.NewHashObjectService(filesystemRepository, objectRepository)
+	hashObjectRules := rules.NewHashObjectRules(filesystemRepository)
+	hashObjectService := services.NewHashObjectService(filesystemRepository, objectRepository, hashObjectRules)
 	catFileService := services.NewCatFileService(filesystemRepository, objectRepository)
 	updateIndexRules := rules.NewUpdateIndexRules(filesystemRepository)
 	updateIndexService := services.NewUpdateIndexService(indexRepository, filesystemRepository, hashObjectService, updateIndexRules)
@@ -36,6 +37,7 @@ func InitializeContainer() *Container {
 		UpdateIndexService:   updateIndexService,
 		LsFilesService:       lsFilesService,
 		UpdateIndexRules:     updateIndexRules,
+		HashObjectRules:      hashObjectRules,
 	}
 	return container
 }

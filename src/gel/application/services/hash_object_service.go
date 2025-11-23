@@ -1,36 +1,49 @@
 package services
 
 import (
+	"Gel/src/gel/application/dto"
+	"Gel/src/gel/application/rules"
+	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/serialization"
+	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/persistence/repositories"
 )
 
-type HashObjectRequest struct {
-	Paths      []string
-	ObjectType constant.ObjectType
-	Write      bool
-}
-
 type IHashObjectService interface {
-	HashObject(request HashObjectRequest) (map[string]string, error)
+	HashObject(request *dto.HashObjectRequest) (map[string]string, error)
 }
 
 type HashObjectService struct {
 	filesystemRepository repositories.IFilesystemRepository
 	objectRepository     repositories.IObjectRepository
+	hashObjectRules      *rules.HashObjectRules
 }
 
 func NewHashObjectService(filesystemRepository repositories.IFilesystemRepository,
-	objectRepository repositories.IObjectRepository) *HashObjectService {
+	objectRepository repositories.IObjectRepository, hashObjectRules *rules.HashObjectRules) *HashObjectService {
 	return &HashObjectService{
 		filesystemRepository,
 		objectRepository,
+		hashObjectRules,
 	}
 }
 
-func (hashObjectService *HashObjectService) HashObject(request HashObjectRequest) (map[string]string, error) {
+func (hashObjectService *HashObjectService) HashObject(request *dto.HashObjectRequest) (map[string]string, error) {
+
+	validator := validators.NewHashObjectValidator()
+	if err := validator.Validate(request); err != nil {
+		return nil, err
+	}
+
+	err := utilities.RunAll(
+		hashObjectService.hashObjectRules.PathsMustBeFiles(request.Paths),
+		hashObjectService.hashObjectRules.AllPathsMustExist(request.Paths))
+
+	if err != nil {
+		return nil, err
+	}
 
 	hashMap, contentMap, err := hashObjectService.hashObjects(request.Paths, request.ObjectType)
 

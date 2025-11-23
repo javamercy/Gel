@@ -21,15 +21,16 @@ var ApplicationProviderSet = wire.NewSet(
 	services.NewInitService,
 	wire.Bind(new(services.IInitService), new(*services.InitService)),
 
+	rules.NewHashObjectRules,
 	services.NewHashObjectService,
 	wire.Bind(new(services.IHashObjectService), new(*services.HashObjectService)),
 
 	services.NewCatFileService,
 	wire.Bind(new(services.ICatFileService), new(*services.CatFileService)),
 
+	rules.NewUpdateIndexRules,
 	services.NewUpdateIndexService,
 	wire.Bind(new(services.IUpdateIndexService), new(*services.UpdateIndexService)),
-	rules.NewUpdateIndexRules,
 
 	services.NewLsFilesService,
 	wire.Bind(new(services.ILsFilesService), new(*services.LsFilesService)),

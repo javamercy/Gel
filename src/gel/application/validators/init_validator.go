@@ -15,7 +15,7 @@ func NewInitValidator() *InitValidator {
 }
 
 func (initValidator *InitValidator) Validate(data any) *validation.ValidationError {
-	request, ok := data.(dto.InitRequest)
+	request, ok := data.(*dto.InitRequest)
 	if !ok {
 		return validation.NewValidationError("request", "invalid request type")
 	}

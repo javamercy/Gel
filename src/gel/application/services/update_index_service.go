@@ -1,6 +1,7 @@
 package services
 
 import (
+	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
@@ -74,11 +75,7 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			return err
 		}
 
-		hashObjectRequest := HashObjectRequest{
-			Paths:      []string{path},
-			ObjectType: constant.Blob,
-			Write:      true,
-		}
+		hashObjectRequest := dto.NewHashObjectRequest([]string{path}, constant.GelBlobObjectType, true)
 
 		hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
 		if err != nil {

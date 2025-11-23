@@ -1,5 +1,5 @@
 package validation
 
 type IValidator interface {
-	Validate(data any) *ValidationError
+	Validate(request any) *ValidationError
 }

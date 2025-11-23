@@ -18,4 +18,5 @@ type Container struct {
 	LsFilesService     services.ILsFilesService
 
 	UpdateIndexRules *rules.UpdateIndexRules
+	HashObjectRules  *rules.HashObjectRules
 }
