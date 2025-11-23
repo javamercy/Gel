@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"Gel/src/gel/application/dto"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -12,36 +13,51 @@ var catFileCmd = &cobra.Command{
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
+			cmd.PrintErrln("Error: object hash required")
 			_ = cmd.Help()
 			os.Exit(1)
 		}
 
 		hash := args[0]
-		object, err := container.CatFileService.GetObject(hash)
+
+		showType, _ := cmd.Flags().GetBool("type")
+		showSize, _ := cmd.Flags().GetBool("size")
+		pretty, _ := cmd.Flags().GetBool("pretty")
+		checkOnly, _ := cmd.Flags().GetBool("exists")
+
+		request := dto.NewCatFileRequest(hash, showType, showSize, pretty, checkOnly)
+
+		object, err := container.CatFileService.GetObject(request)
 		if err != nil {
-			cmd.Println(err)
+			if checkOnly {
+				os.Exit(1)
+			}
+			cmd.PrintErrln("Error:", err)
 			os.Exit(1)
 		}
 
-		exists, _ := cmd.Flags().GetBool("exists")
-		if exists {
-			cmd.Println("Object exists")
+		if checkOnly {
+			os.Exit(0)
+		}
+
+		if showType {
+			cmd.Println(object.Type())
 			return
 		}
-		cmd.Println(string(object.Data()))
+
+		if showSize {
+			cmd.Println(object.Size())
+			return
+		}
+
+		cmd.Print(string(object.Data()))
 	},
 }
 
-// -t (type): Displays the object type (e.g., "blob", "tree", "commit"). If the object doesn't exist, it errors.
-// -s (size): Displays the size of the object's content in bytes (not including the header).
-// -p (pretty-print): Pretty-prints the object's content. For blobs, this is just the raw content. For trees/commits, it's formatted (e.g., tree entries listed, commit details shown). This is the most common flag.
-// -e (exists): Exits with status 0 if the object exists and is valid, non-zero otherwise. Often used in scripts for validation.
-// Object Argument: The hash (full or partial) of the object to inspect. Git resolves partial hashes if unique.
-
 func init() {
-	catFileCmd.Flags().StringP("type", "t", "", "Specify the type of the object (e.g., blob, tree, commit)")
+	catFileCmd.Flags().BoolP("type", "t", false, "Show the object type")
 	catFileCmd.Flags().BoolP("pretty", "p", false, "Pretty-print the object content")
-	catFileCmd.Flags().BoolP("size", "s", false, "Display the size of the object")
+	catFileCmd.Flags().BoolP("size", "s", false, "Show the object size")
 	catFileCmd.Flags().BoolP("exists", "e", false, "Check if the object exists")
 	rootCmd.AddCommand(catFileCmd)
 }

@@ -43,3 +43,7 @@ const (
 	IndexSignature = "GELI"
 	IndexVersion   = 1
 )
+
+const (
+	SHA256HexLength = 64
+)

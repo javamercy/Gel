@@ -25,3 +25,21 @@ func NewHashObjectRequest(paths []string, objectType constant.ObjectType, write 
 		Write:      write,
 	}
 }
+
+type CatFileRequest struct {
+	Hash      string
+	ShowType  bool
+	ShowSize  bool
+	Pretty    bool
+	CheckOnly bool
+}
+
+func NewCatFileRequest(hash string, showType, showSize, pretty, checkOnly bool) *CatFileRequest {
+	return &CatFileRequest{
+		Hash:      hash,
+		ShowType:  showType,
+		ShowSize:  showSize,
+		Pretty:    pretty,
+		CheckOnly: checkOnly,
+	}
+}
