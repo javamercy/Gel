@@ -1,3 +1,6 @@
 .idea/
 .gel/
 /gel
+
+# macOS
+.DS_Store
