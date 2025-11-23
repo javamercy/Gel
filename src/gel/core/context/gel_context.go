@@ -46,9 +46,9 @@ func initializeContext() (*GelContext, error) {
 
 		globalContext = &GelContext{
 			GelDir:     gelDir,
-			ObjectsDir: filepath.Join(gelDir, constant.ObjectsDirName),
-			RefsDir:    filepath.Join(gelDir, constant.RefsDirName),
-			IndexPath:  filepath.Join(gelDir, constant.IndexFileName),
+			ObjectsDir: filepath.Join(gelDir, constant.GelObjectsDirName),
+			RefsDir:    filepath.Join(gelDir, constant.GelRefsDirName),
+			IndexPath:  filepath.Join(gelDir, constant.GelIndexFileName),
 			WorkingDir: filepath.Dir(gelDir),
 		}
 	})

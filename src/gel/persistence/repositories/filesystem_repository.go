@@ -30,7 +30,7 @@ func (filesystemRepository *FilesystemRepository) MakeDir(path string, permissio
 func (filesystemRepository *FilesystemRepository) WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error {
 	if autoCreateDir {
 		dir := filepath.Dir(path)
-		if err := filesystemRepository.MakeDir(dir, constant.DirPermission); err != nil {
+		if err := filesystemRepository.MakeDir(dir, constant.GelDirPermission); err != nil {
 			return err
 		}
 	}

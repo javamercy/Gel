@@ -13,10 +13,10 @@ const (
 
 // repository related constants
 const (
-	GelDirName     = ".gel"
-	ObjectsDirName = "objects"
-	RefsDirName    = "refs"
-	IndexFileName  = "index"
+	GelDirName        = ".gel"
+	GelObjectsDirName = "objects"
+	GelRefsDirName    = "refs"
+	GelIndexFileName  = "index"
 )
 
 // special character constants
@@ -27,8 +27,8 @@ const (
 
 // permission constants
 const (
-	FilePermission os.FileMode = 0644 // -rw-r--r--
-	DirPermission  os.FileMode = 0755 // wxr-xr-x
+	GelFilePermission os.FileMode = 0644 // -rw-r--r--
+	GelDirPermission  os.FileMode = 0755 // wxr-xr-x
 )
 
 // tree modes
@@ -41,5 +41,5 @@ const (
 // index constants
 const (
 	IndexSignature = "GELI"
-	IndexVersion   = 2
+	IndexVersion   = 1
 )

@@ -38,5 +38,5 @@ func (indexRepository *IndexRepository) Write(index *domain.Index) error {
 	return indexRepository.filesystemRepository.WriteFile(
 		ctx.IndexPath,
 		data, false,
-		constant.FilePermission)
+		constant.GelFilePermission)
 }

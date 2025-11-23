@@ -26,7 +26,7 @@ func NewObjectRepository(filesystemRepository IFilesystemRepository) *ObjectRepo
 
 func (objectRepository *ObjectRepository) Write(hash string, data []byte) error {
 	objectPath := objectRepository.GetObjectPath(hash)
-	return objectRepository.filesystemRepository.WriteFile(objectPath, data, true, constant.FilePermission)
+	return objectRepository.filesystemRepository.WriteFile(objectPath, data, true, constant.GelFilePermission)
 }
 
 func (objectRepository *ObjectRepository) Read(hash string) ([]byte, error) {

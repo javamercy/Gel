@@ -232,7 +232,7 @@ func getInitialIndex() *domain.Index {
 	return &domain.Index{
 		Header: domain.IndexHeader{
 			Signature:  [4]byte([]byte(constant.IndexSignature)),
-			Version:    2,
+			Version:    constant.IndexVersion,
 			NumEntries: 0,
 		},
 		Entries:  []domain.IndexEntry{},
