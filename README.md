@@ -1,3 +1,3 @@
 ## GEL
 
-### This is a placeholder README file for the GEL project.
+### An Agentic Version Control System
