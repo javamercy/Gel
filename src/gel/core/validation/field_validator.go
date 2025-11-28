@@ -32,22 +32,6 @@ func (fieldValidator *FieldValidator) String() *StringValidator {
 	return NewStringValidator(fieldValidator, stringValue)
 }
 
-func (fieldValidator *FieldValidator) Array() *ArrayValidator {
-	arrayValue, ok := fieldValidator.value.([]any)
-	fieldValidator.valid = ok
-
-	if !ok {
-		fieldValidator.parent.Errors = append(fieldValidator.parent.Errors, NewValidationError(
-			fieldValidator.fieldName,
-			"must be an array",
-		))
-
-		return NewArrayValidator(fieldValidator, []any{})
-	}
-
-	return NewArrayValidator(fieldValidator, arrayValue)
-}
-
 func (fieldValidator *FieldValidator) Int() *IntValidator {
 	intValue, ok := fieldValidator.value.(int)
 	fieldValidator.valid = ok
@@ -62,6 +46,21 @@ func (fieldValidator *FieldValidator) Int() *IntValidator {
 	}
 
 	return NewIntValidator(fieldValidator, intValue)
+}
+
+func (fieldValidator *FieldValidator) Must(predicate func(any) bool, message string) *FieldValidator {
+	if fieldValidator.stop() {
+		return fieldValidator
+	}
+
+	if !predicate(fieldValidator.value) {
+		validationError := NewValidationError(
+			fieldValidator.fieldName,
+			message,
+		)
+		fieldValidator.parent.AddError(validationError)
+	}
+	return fieldValidator
 }
 
 func (fieldValidator *FieldValidator) stop() bool {

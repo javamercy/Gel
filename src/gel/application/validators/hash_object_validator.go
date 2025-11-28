@@ -18,18 +18,18 @@ func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObject
 	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.
+		RuleFor("ObjectType", request.ObjectType).
+		Must(isValidObjectType, "ObjectType must be one of Blob, Tree, Commit")
+
+	fluentValidator.
 		RuleFor("Paths", request.Paths).
-		Array().
-		NotEmpty()
+		Must(isStringSliceNonEmpty, "Paths must contain at least one path").
+		Must(areAllInStringSliceNonEmpty, "All paths must be non-empty strings")
 
 	return fluentValidator.Validate()
 }
 
-func objectTypeMustBeValid(objectType constant.ObjectType) bool {
-	switch objectType {
-	case constant.GelBlobObjectType, constant.GelTreeObjectType, constant.GelCommitObjectType:
-		return true
-	default:
-		return false
-	}
+func isValidObjectType(value any) bool {
+	objectType, ok := value.(constant.ObjectType)
+	return ok && (objectType == constant.GelBlobObjectType || objectType == constant.GelTreeObjectType || objectType == constant.GelCommitObjectType)
 }

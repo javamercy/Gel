@@ -43,7 +43,6 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateInd
 	}
 
 	err := utilities.RunAll(
-		updateIndexService.updateIndexRules.AllPathsMustBeInIndex(request.Paths),
 		updateIndexService.updateIndexRules.PathsMustNotDuplicate(request.Paths))
 
 	if err != nil {

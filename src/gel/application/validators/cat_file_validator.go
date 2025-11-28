@@ -21,7 +21,6 @@ func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) 
 		RuleFor("Hash", request.Hash).
 		String().
 		NotEmpty().
-		Must(hashFormatMustBeValid, "Hash must be a valid hexadecimal string").
 		Must(hashLengthMustBeValid, "Hash must be a valid SHA-256 hash")
 
 	return fluentValidator.Validate()

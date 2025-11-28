@@ -1,6 +1,9 @@
 package validation
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 type StringValidator struct {
 	*FieldValidator
@@ -27,6 +30,20 @@ func (stringValidator *StringValidator) NotEmpty() *StringValidator {
 		stringValidator.parent.AddError(ValidationError)
 	}
 
+	return stringValidator
+}
+
+func (stringValidator *StringValidator) Matches(regexp regexp.Regexp) *StringValidator {
+	if stringValidator.stop() {
+		return stringValidator
+	}
+	if !regexp.MatchString(stringValidator.value) {
+		ValidationError := NewValidationError(
+			stringValidator.fieldName,
+			"has invalid format",
+		)
+		stringValidator.parent.AddError(ValidationError)
+	}
 	return stringValidator
 }
 
