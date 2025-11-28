@@ -60,6 +60,10 @@ func NewIndexEntry(
 	}
 }
 
+func (indexEntry *IndexEntry) GetStage() uint16 {
+	return (indexEntry.Flags >> 12) & 0x3
+}
+
 type Index struct {
 	Header   *IndexHeader
 	Entries  []*IndexEntry

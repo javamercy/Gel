@@ -98,7 +98,7 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			inode,
 			userId,
 			groupId,
-			0,
+			getIndexFlags(path, 11),
 			fileInfo.ModTime(),
 			fileInfo.ModTime())
 
@@ -128,4 +128,10 @@ func getFileStatSysInfo(fileInfo *syscall.Stat_t) (uint32, uint32, uint32, uint3
 	userId := fileInfo.Uid
 	groupId := fileInfo.Gid
 	return device, inode, userId, groupId
+}
+
+func getIndexFlags(path string, stage uint16) uint16 {
+	pathLength := min(len(path), 0xFFF)
+	flags := uint16(pathLength) | (stage << 12)
+	return flags
 }

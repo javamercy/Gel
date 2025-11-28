@@ -45,6 +45,8 @@ func lsFilesWithStage(index *domain.Index) string {
 		stringBuilder.WriteString(constant.Space)
 		stringBuilder.WriteString(entry.Hash)
 		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(strconv.Itoa(int(entry.GetStage())))
+		stringBuilder.WriteString(constant.Space)
 		stringBuilder.WriteString(entry.Path)
 		stringBuilder.WriteString(constant.NewLine)
 
