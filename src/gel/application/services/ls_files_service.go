@@ -1,16 +1,16 @@
 package services
 
 import (
+	"Gel/src/gel/application/dto"
+	"Gel/src/gel/core/constant"
+	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
+	"strconv"
+	"strings"
 )
 
-type LsFilesOptions struct {
-	Stage  bool
-	Cached bool
-}
-
 type ILsFilesService interface {
-	LsFiles() ([]string, error)
+	LsFiles(request *dto.LsFilesRequest) (string, error)
 }
 
 type LsFilesService struct {
@@ -23,17 +23,40 @@ func NewLsFilesService(indexRepository repositories.IIndexRepository) *LsFilesSe
 	}
 }
 
-func (lsFilesService *LsFilesService) LsFiles() ([]string, error) {
+func (lsFilesService *LsFilesService) LsFiles(request *dto.LsFilesRequest) (string, error) {
 
 	index, err := lsFilesService.indexRepository.Read()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	files := make([]string, 0, len(index.Entries))
+	if request.Stage {
+		return lsFilesWithStage(index), nil
+	}
+
+	return lsFiles(index), nil
+
+}
+
+func lsFilesWithStage(index *domain.Index) string {
+	stringBuilder := strings.Builder{}
 	for _, entry := range index.Entries {
-		files = append(files, entry.Path)
-	}
+		stringBuilder.WriteString(strconv.Itoa(int(entry.Mode)))
+		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(entry.Hash)
+		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(entry.Path)
+		stringBuilder.WriteString(constant.NewLine)
 
-	return files, nil
+	}
+	return stringBuilder.String()
+}
+
+func lsFiles(index *domain.Index) string {
+	stringBuilder := strings.Builder{}
+	for _, entry := range index.Entries {
+		stringBuilder.WriteString(entry.Path)
+		stringBuilder.WriteString(constant.NewLine)
+	}
+	return stringBuilder.String()
 }

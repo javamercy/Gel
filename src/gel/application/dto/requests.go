@@ -59,3 +59,19 @@ func NewUpdateIndexRequest(paths []string, add, remove bool) *UpdateIndexRequest
 		}
 	}
 }
+
+type LsFilesRequest struct {
+	Cached   bool
+	Stage    bool
+	Deleted  bool
+	Modified bool
+}
+
+func NewLsFilesRequest(cached, stage, deleted, modified bool) *LsFilesRequest {
+	return &LsFilesRequest{
+		Cached:   cached,
+		Stage:    stage,
+		Deleted:  deleted,
+		Modified: modified,
+	}
+}

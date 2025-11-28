@@ -23,6 +23,7 @@ const (
 const (
 	NullByte = "\x00"
 	Space    = " "
+	NewLine  = "\n"
 )
 
 // permission constants
