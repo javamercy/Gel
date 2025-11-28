@@ -2,9 +2,7 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
-	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/validation"
-	"regexp"
 )
 
 type CatFileValidator struct {
@@ -21,16 +19,7 @@ func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) 
 		RuleFor("Hash", request.Hash).
 		String().
 		NotEmpty().
-		Must(hashLengthMustBeValid, "Hash must be a valid SHA-256 hash")
+		Matches(RegexSHA256)
 
 	return fluentValidator.Validate()
-}
-
-func hashFormatMustBeValid(hash string) bool {
-	matched, _ := regexp.MatchString("^[0-9a-fA-F]+$", hash)
-	return matched
-}
-
-func hashLengthMustBeValid(hash string) bool {
-	return len(hash) == constant.SHA256HexLength
 }

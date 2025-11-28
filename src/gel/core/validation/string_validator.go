@@ -33,11 +33,11 @@ func (stringValidator *StringValidator) NotEmpty() *StringValidator {
 	return stringValidator
 }
 
-func (stringValidator *StringValidator) Matches(regexp regexp.Regexp) *StringValidator {
+func (stringValidator *StringValidator) Matches(pattern *regexp.Regexp) *StringValidator {
 	if stringValidator.stop() {
 		return stringValidator
 	}
-	if !regexp.MatchString(stringValidator.value) {
+	if !pattern.MatchString(stringValidator.value) {
 		ValidationError := NewValidationError(
 			stringValidator.fieldName,
 			"has invalid format",

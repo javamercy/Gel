@@ -1,6 +1,11 @@
 package validators
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+var RegexSHA256 = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
 
 func isStringSliceNonEmpty(value any) bool {
 	paths, ok := value.([]string)
