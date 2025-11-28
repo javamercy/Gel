@@ -15,7 +15,7 @@ func SerializeIndex(index *domain.Index) []byte {
 	serializedHeader := serializeIndexHeader(index.Header)
 	var serializedEntries []byte
 	for _, entry := range index.Entries {
-		serializedEntry := serializeIndexEntry(&entry)
+		serializedEntry := serializeIndexEntry(entry)
 		serializedEntries = append(serializedEntries, serializedEntry...)
 	}
 
@@ -30,7 +30,7 @@ func SerializeIndex(index *domain.Index) []byte {
 	return result
 }
 
-func serializeIndexHeader(indexHeader domain.IndexHeader) []byte {
+func serializeIndexHeader(indexHeader *domain.IndexHeader) []byte {
 	header := make([]byte, 12)
 	copy(header[0:4], indexHeader.Signature[:])
 	binary.BigEndian.PutUint32(header[4:8], indexHeader.Version)
@@ -120,13 +120,13 @@ func serializeIndexEntry(entry *domain.IndexEntry) []byte {
 
 func DeserializeIndex(data []byte) (*domain.Index, error) {
 	if len(data) == 0 {
-		return getInitialIndex(), nil
+		return domain.NewEmptyIndex(), nil
 	}
 	if len(data) < 12 {
 		return nil, errors.New("invalid index file: too short for header")
 	}
 
-	var index domain.Index
+	index := &domain.Index{}
 
 	header, err := deserializeIndexHeader(data[:12])
 	if err != nil {
@@ -135,7 +135,7 @@ func DeserializeIndex(data []byte) (*domain.Index, error) {
 
 	index.Header = header
 
-	if !bytes.Equal(header.Signature[:], []byte(constant.IndexSignature)) {
+	if !bytes.Equal(header.Signature[:], []byte(constant.GelIndexSignature)) {
 		return nil, errors.New("invalid index signature")
 	}
 
@@ -151,7 +151,7 @@ func DeserializeIndex(data []byte) (*domain.Index, error) {
 		if err != nil {
 			return nil, err
 		}
-		index.Entries = append(index.Entries, *entry)
+		index.AddEntry(entry)
 		offset += bytesRead
 	}
 
@@ -168,14 +168,14 @@ func DeserializeIndex(data []byte) (*domain.Index, error) {
 	}
 
 	index.Checksum = actualChecksum
-	return &index, nil
+	return index, nil
 }
 
-func deserializeIndexHeader(data []byte) (domain.IndexHeader, error) {
+func deserializeIndexHeader(data []byte) (*domain.IndexHeader, error) {
 	if len(data) < 12 {
-		return domain.IndexHeader{}, errors.New("header data too short")
+		return nil, errors.New("header data too short")
 	}
-	var header domain.IndexHeader
+	header := &domain.IndexHeader{}
 	copy(header.Signature[:], data[0:4])
 	header.Version = binary.BigEndian.Uint32(data[4:8])
 	header.NumEntries = binary.BigEndian.Uint32(data[8:12])
@@ -187,7 +187,7 @@ func deserializeIndexEntry(data []byte) (*domain.IndexEntry, int, error) {
 		return nil, 0, errors.New("entry data too short")
 	}
 
-	var entry domain.IndexEntry
+	entry := &domain.IndexEntry{}
 
 	createdTimeUnix := int64(binary.BigEndian.Uint32(data[0:4]))
 	createdTimeNanoseconds := int64(binary.BigEndian.Uint32(data[4:8]))
@@ -225,17 +225,5 @@ func deserializeIndexEntry(data []byte) (*domain.IndexEntry, int, error) {
 	padding := (8 - (totalSize % 8)) % 8
 	totalSize += padding
 
-	return &entry, totalSize, nil
-}
-
-func getInitialIndex() *domain.Index {
-	return &domain.Index{
-		Header: domain.IndexHeader{
-			Signature:  [4]byte([]byte(constant.IndexSignature)),
-			Version:    constant.IndexVersion,
-			NumEntries: 0,
-		},
-		Entries:  []domain.IndexEntry{},
-		Checksum: "",
-	}
+	return entry, totalSize, nil
 }

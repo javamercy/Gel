@@ -9,6 +9,7 @@ import (
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
+	"errors"
 	"fmt"
 )
 
@@ -36,8 +37,10 @@ func NewCatFileService(
 func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (objects.IObject, error) {
 
 	validator := validators.NewCatFileValidator()
-	if err := validator.Validate(request); err != nil {
-		return nil, err
+	validationResult := validator.Validate(request)
+
+	if !validationResult.IsValid() {
+		return nil, errors.New(validationResult.Error())
 	}
 
 	err := utilities.RunAll(

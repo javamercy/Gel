@@ -25,7 +25,7 @@ func InitializeContainer() *Container {
 	hashObjectService := services.NewHashObjectService(filesystemRepository, objectRepository, hashObjectRules)
 	catFileRules := rules.NewCatFileRules(objectRepository)
 	catFileService := services.NewCatFileService(filesystemRepository, objectRepository, catFileRules)
-	updateIndexRules := rules.NewUpdateIndexRules(filesystemRepository)
+	updateIndexRules := rules.NewUpdateIndexRules(indexRepository)
 	updateIndexService := services.NewUpdateIndexService(indexRepository, filesystemRepository, hashObjectService, updateIndexRules)
 	lsFilesService := services.NewLsFilesService(indexRepository)
 	container := &Container{

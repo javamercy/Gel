@@ -11,6 +11,14 @@ type IndexHeader struct {
 	NumEntries uint32
 }
 
+func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) *IndexHeader {
+	return &IndexHeader{
+		Signature:  signature,
+		Version:    version,
+		NumEntries: numEntries,
+	}
+}
+
 type IndexEntry struct {
 	Path        string
 	Hash        string
@@ -25,13 +33,40 @@ type IndexEntry struct {
 	UpdatedTime time.Time
 }
 
+func NewIndexEntry(
+	path string,
+	hash string,
+	size uint32,
+	mode uint32,
+	device uint32,
+	inode uint32,
+	userId uint32,
+	groupId uint32,
+	flags uint16,
+	createdTime time.Time,
+	updatedTime time.Time) *IndexEntry {
+	return &IndexEntry{
+		path,
+		hash,
+		size,
+		mode,
+		device,
+		inode,
+		userId,
+		groupId,
+		flags,
+		createdTime,
+		updatedTime,
+	}
+}
+
 type Index struct {
-	Header   IndexHeader
-	Entries  []IndexEntry
+	Header   *IndexHeader
+	Entries  []*IndexEntry
 	Checksum string
 }
 
-func NewIndex(header IndexHeader, entries []IndexEntry, checksum string) *Index {
+func NewIndex(header *IndexHeader, entries []*IndexEntry, checksum string) *Index {
 	return &Index{
 		Header:   header,
 		Entries:  entries,
@@ -40,20 +75,17 @@ func NewIndex(header IndexHeader, entries []IndexEntry, checksum string) *Index 
 }
 
 func NewEmptyIndex() *Index {
-	header := IndexHeader{
-		Signature:  [4]byte([]byte(constant.IndexSignature)),
-		Version:    constant.IndexVersion,
-		NumEntries: 0,
-	}
-	return NewIndex(header, []IndexEntry{}, "")
+	signatureBytes := [4]byte([]byte(constant.GelIndexSignature))
+	header := NewIndexHeader(signatureBytes, constant.GelIndexVersion, 0)
+	return NewIndex(header, []*IndexEntry{}, "")
 }
 
-func (index *Index) AddEntry(entry IndexEntry) {
+func (index *Index) AddEntry(entry *IndexEntry) {
 	index.Entries = append(index.Entries, entry)
 	index.Header.NumEntries = uint32(len(index.Entries))
 }
 
-func (index *Index) AddOrUpdateEntry(entry IndexEntry) {
+func (index *Index) AddOrUpdateEntry(entry *IndexEntry) {
 	for i, _ := range index.Entries {
 		if index.Entries[i].Path == entry.Path {
 			index.Entries[i] = entry
@@ -76,7 +108,7 @@ func (index *Index) RemoveEntry(path string) {
 func (index *Index) FindEntry(path string) *IndexEntry {
 	for _, entry := range index.Entries {
 		if entry.Path == path {
-			return &entry
+			return entry
 		}
 	}
 	return nil

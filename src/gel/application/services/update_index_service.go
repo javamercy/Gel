@@ -3,22 +3,19 @@ package services
 import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
+	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
+	"errors"
+	"syscall"
 )
 
-type UpdateIndexRequest struct {
-	Paths  []string
-	Add    bool
-	Remove bool
-}
-
 type IUpdateIndexService interface {
-	UpdateIndex(request UpdateIndexRequest) error
+	UpdateIndex(request *dto.UpdateIndexRequest) error
 }
 
 type UpdateIndexService struct {
@@ -37,12 +34,17 @@ func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesy
 	}
 }
 
-func (updateIndexService *UpdateIndexService) UpdateIndex(request UpdateIndexRequest) error {
+func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateIndexRequest) error {
+	validator := validators.NewUpdateIndexValidator()
+	validationResult := validator.Validate(request)
+
+	if !validationResult.IsValid() {
+		return errors.New(validationResult.Error())
+	}
 
 	err := utilities.RunAll(
-		updateIndexService.updateIndexRules.AllPathsMustExist(request.Paths),
-		updateIndexService.updateIndexRules.NoDuplicatePaths(request.Paths),
-		updateIndexService.updateIndexRules.PathsMustBeFiles(request.Paths))
+		updateIndexService.updateIndexRules.AllPathsMustBeInIndex(request.Paths),
+		updateIndexService.updateIndexRules.PathsMustNotDuplicate(request.Paths))
 
 	if err != nil {
 		return err
@@ -69,32 +71,37 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(request UpdateIndexReq
 
 func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string) error {
 
+	hashObjectRequest := dto.NewHashObjectRequest(paths, constant.GelBlobObjectType, true)
+	hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
+	if err != nil {
+		return err
+	}
+
 	for _, path := range paths {
 		fileInfo, err := updateIndexService.filesystemRepository.Stat(path)
 		if err != nil {
 			return err
 		}
 
-		hashObjectRequest := dto.NewHashObjectRequest([]string{path}, constant.GelBlobObjectType, true)
+		statInfo, ok := fileInfo.Sys().(*syscall.Stat_t)
 
-		hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
-		if err != nil {
-			return err
+		if !ok {
+			return errors.New("failed to get file stat info")
 		}
 
-		newEntry := domain.IndexEntry{
-			Path:        path,
-			Hash:        hashMap[path],
-			Size:        uint32(fileInfo.Size()),
-			Mode:        uint32(fileInfo.Mode()),
-			Device:      0,
-			Inode:       0,
-			UserId:      0,
-			GroupId:     0,
-			Flags:       0,
-			CreatedTime: fileInfo.ModTime(),
-			UpdatedTime: fileInfo.ModTime(),
-		}
+		device, inode, userId, groupId := getFileStatSysInfo(statInfo)
+
+		newEntry := domain.NewIndexEntry(path,
+			hashMap[path],
+			uint32(fileInfo.Size()),
+			uint32(fileInfo.Mode()),
+			device,
+			inode,
+			userId,
+			groupId,
+			0,
+			fileInfo.ModTime(),
+			fileInfo.ModTime())
 
 		index.AddOrUpdateEntry(newEntry)
 	}
@@ -114,4 +121,12 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
 	return updateIndexService.indexRepository.Write(index)
+}
+
+func getFileStatSysInfo(fileInfo *syscall.Stat_t) (uint32, uint32, uint32, uint32) {
+	device := uint32(fileInfo.Dev)
+	inode := uint32(fileInfo.Ino)
+	userId := fileInfo.Uid
+	groupId := fileInfo.Gid
+	return device, inode, userId, groupId
 }

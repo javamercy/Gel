@@ -9,6 +9,7 @@ import (
 	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/persistence/repositories"
+	"errors"
 )
 
 type IHashObjectService interface {
@@ -33,10 +34,11 @@ func NewHashObjectService(filesystemRepository repositories.IFilesystemRepositor
 func (hashObjectService *HashObjectService) HashObject(request *dto.HashObjectRequest) (map[string]string, error) {
 
 	validator := validators.NewHashObjectValidator()
-	if err := validator.Validate(request); err != nil {
-		return nil, err
-	}
+	validationResult := validator.Validate(request)
 
+	if !validationResult.IsValid() {
+		return nil, errors.New(validationResult.Error())
+	}
 	err := utilities.RunAll(
 		hashObjectService.hashObjectRules.PathsMustBeFiles(request.Paths),
 		hashObjectService.hashObjectRules.AllPathsMustExist(request.Paths))

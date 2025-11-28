@@ -5,6 +5,7 @@ import (
 	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/persistence/repositories"
+	"errors"
 	"fmt"
 	"path/filepath"
 )
@@ -26,8 +27,9 @@ func NewInitService(filesystemRepository repositories.IFilesystemRepository) *In
 func (initService *InitService) Init(request *dto.InitRequest) (string, error) {
 
 	validator := validators.NewInitValidator()
-	if err := validator.Validate(request); err != nil {
-		return "", fmt.Errorf("validation error: %s", err.Error())
+	validationResult := validator.Validate(request)
+	if !validationResult.IsValid() {
+		return "", errors.New(validationResult.Error())
 	}
 
 	base := filepath.Join(request.Path, constant.GelDirName)

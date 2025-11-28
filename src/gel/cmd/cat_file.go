@@ -32,7 +32,7 @@ var catFileCmd = &cobra.Command{
 			if checkOnly {
 				os.Exit(1)
 			}
-			cmd.PrintErrln("Error:", err)
+			cmd.PrintErrln(err)
 			os.Exit(1)
 		}
 

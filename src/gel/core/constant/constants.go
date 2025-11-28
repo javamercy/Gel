@@ -40,8 +40,8 @@ const (
 
 // index constants
 const (
-	IndexSignature = "GELI"
-	IndexVersion   = 1
+	GelIndexSignature = "DIRC"
+	GelIndexVersion   = 1
 )
 
 const (

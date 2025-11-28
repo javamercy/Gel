@@ -13,26 +13,16 @@ func NewHashObjectValidator() *HashObjectValidator {
 	return &HashObjectValidator{}
 }
 
-func (hashObjectValidator *HashObjectValidator) Validate(request any) *validation.ValidationError {
+func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObjectRequest) *validation.ValidationResult {
 
-	hashObjectRequest, ok := request.(*dto.HashObjectRequest)
-	if !ok {
-		return validation.NewValidationError("request", "Invalid request type")
-	}
+	fluentValidator := validation.NewFluentValidator(true)
 
-	if !pathsMustNotBeEmpty(hashObjectRequest.Paths) {
-		return validation.NewValidationError("paths", "Paths must not be empty")
-	}
+	fluentValidator.
+		RuleFor("Paths", request.Paths).
+		Array().
+		NotEmpty()
 
-	if !objectTypeMustBeValid(hashObjectRequest.ObjectType) {
-		return validation.NewValidationError("objectType", "Invalid object type")
-	}
-
-	return nil
-}
-
-func pathsMustNotBeEmpty(paths []string) bool {
-	return len(paths) > 0
+	return fluentValidator.Validate()
 }
 
 func objectTypeMustBeValid(objectType constant.ObjectType) bool {

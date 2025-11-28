@@ -43,3 +43,19 @@ func NewCatFileRequest(hash string, showType, showSize, pretty, checkOnly bool) 
 		CheckOnly: checkOnly,
 	}
 }
+
+type UpdateIndexRequest struct {
+	Paths  []string
+	Add    bool
+	Remove bool
+}
+
+func NewUpdateIndexRequest(paths []string, add, remove bool) *UpdateIndexRequest {
+	{
+		return &UpdateIndexRequest{
+			Paths:  paths,
+			Add:    add,
+			Remove: remove,
+		}
+	}
+}
