@@ -75,3 +75,9 @@ func NewLsFilesRequest(cached, stage, deleted, modified bool) *LsFilesRequest {
 		Modified: modified,
 	}
 }
+
+type AddRequest struct {
+	Paths   []string
+	DryRun  bool
+	Verbose bool
+}
