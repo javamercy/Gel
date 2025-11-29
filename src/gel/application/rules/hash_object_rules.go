@@ -20,7 +20,7 @@ func (hashObjectRules *HashObjectRules) PathsMustBeFiles(paths []string) error {
 	for _, path := range paths {
 		fileInfo, err := hashObjectRules.filesystemRepository.Stat(path)
 		if err != nil {
-			return errors.New(fmt.Sprintf("cannot access '%s': %v", path, err))
+			return err
 		}
 		if fileInfo.IsDir() {
 			return errors.New(fmt.Sprintf("'%s': cannot hash a directory", path))

@@ -16,8 +16,26 @@ func (updateIndexValidator *UpdateIndexValidator) Validate(request *dto.UpdateIn
 	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.RuleFor("Paths", request.Paths).
-		Must(isStringSliceNonEmpty, "Paths must contain at least one path").
-		Must(areAllInStringSliceNonEmpty, "All paths must be non-empty strings")
+		Must(isStringSliceNonEmpty, "paths must contain at least one path").
+		Must(areAllInStringSliceNonEmpty, "all paths must be non-empty strings").
+		Must(isOneOfOptions, "at least one of options must be used").
+		Must(isOnlyOneOption, "only one of options can be used at a time")
 
 	return fluentValidator.Validate()
+}
+
+func isOneOfOptions(value any) bool {
+	request, ok := value.(*dto.UpdateIndexRequest)
+	if !ok {
+		return false
+	}
+	return atLeastOne(request.Add, request.Remove)
+}
+
+func isOnlyOneOption(value any) bool {
+	request, ok := value.(*dto.UpdateIndexRequest)
+	if !ok {
+		return false
+	}
+	return exactlyOne(request.Add, request.Remove)
 }

@@ -19,12 +19,12 @@ func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObject
 
 	fluentValidator.
 		RuleFor("ObjectType", request.ObjectType).
-		Must(isValidObjectType, "ObjectType must be one of Blob, Tree, Commit")
+		Must(isValidObjectType, "objectType must be one of Blob, Tree, Commit")
 
 	fluentValidator.
 		RuleFor("Paths", request.Paths).
-		Must(isStringSliceNonEmpty, "Paths must contain at least one path").
-		Must(areAllInStringSliceNonEmpty, "All paths must be non-empty strings")
+		Must(isStringSliceNonEmpty, "path must be provided").
+		Must(areAllInStringSliceNonEmpty, "paths must be non-empty")
 
 	return fluentValidator.Validate()
 }

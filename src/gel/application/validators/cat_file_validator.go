@@ -19,7 +19,29 @@ func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) 
 		RuleFor("Hash", request.Hash).
 		String().
 		NotEmpty().
-		Matches(RegexSHA256)
+		Matches(regexSHA256).
+		WithMessage("hash must be a valid SHA-256 hash")
+
+	fluentValidator.
+		RuleFor("Options", request).
+		Must(atLeastOneCatFileOption, "at least one of options must be used").
+		Must(isOnlyOneCatFileOption, "only one of options can be used at a time")
 
 	return fluentValidator.Validate()
+}
+
+func atLeastOneCatFileOption(value any) bool {
+	request, ok := value.(*dto.CatFileRequest)
+	if !ok {
+		return false
+	}
+	return atLeastOne(request.ShowType, request.ShowSize, request.Pretty, request.CheckOnly)
+}
+
+func isOnlyOneCatFileOption(value any) bool {
+	request, ok := value.(*dto.CatFileRequest)
+	if !ok {
+		return false
+	}
+	return exactlyOne(request.ShowType, request.ShowSize, request.Pretty, request.CheckOnly)
 }

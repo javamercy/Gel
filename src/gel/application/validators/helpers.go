@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var RegexSHA256 = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
+var regexSHA256 = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
 
 func isStringSliceNonEmpty(value any) bool {
 	paths, ok := value.([]string)
@@ -23,4 +23,23 @@ func areAllInStringSliceNonEmpty(value any) bool {
 		}
 	}
 	return true
+}
+
+func exactlyOne(values ...bool) bool {
+	count := 0
+	for _, value := range values {
+		if value {
+			count++
+		}
+	}
+	return count == 1
+}
+
+func atLeastOne(values ...bool) bool {
+	for _, value := range values {
+		if value {
+			return true
+		}
+	}
+	return false
 }

@@ -39,7 +39,7 @@ func (hashObjectService *HashObjectService) HashObject(request *dto.HashObjectRe
 	if !validationResult.IsValid() {
 		return nil, errors.New(validationResult.Error())
 	}
-	err := utilities.RunAll(
+	err := utilities.Run(
 		hashObjectService.hashObjectRules.PathsMustBeFiles(request.Paths),
 		hashObjectService.hashObjectRules.AllPathsMustExist(request.Paths))
 

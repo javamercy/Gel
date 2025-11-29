@@ -23,7 +23,7 @@ var hashObjectCmd = &cobra.Command{
 
 		response, err := container.HashObjectService.HashObject(request)
 		if err != nil {
-			cmd.PrintErrln("Error hashing object:", err)
+			cmd.PrintErrln(err)
 			return
 		}
 		for path, hash := range response {
