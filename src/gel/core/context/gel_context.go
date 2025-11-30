@@ -9,11 +9,11 @@ import (
 )
 
 type GelContext struct {
-	GelDir     string
-	ObjectsDir string
-	RefsDir    string
-	IndexPath  string
-	WorkingDir string
+	GelDir        string
+	ObjectsDir    string
+	RefsDir       string
+	IndexPath     string
+	RepositoryDir string
 }
 
 var globalContext *GelContext
@@ -45,11 +45,11 @@ func initializeContext() (*GelContext, error) {
 		}
 
 		globalContext = &GelContext{
-			GelDir:     gelDir,
-			ObjectsDir: filepath.Join(gelDir, constant.GelObjectsDirName),
-			RefsDir:    filepath.Join(gelDir, constant.GelRefsDirName),
-			IndexPath:  filepath.Join(gelDir, constant.GelIndexFileName),
-			WorkingDir: filepath.Dir(gelDir),
+			GelDir:        gelDir,
+			ObjectsDir:    filepath.Join(gelDir, constant.GelObjectsDirName),
+			RefsDir:       filepath.Join(gelDir, constant.GelRefsDirName),
+			IndexPath:     filepath.Join(gelDir, constant.GelIndexFileName),
+			RepositoryDir: filepath.Dir(gelDir),
 		}
 	})
 	return globalContext, err

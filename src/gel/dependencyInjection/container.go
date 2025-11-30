@@ -16,6 +16,7 @@ type Container struct {
 	CatFileService     services.ICatFileService
 	UpdateIndexService services.IUpdateIndexService
 	LsFilesService     services.ILsFilesService
+	AddService         services.IAddService
 
 	UpdateIndexRules *rules.UpdateIndexRules
 	HashObjectRules  *rules.HashObjectRules

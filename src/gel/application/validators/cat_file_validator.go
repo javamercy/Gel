@@ -13,7 +13,7 @@ func NewCatFileValidator() *CatFileValidator {
 }
 
 func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) *validation.ValidationResult {
-	fluentValidator := validation.NewFluentValidator(false)
+	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.
 		RuleFor("Hash", request.Hash).

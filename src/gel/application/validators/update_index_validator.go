@@ -17,9 +17,11 @@ func (updateIndexValidator *UpdateIndexValidator) Validate(request *dto.UpdateIn
 
 	fluentValidator.RuleFor("Paths", request.Paths).
 		Must(isStringSliceNonEmpty, "paths must contain at least one path").
-		Must(areAllInStringSliceNonEmpty, "all paths must be non-empty strings").
-		Must(isOneOfOptions, "at least one of options must be used").
-		Must(isOnlyOneOption, "only one of options can be used at a time")
+		Must(areAllInStringSliceNonEmpty, "all paths must be non-empty strings")
+
+	fluentValidator.RuleFor("Options", request).
+		Must(isOneOfOptions, "at least one of 'add' or 'remove' must be true").
+		Must(isOnlyOneOption, "only one of 'add' or 'remove' can be true")
 
 	return fluentValidator.Validate()
 }

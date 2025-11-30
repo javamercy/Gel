@@ -1,13 +1,13 @@
 package dto
 
 type AddResponse struct {
-	FilesAdded []string
-	Errors     []string
+	Paths []string
+	Error error
 }
 
-func NewAddResponse(filesAdded, errors []string) *AddResponse {
+func NewAddResponse(paths []string, err error) *AddResponse {
 	return &AddResponse{
-		FilesAdded: filesAdded,
-		Errors:     errors,
+		Paths: paths,
+		Error: err,
 	}
 }

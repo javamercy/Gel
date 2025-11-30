@@ -2,7 +2,8 @@ package services
 
 import (
 	"Gel/src/gel/application/dto"
-	"Gel/src/gel/persistence/repositories"
+	"Gel/src/gel/core/context"
+	"Gel/src/gel/core/utilities"
 )
 
 type IAddService interface {
@@ -10,27 +11,41 @@ type IAddService interface {
 }
 
 type AddService struct {
-	HashObjectService  IHashObjectService
 	updateIndexService IUpdateIndexService
-	indexRepository    repositories.IIndexRepository
 }
 
-func NewAddService(hashObjectService IHashObjectService, updateIndexService IUpdateIndexService, indexRepository repositories.IIndexRepository) *AddService {
+func NewAddService(updateIndexService IUpdateIndexService) *AddService {
 	return &AddService{
-		HashObjectService:  hashObjectService,
 		updateIndexService: updateIndexService,
-		indexRepository:    indexRepository,
 	}
 }
 
-func (s *AddService) Add(request *dto.AddRequest) *dto.AddResponse {
+func (addService *AddService) Add(request *dto.AddRequest) *dto.AddResponse {
 	// 1. Validate request
 	// 2. Run rules
-	// 3. Resolve paths (patterns, directories, files)
-	// 4. Apply filters
-	// 5. For each file:
-	//    - Hash and store object
-	//    - Update index entry
-	// 6. Return AddResponse
-	return dto.NewAddResponse(nil, nil)
+	ctx := context.GetContext()
+	pathResolver := utilities.NewPathResolver(ctx.RepositoryDir)
+	normalizedPaths, err := pathResolver.Resolve(request.Pathspecs)
+	if err != nil {
+		return dto.NewAddResponse(nil, err)
+	}
+
+	if request.DryRun {
+		return dto.NewAddResponse(normalizedPaths, nil)
+	}
+
+	err = addService.addPath(normalizedPaths)
+
+	if err != nil {
+		return dto.NewAddResponse(nil, err)
+	}
+
+	return dto.NewAddResponse(normalizedPaths, nil)
+}
+
+func (addService *AddService) addPath(paths []string) error {
+
+	updateIndexRequest := dto.NewUpdateIndexRequest(paths, true, false)
+	err := addService.updateIndexService.UpdateIndex(updateIndexRequest)
+	return err
 }

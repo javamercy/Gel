@@ -35,4 +35,7 @@ var ApplicationProviderSet = wire.NewSet(
 
 	services.NewLsFilesService,
 	wire.Bind(new(services.ILsFilesService), new(*services.LsFilesService)),
+
+	services.NewAddService,
+	wire.Bind(new(services.IAddService), new(*services.AddService)),
 )
