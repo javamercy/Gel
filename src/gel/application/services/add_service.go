@@ -2,8 +2,10 @@ package services
 
 import (
 	"Gel/src/gel/application/dto"
+	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/context"
 	"Gel/src/gel/core/utilities"
+	"errors"
 )
 
 type IAddService interface {
@@ -21,8 +23,13 @@ func NewAddService(updateIndexService IUpdateIndexService) *AddService {
 }
 
 func (addService *AddService) Add(request *dto.AddRequest) *dto.AddResponse {
-	// 1. Validate request
-	// 2. Run rules
+	validator := validators.NewAddValidator()
+	validationResult := validator.Validate(request)
+
+	if !validationResult.IsValid() {
+		return dto.NewAddResponse(nil, errors.New(validationResult.Error()))
+	}
+
 	ctx := context.GetContext()
 	pathResolver := utilities.NewPathResolver(ctx.RepositoryDir)
 	normalizedPaths, err := pathResolver.Resolve(request.Pathspecs)

@@ -27,8 +27,8 @@ var addCmd = &cobra.Command{
 		addRequest := dto.NewAddRequest(pathspecs, dryRun, verbose)
 
 		addResponse := container.AddService.Add(addRequest)
-		if addResponse.Error != nil {
-			cmd.PrintErrln(addResponse.Error)
+		if addResponse.Errors != nil {
+			cmd.PrintErrln(addResponse.Errors)
 			os.Exit(1)
 		}
 
