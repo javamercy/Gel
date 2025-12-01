@@ -37,9 +37,16 @@ func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) 
 		}
 
 		for _, path := range paths {
+
 			normalizedPath, err := pathResolver.normalizePath(path)
 			if err != nil {
 				return nil, err
+			}
+
+			// TODO: Bypass .gel and .git directories for now. Implement .gelignore for later.
+			if strings.Contains(path, ".gel"+string(os.PathSeparator)) ||
+				strings.Contains(path, ".git"+string(os.PathSeparator)) {
+				continue
 			}
 
 			if normalizedPathMap[normalizedPath] {
