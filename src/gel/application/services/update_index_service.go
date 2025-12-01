@@ -4,11 +4,10 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/validators"
-	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
-	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
+	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
 	"errors"
 	"syscall"
@@ -70,7 +69,7 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateInd
 
 func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string) error {
 
-	hashObjectRequest := dto.NewHashObjectRequest(paths, constant.GelBlobObjectType, true)
+	hashObjectRequest := dto.NewHashObjectRequest(paths, objects.GelBlobObjectType, true)
 	hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
 	if err != nil {
 		return err
@@ -105,7 +104,7 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 		index.AddOrUpdateEntry(newEntry)
 	}
 
-	indexBytes := serialization.SerializeIndex(index)
+	indexBytes := index.Serialize()
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
 	return updateIndexService.indexRepository.Write(index)
@@ -116,7 +115,7 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 		index.RemoveEntry(path)
 	}
 
-	indexBytes := serialization.SerializeIndex(index)
+	indexBytes := index.Serialize()
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
 	return updateIndexService.indexRepository.Write(index)

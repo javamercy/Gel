@@ -2,15 +2,6 @@ package constant
 
 import "os"
 
-// ObjectType represents the type of Git object
-type ObjectType string
-
-const (
-	GelBlobObjectType   ObjectType = "blob"
-	GelTreeObjectType   ObjectType = "tree"
-	GelCommitObjectType ObjectType = "commit"
-)
-
 // repository related constants
 const (
 	GelDirName        = ".gel"
@@ -21,9 +12,11 @@ const (
 
 // special character constants
 const (
-	NullByte = "\x00"
-	Space    = " "
-	NewLine  = "\n"
+	NullByte    = '\x00'
+	Space       = " "
+	SpaceByte   = ' '
+	NewLine     = "\n"
+	NewLineByte = '\n'
 )
 
 // permission constants

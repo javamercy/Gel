@@ -1,6 +1,8 @@
 package dto
 
-import "Gel/src/gel/core/constant"
+import (
+	"Gel/src/gel/domain/objects"
+)
 
 type InitRequest struct {
 	Path string
@@ -14,11 +16,11 @@ func NewInitRequest(path string) *InitRequest {
 
 type HashObjectRequest struct {
 	Paths      []string
-	ObjectType constant.ObjectType
+	ObjectType objects.ObjectType
 	Write      bool
 }
 
-func NewHashObjectRequest(paths []string, objectType constant.ObjectType, write bool) *HashObjectRequest {
+func NewHashObjectRequest(paths []string, objectType objects.ObjectType, write bool) *HashObjectRequest {
 	return &HashObjectRequest{
 		Paths:      paths,
 		ObjectType: objectType,

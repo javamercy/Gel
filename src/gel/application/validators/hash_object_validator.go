@@ -2,8 +2,8 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
-	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/validation"
+	"Gel/src/gel/domain/objects"
 )
 
 type HashObjectValidator struct {
@@ -30,6 +30,6 @@ func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObject
 }
 
 func isValidObjectType(value any) bool {
-	objectType, ok := value.(constant.ObjectType)
-	return ok && (objectType == constant.GelBlobObjectType || objectType == constant.GelTreeObjectType || objectType == constant.GelCommitObjectType)
+	objectType, ok := value.(objects.ObjectType)
+	return ok && objectType.IsValid()
 }

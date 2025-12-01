@@ -3,7 +3,6 @@ package repositories
 import (
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/context"
-	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/domain"
 )
 
@@ -32,15 +31,15 @@ func (indexRepository *IndexRepository) Read() (*domain.Index, error) {
 		return nil, err
 	}
 
-	return serialization.DeserializeIndex(data)
+	return domain.DeserializeIndex(data)
 }
 
 func (indexRepository *IndexRepository) Write(index *domain.Index) error {
 	ctx := context.GetContext()
-	data := serialization.SerializeIndex(index)
+	content := index.Serialize()
 	return indexRepository.filesystemRepository.WriteFile(
 		ctx.IndexPath,
-		data, false,
+		content, false,
 		constant.GelFilePermission)
 }
 

@@ -43,9 +43,10 @@ func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) 
 				return nil, err
 			}
 
-			// TODO: Bypass .gel and .git directories for now. Implement .gelignore for later.
+			// TODO: Bypass .gel, .git, and .idea directories for now. Implement .gelignore for later.
 			if strings.Contains(path, ".gel"+string(os.PathSeparator)) ||
-				strings.Contains(path, ".git"+string(os.PathSeparator)) {
+				strings.Contains(path, ".git"+string(os.PathSeparator)) ||
+				strings.Contains(path, ".idea"+string(os.PathSeparator)) {
 				continue
 			}
 

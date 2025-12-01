@@ -5,7 +5,6 @@ import (
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/encoding"
-	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
@@ -56,12 +55,12 @@ func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (ob
 		return nil, err
 	}
 
-	data, err := encoding.Decompress(compressedContent)
+	content, err := encoding.Decompress(compressedContent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress object: %v", err)
 	}
 
-	object, err := serialization.DeserializeObject(data)
+	object, err := objects.Deserialize(content)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize object: %v", err)
 	}

@@ -4,10 +4,9 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/validators"
-	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/encoding"
-	"Gel/src/gel/core/serialization"
 	"Gel/src/gel/core/utilities"
+	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
 	"errors"
 )
@@ -64,15 +63,16 @@ func (hashObjectService *HashObjectService) HashObject(request *dto.HashObjectRe
 	return hashMap, nil
 }
 
-func (hashObjectService *HashObjectService) hashObjects(paths []string, objectType constant.ObjectType) (map[string]string, map[string][]byte, error) {
+func (hashObjectService *HashObjectService) hashObjects(paths []string, objectType objects.ObjectType) (map[string]string, map[string][]byte, error) {
 	hashMap := make(map[string]string)
 	contentMap := make(map[string][]byte)
 	for _, path := range paths {
-		fileData, err := hashObjectService.filesystemRepository.ReadFile(path)
+		data, err := hashObjectService.filesystemRepository.ReadFile(path)
 		if err != nil {
 			return nil, nil, err
 		}
-		content := serialization.SerializeObject(objectType, fileData)
+		blob := objects.NewBlob(data)
+		content := blob.Serialize()
 		hash := encoding.ComputeHash(content)
 		hashMap[path] = hash
 		contentMap[hash] = content
