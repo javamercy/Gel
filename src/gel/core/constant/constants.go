@@ -12,11 +12,14 @@ const (
 
 // special character constants
 const (
+	NullStr     = "\x00"
 	NullByte    = '\x00'
-	Space       = " "
+	SpaceStr    = " "
 	SpaceByte   = ' '
-	NewLine     = "\n"
+	NewLineStr  = "\n"
 	NewLineByte = '\n'
+	SlashStr    = "/"
+	SlashByte   = '/'
 )
 
 // permission constants
@@ -27,9 +30,9 @@ const (
 
 // tree modes
 const (
-	RegularFileMode = "100644"
-	ExecFileMode    = "100755"
-	DirMode         = "40000"
+	GelRegularFileMode = "100644"
+	GelExecFileMode    = "100755"
+	GelDirMode         = "40000"
 )
 
 // index constants

@@ -30,11 +30,11 @@ func (baseObject *BaseObject) Data() []byte {
 }
 
 func (baseObject *BaseObject) Serialize() []byte {
-	header := string(baseObject.objectType) + string(constant.Space) + strconv.Itoa(baseObject.Size()) + string(constant.NullByte)
+	header := string(baseObject.objectType) + constant.SpaceStr + strconv.Itoa(baseObject.Size()) + constant.NullStr
 	return append([]byte(header), baseObject.data...)
 }
 
-func Deserialize(content []byte) (IObject, error) {
+func DeserializeObject(content []byte) (IObject, error) {
 	nullIndex := -1
 	for i, b := range content {
 		if b == constant.NullByte {

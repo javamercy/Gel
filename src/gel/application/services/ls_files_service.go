@@ -43,13 +43,13 @@ func lsFilesWithStage(index *domain.Index) string {
 	stringBuilder := strings.Builder{}
 	for _, entry := range index.Entries {
 		stringBuilder.WriteString(strconv.Itoa(int(entry.Mode)))
-		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(constant.SpaceStr)
 		stringBuilder.WriteString(entry.Hash)
-		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(constant.SpaceStr)
 		stringBuilder.WriteString(strconv.Itoa(int(entry.GetStage())))
-		stringBuilder.WriteString(constant.Space)
+		stringBuilder.WriteString(constant.SpaceStr)
 		stringBuilder.WriteString(entry.Path)
-		stringBuilder.WriteString(constant.NewLine)
+		stringBuilder.WriteString(constant.NewLineStr)
 
 	}
 	return stringBuilder.String()
@@ -59,7 +59,7 @@ func lsFiles(index *domain.Index) string {
 	stringBuilder := strings.Builder{}
 	for _, entry := range index.Entries {
 		stringBuilder.WriteString(entry.Path)
-		stringBuilder.WriteString(constant.NewLine)
+		stringBuilder.WriteString(constant.NewLineStr)
 	}
 	return stringBuilder.String()
 }

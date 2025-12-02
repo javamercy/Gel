@@ -60,7 +60,7 @@ func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (ob
 		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
-	object, err := objects.Deserialize(content)
+	object, err := objects.DeserializeObject(content)
 	if err != nil {
 		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
