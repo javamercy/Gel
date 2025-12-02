@@ -13,7 +13,7 @@ var catFileCmd = &cobra.Command{
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
-			cmd.PrintErrln("Error: object hash required")
+			cmd.PrintErrln("ErrorMessage: object hash required")
 			_ = cmd.Help()
 			os.Exit(1)
 		}

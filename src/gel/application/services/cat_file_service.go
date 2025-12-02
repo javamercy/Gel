@@ -35,11 +35,9 @@ func NewCatFileService(
 func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (objects.IObject, *gelErrors.GelError) {
 
 	validator := validators.NewCatFileValidator()
-	validationResult := validator.Validate(request)
-
-	if !validationResult.IsValid() {
-		return nil,
-			gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
+	gelError := validator.Validate(request)
+	if gelError != nil {
+		return nil, gelError
 	}
 
 	err := utilities.RunAll(

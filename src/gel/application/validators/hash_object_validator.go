@@ -2,6 +2,7 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/validation"
 	"Gel/src/gel/domain/objects"
 )
@@ -13,7 +14,7 @@ func NewHashObjectValidator() *HashObjectValidator {
 	return &HashObjectValidator{}
 }
 
-func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObjectRequest) *validation.ValidationResult {
+func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObjectRequest) *gelErrors.GelError {
 
 	fluentValidator := validation.NewFluentValidator(true)
 
@@ -26,7 +27,13 @@ func (hashObjectValidator *HashObjectValidator) Validate(request *dto.HashObject
 		Must(isStringSliceNonEmpty, "path must be provided").
 		Must(areAllInStringSliceNonEmpty, "paths must be non-empty")
 
-	return fluentValidator.Validate()
+	validationResult := fluentValidator.Validate()
+	if !validationResult.IsValid() {
+		return gelErrors.NewGelError(gelErrors.ExitCodeUsage,
+			validationResult.Error())
+	}
+
+	return nil
 }
 
 func isValidObjectType(value any) bool {

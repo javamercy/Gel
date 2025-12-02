@@ -2,6 +2,7 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/validation"
 )
 
@@ -12,7 +13,7 @@ func NewCatFileValidator() *CatFileValidator {
 	return &CatFileValidator{}
 }
 
-func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) *validation.ValidationResult {
+func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) *gelErrors.GelError {
 	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.
@@ -27,7 +28,14 @@ func (catFileValidator *CatFileValidator) Validate(request *dto.CatFileRequest) 
 		Must(atLeastOneCatFileOption, "at least one of options must be used").
 		Must(isOnlyOneCatFileOption, "only one of options can be used at a time")
 
-	return fluentValidator.Validate()
+	validationResult := fluentValidator.Validate()
+	if !validationResult.IsValid() {
+		return gelErrors.NewGelError(gelErrors.ExitCodeUsage,
+			validationResult.Error())
+	}
+
+	return nil
+
 }
 
 func atLeastOneCatFileOption(value any) bool {

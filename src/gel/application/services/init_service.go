@@ -27,9 +27,9 @@ func NewInitService(filesystemRepository repositories.IFilesystemRepository) *In
 func (initService *InitService) Init(request *dto.InitRequest) (string, *gelErrors.GelError) {
 
 	validator := validators.NewInitValidator()
-	validationResult := validator.Validate(request)
-	if !validationResult.IsValid() {
-		return "", gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
+	gelError := validator.Validate(request)
+	if gelError != nil {
+		return "", gelError
 	}
 
 	base := filepath.Join(request.Path, constant.GelDirName)

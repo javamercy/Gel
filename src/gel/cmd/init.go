@@ -18,7 +18,7 @@ var initCmd = &cobra.Command{
 		} else {
 			cwd, err := os.Getwd()
 			if err != nil {
-				cmd.PrintErrln("Error getting current working directory:", err)
+				cmd.PrintErrln("ErrorMessage getting current working directory:", err)
 				return
 			}
 			path = cwd

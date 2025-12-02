@@ -24,10 +24,10 @@ func NewAddService(updateIndexService IUpdateIndexService) *AddService {
 
 func (addService *AddService) Add(request *dto.AddRequest) ([]string, *gelErrors.GelError) {
 	validator := validators.NewAddValidator()
-	validationResult := validator.Validate(request)
+	gelError := validator.Validate(request)
 
-	if !validationResult.IsValid() {
-		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
+	if gelError != nil {
+		return nil, gelError
 	}
 
 	ctx := context.GetContext()

@@ -2,6 +2,7 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/validation"
 )
 
@@ -12,7 +13,7 @@ func NewUpdateIndexValidator() *UpdateIndexValidator {
 	return &UpdateIndexValidator{}
 }
 
-func (updateIndexValidator *UpdateIndexValidator) Validate(request *dto.UpdateIndexRequest) *validation.ValidationResult {
+func (updateIndexValidator *UpdateIndexValidator) Validate(request *dto.UpdateIndexRequest) *gelErrors.GelError {
 	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.RuleFor("Paths", request.Paths).
@@ -23,7 +24,11 @@ func (updateIndexValidator *UpdateIndexValidator) Validate(request *dto.UpdateIn
 		Must(isOneOfOptions, "at least one of 'add' or 'remove' must be true").
 		Must(isOnlyOneOption, "only one of 'add' or 'remove' can be true")
 
-	return fluentValidator.Validate()
+	validationResult := fluentValidator.Validate()
+	if !validationResult.IsValid() {
+		return gelErrors.NewGelError(gelErrors.ExitCodeUsage, validationResult.Error())
+	}
+	return nil
 }
 
 func isOneOfOptions(value any) bool {

@@ -2,6 +2,7 @@ package validators
 
 import (
 	"Gel/src/gel/application/dto"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/validation"
 )
 
@@ -12,7 +13,7 @@ func NewInitValidator() *InitValidator {
 	return &InitValidator{}
 }
 
-func (initValidator *InitValidator) Validate(request *dto.InitRequest) *validation.ValidationResult {
+func (initValidator *InitValidator) Validate(request *dto.InitRequest) *gelErrors.GelError {
 	fluentValidator := validation.NewFluentValidator(true)
 
 	fluentValidator.
@@ -20,5 +21,11 @@ func (initValidator *InitValidator) Validate(request *dto.InitRequest) *validati
 		String().
 		NotEmpty()
 
-	return fluentValidator.Validate()
+	validationResult := fluentValidator.Validate()
+	if !validationResult.IsValid() {
+		return gelErrors.NewGelError(gelErrors.ExitCodeUsage,
+			validationResult.Error())
+	}
+
+	return nil
 }

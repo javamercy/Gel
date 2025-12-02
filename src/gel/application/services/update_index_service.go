@@ -35,10 +35,9 @@ func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesy
 
 func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateIndexRequest) *gelErrors.GelError {
 	validator := validators.NewUpdateIndexValidator()
-	validationResult := validator.Validate(request)
-
-	if !validationResult.IsValid() {
-		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
+	gelError := validator.Validate(request)
+	if gelError != nil {
+		return gelError
 	}
 
 	err := utilities.RunAll(

@@ -33,10 +33,9 @@ func NewHashObjectService(filesystemRepository repositories.IFilesystemRepositor
 func (hashObjectService *HashObjectService) HashObject(request *dto.HashObjectRequest) (map[string]string, *gelErrors.GelError) {
 
 	validator := validators.NewHashObjectValidator()
-	validationResult := validator.Validate(request)
-
-	if !validationResult.IsValid() {
-		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
+	gelError := validator.Validate(request)
+	if gelError != nil {
+		return nil, gelError
 	}
 
 	err := utilities.Run(
