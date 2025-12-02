@@ -4,16 +4,15 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/validators"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
-	"errors"
-	"fmt"
 )
 
 type ICatFileService interface {
-	GetObject(request *dto.CatFileRequest) (objects.IObject, error)
+	GetObject(request *dto.CatFileRequest) (objects.IObject, *gelErrors.GelError)
 }
 
 type CatFileService struct {
@@ -33,13 +32,14 @@ func NewCatFileService(
 	}
 }
 
-func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (objects.IObject, error) {
+func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (objects.IObject, *gelErrors.GelError) {
 
 	validator := validators.NewCatFileValidator()
 	validationResult := validator.Validate(request)
 
 	if !validationResult.IsValid() {
-		return nil, errors.New(validationResult.Error())
+		return nil,
+			gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
 	}
 
 	err := utilities.RunAll(
@@ -47,22 +47,24 @@ func (catFileService *CatFileService) GetObject(request *dto.CatFileRequest) (ob
 	)
 
 	if err != nil {
-		return nil, err
+		return nil,
+			gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	compressedContent, err := catFileService.objectRepository.Read(request.Hash)
 	if err != nil {
-		return nil, err
+		return nil,
+			gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	content, err := encoding.Decompress(compressedContent)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress object: %v", err)
+		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	object, err := objects.Deserialize(content)
 	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize object: %v", err)
+		return nil, gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	return object, nil

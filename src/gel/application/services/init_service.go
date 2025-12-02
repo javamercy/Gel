@@ -4,14 +4,14 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/validators"
 	"Gel/src/gel/core/constant"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/persistence/repositories"
-	"errors"
 	"fmt"
 	"path/filepath"
 )
 
 type IInitService interface {
-	Init(request *dto.InitRequest) (string, error)
+	Init(request *dto.InitRequest) (string, *gelErrors.GelError)
 }
 
 type InitService struct {
@@ -24,12 +24,12 @@ func NewInitService(filesystemRepository repositories.IFilesystemRepository) *In
 	}
 }
 
-func (initService *InitService) Init(request *dto.InitRequest) (string, error) {
+func (initService *InitService) Init(request *dto.InitRequest) (string, *gelErrors.GelError) {
 
 	validator := validators.NewInitValidator()
 	validationResult := validator.Validate(request)
 	if !validationResult.IsValid() {
-		return "", errors.New(validationResult.Error())
+		return "", gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
 	}
 
 	base := filepath.Join(request.Path, constant.GelDirName)
@@ -44,12 +44,12 @@ func (initService *InitService) Init(request *dto.InitRequest) (string, error) {
 
 	for _, dir := range dirs {
 		if err := initService.filesystemRepository.MakeDir(dir, constant.GelDirPermission); err != nil {
-			return "", err
+			return "", gelErrors.NewGelError(gelErrors.ExitCodeFatal, fmt.Sprintf("failed to create directory %s: %v", dir, err))
 		}
 	}
 
 	if exists {
-		return fmt.Sprintf("Reinitialized existing Gel repository in %s", base), nil
+		return "", gelErrors.NewGelError(gelErrors.ExitCodeWarning, "Reinitialized existing Gel repository")
 	}
 
 	return fmt.Sprintf("Initialized empty Gel repository in %s", base), nil

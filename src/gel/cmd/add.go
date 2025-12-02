@@ -26,14 +26,14 @@ var addCmd = &cobra.Command{
 
 		addRequest := dto.NewAddRequest(pathspecs, dryRun, verbose)
 
-		addResponse := container.AddService.Add(addRequest)
-		if addResponse.Errors != nil {
-			cmd.PrintErrln(addResponse.Errors)
-			os.Exit(1)
+		paths, gelError := container.AddService.Add(addRequest)
+		if gelError != nil {
+			cmd.PrintErrln(gelError.Message)
+			os.Exit(gelError.GetExitCode())
 		}
 
-		for _, path := range addResponse.Paths {
-			cmd.Println(path)
+		for _, path := range paths {
+			cmd.Println("Added:", path)
 		}
 	},
 }

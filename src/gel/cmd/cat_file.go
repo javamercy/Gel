@@ -27,17 +27,10 @@ var catFileCmd = &cobra.Command{
 
 		request := dto.NewCatFileRequest(hash, showType, showSize, pretty, checkOnly)
 
-		object, err := container.CatFileService.GetObject(request)
-		if err != nil {
-			if checkOnly {
-				os.Exit(1)
-			}
-			cmd.PrintErrln(err)
-			os.Exit(1)
-		}
-
-		if checkOnly {
-			os.Exit(0)
+		object, gelError := container.CatFileService.GetObject(request)
+		if gelError != nil {
+			cmd.PrintErrln(gelError.Message)
+			os.Exit(gelError.GetExitCode())
 		}
 
 		if showType {

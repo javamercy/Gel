@@ -3,6 +3,7 @@ package services
 import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/core/constant"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 )
 
 type ILsFilesService interface {
-	LsFiles(request *dto.LsFilesRequest) (string, error)
+	LsFiles(request *dto.LsFilesRequest) (string, *gelErrors.GelError)
 }
 
 type LsFilesService struct {
@@ -23,11 +24,11 @@ func NewLsFilesService(indexRepository repositories.IIndexRepository) *LsFilesSe
 	}
 }
 
-func (lsFilesService *LsFilesService) LsFiles(request *dto.LsFilesRequest) (string, error) {
+func (lsFilesService *LsFilesService) LsFiles(request *dto.LsFilesRequest) (string, *gelErrors.GelError) {
 
 	index, err := lsFilesService.indexRepository.Read()
 	if err != nil {
-		return "", err
+		return "", gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	if request.Stage {

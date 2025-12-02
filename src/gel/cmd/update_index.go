@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"Gel/src/gel/application/dto"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -16,10 +17,10 @@ var updateIndexCmd = &cobra.Command{
 
 		request := dto.NewUpdateIndexRequest(args, add, remove)
 
-		err := container.UpdateIndexService.UpdateIndex(request)
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
+		gelError := container.UpdateIndexService.UpdateIndex(request)
+		if gelError != nil {
+			cmd.PrintErrln(gelError)
+			os.Exit(gelError.GetExitCode())
 		}
 	},
 }

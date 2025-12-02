@@ -24,11 +24,12 @@ var initCmd = &cobra.Command{
 			path = cwd
 		}
 
-		message, err := container.InitService.Init(dto.NewInitRequest(path))
-		if err != nil {
-			cmd.PrintErrln("Error initializing repository:", err)
-			return
+		message, gelError := container.InitService.Init(dto.NewInitRequest(path))
+		if gelError != nil {
+			cmd.PrintErrln(gelError.Message)
+			os.Exit(gelError.GetExitCode())
 		}
+
 		cmd.Println(message)
 	},
 }

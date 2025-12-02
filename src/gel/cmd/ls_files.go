@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"Gel/src/gel/application/dto"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -18,10 +19,10 @@ var lsFilesCmd = &cobra.Command{
 		modified, _ := cmd.Flags().GetBool("modified")
 
 		lsFilesRequest := dto.NewLsFilesRequest(cached, stage, deleted, modified)
-		files, err := container.LsFilesService.LsFiles(lsFilesRequest)
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
+		files, gelError := container.LsFilesService.LsFiles(lsFilesRequest)
+		if gelError != nil {
+			cmd.PrintErrln(gelError)
+			os.Exit(gelError.GetExitCode())
 		}
 		cmd.Println(files)
 	},

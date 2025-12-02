@@ -4,17 +4,17 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/application/rules"
 	"Gel/src/gel/application/validators"
+	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/encoding"
 	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
-	"errors"
 	"syscall"
 )
 
 type IUpdateIndexService interface {
-	UpdateIndex(request *dto.UpdateIndexRequest) error
+	UpdateIndex(request *dto.UpdateIndexRequest) *gelErrors.GelError
 }
 
 type UpdateIndexService struct {
@@ -33,19 +33,19 @@ func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesy
 	}
 }
 
-func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateIndexRequest) error {
+func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateIndexRequest) *gelErrors.GelError {
 	validator := validators.NewUpdateIndexValidator()
 	validationResult := validator.Validate(request)
 
 	if !validationResult.IsValid() {
-		return errors.New(validationResult.Error())
+		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, validationResult.Error())
 	}
 
 	err := utilities.RunAll(
 		updateIndexService.updateIndexRules.PathsMustNotDuplicate(request.Paths))
 
 	if err != nil {
-		return err
+		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 
 	index, err := updateIndexService.indexRepository.Read()
@@ -54,20 +54,17 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(request *dto.UpdateInd
 	}
 
 	if request.Add {
-		err := updateIndexService.add(index, request.Paths)
-		if err != nil {
-			return err
-		}
+		return updateIndexService.add(index, request.Paths)
+
 	} else if request.Remove {
-		err := updateIndexService.remove(index, request.Paths)
-		if err != nil {
-			return err
-		}
+		return updateIndexService.remove(index, request.Paths)
+
 	}
+
 	return nil
 }
 
-func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string) error {
+func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []string) *gelErrors.GelError {
 
 	hashObjectRequest := dto.NewHashObjectRequest(paths, objects.GelBlobObjectType, true)
 	hashMap, err := updateIndexService.hashObjectService.HashObject(hashObjectRequest)
@@ -78,13 +75,13 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 	for _, path := range paths {
 		fileInfo, err := updateIndexService.filesystemRepository.Stat(path)
 		if err != nil {
-			return err
+			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 		}
 
 		statInfo, ok := fileInfo.Sys().(*syscall.Stat_t)
 
 		if !ok {
-			return errors.New("failed to get file stat info")
+			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, " unable to get file system info for "+path)
 		}
 
 		device, inode, userId, groupId := getFileStatSysInfo(statInfo)
@@ -107,10 +104,14 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 	indexBytes := index.Serialize()
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	return updateIndexService.indexRepository.Write(index)
+	writeErr := updateIndexService.indexRepository.Write(index)
+	if writeErr != nil {
+		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, writeErr.Error())
+	}
+	return nil
 }
 
-func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths []string) error {
+func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths []string) *gelErrors.GelError {
 	for _, path := range paths {
 		index.RemoveEntry(path)
 	}
@@ -118,7 +119,11 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 	indexBytes := index.Serialize()
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	return updateIndexService.indexRepository.Write(index)
+	err := updateIndexService.indexRepository.Write(index)
+	if err != nil {
+		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
+	}
+	return nil
 }
 
 func getFileStatSysInfo(fileInfo *syscall.Stat_t) (uint32, uint32, uint32, uint32) {
