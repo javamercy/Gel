@@ -40,7 +40,7 @@ func (lsFilesService *LsFilesService) LsFiles(request *dto.LsFilesRequest) (stri
 }
 
 func lsFilesWithStage(index *domain.Index) string {
-	stringBuilder := strings.Builder{}
+	var stringBuilder strings.Builder
 	for _, entry := range index.Entries {
 		stringBuilder.WriteString(strconv.Itoa(int(entry.Mode)))
 		stringBuilder.WriteString(constant.SpaceStr)
@@ -56,7 +56,7 @@ func lsFilesWithStage(index *domain.Index) string {
 }
 
 func lsFiles(index *domain.Index) string {
-	stringBuilder := strings.Builder{}
+	var stringBuilder strings.Builder
 	for _, entry := range index.Entries {
 		stringBuilder.WriteString(entry.Path)
 		stringBuilder.WriteString(constant.NewLineStr)
