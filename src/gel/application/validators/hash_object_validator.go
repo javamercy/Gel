@@ -3,7 +3,7 @@ package validators
 import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
-	"Gel/src/gel/core/validation"
+	"Gel/src/gel/core/crossCuttingConcerns/validation"
 	"Gel/src/gel/domain/objects"
 )
 
