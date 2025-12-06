@@ -356,3 +356,9 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 
 	return entry, totalSize, nil
 }
+
+func ComputeIndexFlags(path string, stage uint16) uint16 {
+	pathLength := min(len(path), 0xFFF)
+	flags := uint16(pathLength) | (stage << 12)
+	return flags
+}

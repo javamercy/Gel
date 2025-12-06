@@ -42,5 +42,6 @@ const (
 )
 
 const (
-	SHA256HexLength = 64
+	SHA256HexLength  = 64
+	Sha256ByteLength = 32
 )

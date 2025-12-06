@@ -10,7 +10,7 @@ import (
 	"Gel/src/gel/domain"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
-	"syscall"
+	"time"
 )
 
 type IUpdateIndexService interface {
@@ -72,30 +72,23 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 	}
 
 	for _, path := range paths {
-		fileInfo, err := updateIndexService.filesystemRepository.Stat(path)
+
+		fileStatInfo, err := utilities.GetFileStatFromPath(path)
 		if err != nil {
 			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 		}
 
-		statInfo, ok := fileInfo.Sys().(*syscall.Stat_t)
-
-		if !ok {
-			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, " unable to get file system info for "+path)
-		}
-
-		device, inode, userId, groupId := getFileStatSysInfo(statInfo)
-
 		newEntry := domain.NewIndexEntry(path,
 			hashMap[path],
-			uint32(fileInfo.Size()),
-			uint32(fileInfo.Mode()),
-			device,
-			inode,
-			userId,
-			groupId,
-			getIndexFlags(path, 11),
-			fileInfo.ModTime(),
-			fileInfo.ModTime())
+			fileStatInfo.Size,
+			fileStatInfo.Mode,
+			fileStatInfo.Device,
+			fileStatInfo.Inode,
+			fileStatInfo.UserId,
+			fileStatInfo.GroupId,
+			domain.ComputeIndexFlags(path, 0),
+			time.Now(),
+			time.Now())
 
 		index.AddOrUpdateEntry(newEntry)
 	}
@@ -114,7 +107,6 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 	for _, path := range paths {
 		index.RemoveEntry(path)
 	}
-
 	indexBytes := index.Serialize()
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
@@ -123,18 +115,4 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 	return nil
-}
-
-func getFileStatSysInfo(fileInfo *syscall.Stat_t) (uint32, uint32, uint32, uint32) {
-	device := uint32(fileInfo.Dev)
-	inode := uint32(fileInfo.Ino)
-	userId := fileInfo.Uid
-	groupId := fileInfo.Gid
-	return device, inode, userId, groupId
-}
-
-func getIndexFlags(path string, stage uint16) uint16 {
-	pathLength := min(len(path), 0xFFF)
-	flags := uint16(pathLength) | (stage << 12)
-	return flags
 }
