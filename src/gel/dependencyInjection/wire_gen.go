@@ -29,6 +29,7 @@ func InitializeContainer() *Container {
 	updateIndexService := services.NewUpdateIndexService(indexRepository, filesystemRepository, hashObjectService, updateIndexRules)
 	lsFilesService := services.NewLsFilesService(indexRepository)
 	addService := services.NewAddService(updateIndexService)
+	writeTreeService := services.NewWriteTreeService(objectRepository, indexRepository)
 	container := &Container{
 		FilesystemRepository: filesystemRepository,
 		ObjectRepository:     objectRepository,
@@ -39,6 +40,7 @@ func InitializeContainer() *Container {
 		UpdateIndexService:   updateIndexService,
 		LsFilesService:       lsFilesService,
 		AddService:           addService,
+		WriteTreeService:     writeTreeService,
 		UpdateIndexRules:     updateIndexRules,
 		HashObjectRules:      hashObjectRules,
 	}

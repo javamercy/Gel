@@ -2,14 +2,8 @@ package objects
 
 import (
 	"Gel/src/gel/core/constant"
-	"bytes"
 	"encoding/hex"
-	"sort"
 )
-
-type Tree struct {
-	*BaseObject
-}
 
 type TreeEntry struct {
 	Mode string
@@ -17,87 +11,51 @@ type TreeEntry struct {
 	Name string
 }
 
-func NewTree(entries []*TreeEntry) *Tree {
-	sortTreeEntries(entries)
-	data := buildTreeData(entries)
+func NewTreeEntry(mode, hash, name string) *TreeEntry {
+	return &TreeEntry{
+		Mode: mode,
+		Hash: hash,
+		Name: name,
+	}
+}
+
+type Tree struct {
+	*BaseObject
+}
+
+func NewTree(data []byte) *Tree {
 	return &Tree{
-		&BaseObject{
+		BaseObject: &BaseObject{
 			objectType: GelTreeObjectType,
 			data:       data,
 		},
 	}
 }
 
-func buildTreeData(entries []*TreeEntry) []byte {
-	var buffer bytes.Buffer
-	for _, entry := range entries {
-		buffer.WriteString(entry.Mode)
-		buffer.WriteByte(constant.SpaceByte)
-		buffer.WriteString(entry.Name)
-		buffer.WriteByte(constant.NullByte)
-
-		hashBytes, _ := hex.DecodeString(entry.Hash)
-		buffer.Write(hashBytes)
-	}
-	return buffer.Bytes()
-}
-
-func sortTreeEntries(entries []*TreeEntry) {
-	sort.Slice(entries, func(i, j int) bool {
-		NameI := entries[i].Name
-		NameJ := entries[j].Name
-
-		if entries[i].Mode == constant.GelDirMode {
-			NameI += constant.SlashStr
+func (tree *Tree) DeserializeTree() ([]*TreeEntry, error) {
+	data := tree.data
+	var entries []*TreeEntry
+	i := 0
+	for i < len(data) {
+		modeStart := i
+		for data[i] != constant.SpaceByte {
+			i++
 		}
-		if entries[j].Mode == constant.GelDirMode {
-			NameJ += constant.SlashStr
+		mode := string(data[modeStart:i])
+		i++
+
+		nameStart := i
+		for data[i] != constant.NullByte {
+			i++
 		}
-		return NameI < NameJ
-	})
-}
+		name := string(data[nameStart:i])
+		i++
 
-type TreeBuilder struct {
-}
-
-func NewTreeBuilder() *TreeBuilder {
-	return &TreeBuilder{}
-}
-
-type FileNode struct {
-	Name string
-	Hash string
-	Mode string
-}
-
-func NewFileNode(name, hash, mode string) *FileNode {
-	{
-		return &FileNode{
-			Name: name,
-			Hash: hash,
-			Mode: mode,
-		}
+		hashBytes := data[i : i+32]
+		hash := hex.EncodeToString(hashBytes)
+		i += 32
+		entry := NewTreeEntry(mode, hash, name)
+		entries = append(entries, entry)
 	}
-}
-
-type DirectoryNode struct {
-	Name     string
-	Children map[string]*DirectoryNode
-	Files    []*FileNode
-}
-
-func NewDirectoryNode(name string, children map[string]*DirectoryNode, files []*FileNode) *DirectoryNode {
-	return &DirectoryNode{
-		Name:     name,
-		Children: children,
-		Files:    files,
-	}
-}
-
-func (directory *DirectoryNode) AddFile(file *FileNode) {
-	directory.Files = append(directory.Files, file)
-}
-
-func (directory *DirectoryNode) AddChildDirectory(child *DirectoryNode) {
-	directory.Children[child.Name] = child
+	return entries, nil
 }

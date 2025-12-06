@@ -1,5 +1,7 @@
 package objects
 
+import "Gel/src/gel/core/constant"
+
 type ObjectType string
 
 const (
@@ -27,4 +29,15 @@ func ParseObjectType(typeStr string) (ObjectType, bool) {
 		return objectType, true
 	}
 	return "", false
+}
+
+func GetObjectTypeByMode(mode string) (string, bool) {
+	switch mode {
+	case constant.GelRegularFileMode, constant.GelExecFileMode:
+		return GelBlobObjectType.String(), true
+	case constant.GelDirMode:
+		return GelTreeObjectType.String(), true
+	default:
+		return "", false
+	}
 }

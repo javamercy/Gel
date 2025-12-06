@@ -32,7 +32,7 @@ const (
 const (
 	GelRegularFileMode = "100644"
 	GelExecFileMode    = "100755"
-	GelDirMode         = "40000"
+	GelDirMode         = "040000"
 )
 
 // index constants

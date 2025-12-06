@@ -9,7 +9,7 @@ import (
 type IIndexRepository interface {
 	Read() (*domain.Index, error)
 	Write(index *domain.Index) error
-	GetAllEntries() ([]*domain.IndexEntry, error)
+	GetEntries() ([]*domain.IndexEntry, error)
 	AddOrUpdateEntry(entry *domain.IndexEntry) error
 	AddOrUpdateEntries(entries []*domain.IndexEntry) error
 }
@@ -43,7 +43,7 @@ func (indexRepository *IndexRepository) Write(index *domain.Index) error {
 		constant.GelFilePermission)
 }
 
-func (indexRepository *IndexRepository) GetAllEntries() ([]*domain.IndexEntry, error) {
+func (indexRepository *IndexRepository) GetEntries() ([]*domain.IndexEntry, error) {
 	index, err := indexRepository.Read()
 	if err != nil {
 		return nil, err
