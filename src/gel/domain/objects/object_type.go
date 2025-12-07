@@ -1,6 +1,10 @@
 package objects
 
-import "Gel/src/gel/core/constant"
+import (
+	"Gel/src/gel/core/constant"
+	"errors"
+	"fmt"
+)
 
 type ObjectType string
 
@@ -31,13 +35,13 @@ func ParseObjectType(typeStr string) (ObjectType, bool) {
 	return "", false
 }
 
-func GetObjectTypeByMode(mode string) (string, bool) {
+func GetObjectTypeByMode(mode string) (ObjectType, error) {
 	switch mode {
-	case constant.GelRegularFileMode, constant.GelExecFileMode:
-		return GelBlobObjectType.String(), true
-	case constant.GelDirMode:
-		return GelTreeObjectType.String(), true
+	case constant.GelRegularFileModeStr, constant.GelExecutableFileModeStr:
+		return GelBlobObjectType, nil
+	case constant.GelDirectoryModeStr:
+		return GelTreeObjectType, nil
 	default:
-		return "", false
+		return "", errors.New(fmt.Sprintf("Failed to get object type by mode: %v", mode))
 	}
 }

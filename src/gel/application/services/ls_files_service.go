@@ -4,6 +4,7 @@ import (
 	"Gel/src/gel/application/dto"
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
+	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/persistence/repositories"
 	"strconv"
@@ -42,7 +43,7 @@ func (lsFilesService *LsFilesService) LsFiles(request *dto.LsFilesRequest) (stri
 func lsFilesWithStage(index *domain.Index) string {
 	var stringBuilder strings.Builder
 	for _, entry := range index.Entries {
-		stringBuilder.WriteString(strconv.Itoa(int(entry.Mode)))
+		stringBuilder.WriteString(utilities.ConvertModeToString(entry.Mode))
 		stringBuilder.WriteString(constant.SpaceStr)
 		stringBuilder.WriteString(entry.Hash)
 		stringBuilder.WriteString(constant.SpaceStr)

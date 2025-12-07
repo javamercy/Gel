@@ -51,9 +51,9 @@ var catFileCmd = &cobra.Command{
 				os.Exit(1)
 			}
 			for _, entry := range treeEntries {
-				objectTypeStr, ok := objects.GetObjectTypeByMode(entry.Mode)
-				if !ok {
-					cmd.PrintErrln("ErrorMessage: invalid object mode")
+				objectTypeStr, err := objects.GetObjectTypeByMode(entry.Mode)
+				if err != nil {
+					cmd.PrintErrln(err.Error())
 					os.Exit(1)
 				}
 				cmd.Printf("%s %s %s %s\n", entry.Mode, objectTypeStr, entry.Hash, entry.Name)

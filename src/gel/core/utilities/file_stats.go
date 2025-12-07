@@ -1,7 +1,6 @@
 package utilities
 
 import (
-	"os"
 	"syscall"
 )
 
@@ -11,7 +10,6 @@ type FileStatInfo struct {
 	UserId  uint32
 	GroupId uint32
 	Mode    uint32
-	Size    uint32
 }
 
 func GetFileStatInfo(fileInfo *syscall.Stat_t) FileStatInfo {
@@ -20,8 +18,7 @@ func GetFileStatInfo(fileInfo *syscall.Stat_t) FileStatInfo {
 		Inode:   uint32(fileInfo.Ino),
 		UserId:  fileInfo.Uid,
 		GroupId: fileInfo.Gid,
-		Mode:    uint32(fileInfo.Mode),
-		Size:    uint32(fileInfo.Size),
+		Mode:    ConvertFilesystemModeToGelMode(uint32(fileInfo.Mode)),
 	}
 }
 
@@ -31,15 +28,4 @@ func GetFileStatFromPath(path string) (FileStatInfo, error) {
 		return FileStatInfo{}, err
 	}
 	return GetFileStatInfo(&stat), nil
-}
-
-func GetFileStatFromFileInfo(info os.FileInfo) FileStatInfo {
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		return FileStatInfo{
-			Size: uint32(info.Size()),
-			Mode: uint32(info.Mode()),
-		}
-	}
-	return GetFileStatInfo(stat)
 }

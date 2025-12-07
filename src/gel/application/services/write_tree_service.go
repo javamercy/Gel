@@ -4,6 +4,7 @@ import (
 	"Gel/src/gel/core/constant"
 	"Gel/src/gel/core/crossCuttingConcerns/gelErrors"
 	"Gel/src/gel/core/encoding"
+	"Gel/src/gel/core/utilities"
 	"Gel/src/gel/domain"
 	"Gel/src/gel/domain/objects"
 	"Gel/src/gel/persistence/repositories"
@@ -53,7 +54,7 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		if err != nil {
 			return "", err
 		}
-		entry := objects.NewTreeEntry(constant.GelDirMode, subTreeHash, childDirectory.Name)
+		entry := objects.NewTreeEntry(constant.GelDirectoryModeStr, subTreeHash, childDirectory.Name)
 		entries = append(entries, entry)
 	}
 
@@ -95,7 +96,7 @@ func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
 		currentDirectory := root
 		for i, name := range names {
 			if i == len(names)-1 {
-				fileNode := NewFileNode(name, entry.Hash, convertModeToString(entry.Mode))
+				fileNode := NewFileNode(name, entry.Hash, utilities.ConvertModeToString(entry.Mode))
 				currentDirectory.AddFile(fileNode)
 			} else {
 				var childDirectory *DirectoryNode
@@ -136,10 +137,10 @@ func sortTreeEntries(entries []*objects.TreeEntry) {
 		NameI := entries[i].Name
 		NameJ := entries[j].Name
 
-		if entries[i].Mode == constant.GelDirMode {
+		if entries[i].Mode == constant.GelDirectoryModeStr {
 			NameI += constant.SlashStr
 		}
-		if entries[j].Mode == constant.GelDirMode {
+		if entries[j].Mode == constant.GelDirectoryModeStr {
 			NameJ += constant.SlashStr
 		}
 		return NameI < NameJ
@@ -182,11 +183,4 @@ func (directoryNode *DirectoryNode) AddFile(file *FileNode) {
 
 func (directoryNode *DirectoryNode) AddChildDirectory(child *DirectoryNode) {
 	directoryNode.Children[child.Name] = child
-}
-
-func convertModeToString(mode uint32) string {
-	if mode&0111 != 0 {
-		return constant.GelExecFileMode
-	}
-	return constant.GelRegularFileMode
 }

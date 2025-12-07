@@ -28,11 +28,16 @@ const (
 	GelDirPermission  os.FileMode = 0755 // wxr-xr-x
 )
 
-// tree modes
+// mode constants
 const (
-	GelRegularFileMode = "100644"
-	GelExecFileMode    = "100755"
-	GelDirMode         = "040000"
+	GelRegularFileModeStr      = "100644"
+	GelRegularFileModeOctal    = 0o100644
+	GelExecutableFileModeStr   = "100755"
+	GelExecutableFileModeOctal = 0o100755
+	GelDirectoryModeStr        = "040000"
+	GelDirectoryModeOctal      = 0o040000
+	GelSymlinkModeStr          = "120000"
+	GelSymlinkModeOctal        = 0o120000
 )
 
 // index constants

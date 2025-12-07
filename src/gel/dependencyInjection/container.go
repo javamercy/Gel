@@ -18,6 +18,7 @@ type Container struct {
 	LsFilesService     services.ILsFilesService
 	AddService         services.IAddService
 	WriteTreeService   services.IWriteTreeService
+	ReadTreeService    services.IReadTreeService
 
 	UpdateIndexRules *rules.UpdateIndexRules
 	HashObjectRules  *rules.HashObjectRules

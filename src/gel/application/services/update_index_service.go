@@ -20,14 +20,16 @@ type IUpdateIndexService interface {
 type UpdateIndexService struct {
 	indexRepository      repositories.IIndexRepository
 	filesystemRepository repositories.IFilesystemRepository
+	objectRepository     repositories.IObjectRepository
 	hashObjectService    IHashObjectService
 	updateIndexRules     *rules.UpdateIndexRules
 }
 
-func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesystemRepository repositories.IFilesystemRepository, hashObjectService IHashObjectService, updateIndexRules *rules.UpdateIndexRules) *UpdateIndexService {
+func NewUpdateIndexService(indexRepository repositories.IIndexRepository, filesystemRepository repositories.IFilesystemRepository, objectRepository repositories.IObjectRepository, hashObjectService IHashObjectService, updateIndexRules *rules.UpdateIndexRules) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexRepository,
 		filesystemRepository,
+		objectRepository,
 		hashObjectService,
 		updateIndexRules,
 	}
@@ -78,9 +80,15 @@ func (updateIndexService *UpdateIndexService) add(index *domain.Index, paths []s
 			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 		}
 
+		blobHash := hashMap[path]
+		size, readErr := updateIndexService.readBlobAndGetSize(blobHash)
+		if readErr != nil {
+			return gelErrors.NewGelError(gelErrors.ExitCodeFatal, readErr.Error())
+		}
+
 		newEntry := domain.NewIndexEntry(path,
-			hashMap[path],
-			fileStatInfo.Size,
+			blobHash,
+			size,
 			fileStatInfo.Mode,
 			fileStatInfo.Device,
 			fileStatInfo.Inode,
@@ -115,4 +123,23 @@ func (updateIndexService *UpdateIndexService) remove(index *domain.Index, paths 
 		return gelErrors.NewGelError(gelErrors.ExitCodeFatal, err.Error())
 	}
 	return nil
+}
+
+func (updateIndexService *UpdateIndexService) readBlobAndGetSize(hash string) (uint32, error) {
+	compressedContent, err := updateIndexService.objectRepository.Read(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	content, err := encoding.Decompress(compressedContent)
+	if err != nil {
+		return 0, err
+	}
+
+	object, err := objects.DeserializeObject(content)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(object.Size()), nil
 }

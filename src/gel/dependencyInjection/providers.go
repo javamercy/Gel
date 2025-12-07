@@ -41,4 +41,7 @@ var ApplicationProviderSet = wire.NewSet(
 
 	services.NewWriteTreeService,
 	wire.Bind(new(services.IWriteTreeService), new(*services.WriteTreeService)),
+
+	services.NewReadTreeService,
+	wire.Bind(new(services.IReadTreeService), new(*services.ReadTreeService)),
 )
