@@ -4,6 +4,7 @@ import (
 	"Gel/src/gel/persistence/repositories"
 	"errors"
 	"fmt"
+	"os"
 )
 
 type HashObjectRules struct {
@@ -18,7 +19,7 @@ func NewHashObjectRules(filesystemRepository repositories.IFilesystemRepository)
 
 func (hashObjectRules *HashObjectRules) PathsMustBeFiles(paths []string) error {
 	for _, path := range paths {
-		fileInfo, err := hashObjectRules.filesystemRepository.Stat(path)
+		fileInfo, err := os.Stat(path)
 		if err != nil {
 			return err
 		}

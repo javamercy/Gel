@@ -13,7 +13,6 @@ type IFilesystemRepository interface {
 	WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error
 	ReadFile(path string) ([]byte, error)
 	Exists(path string) bool
-	Stat(path string) (os.FileInfo, error)
 }
 
 type FilesystemRepository struct {
@@ -44,8 +43,4 @@ func (filesystemRepository *FilesystemRepository) Exists(path string) bool {
 
 func (filesystemRepository *FilesystemRepository) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
-}
-
-func (filesystemRepository *FilesystemRepository) Stat(path string) (os.FileInfo, error) {
-	return os.Stat(path)
 }
