@@ -1,35 +1,30 @@
 package cmd
 
 import (
-	"Gel/application/dto"
-	"Gel/domain/objects"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
 var hashObjectCmd = &cobra.Command{
-	Use:     "hash-object",
+	Use:     "hash-object <file>...",
 	Short:   "Compute the hash of a file",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.PrintErrln("Please provide a file path")
+			cmd.PrintErrln("Error: no paths specified")
 			return
 		}
+
 		write, _ := cmd.Flags().GetBool("write")
-		objectType := cmd.Flags().Lookup("type").Value.String()
 
-		request := dto.NewHashObjectRequest(args, objects.ObjectType(objectType), write)
-
-		response, gelError := container.HashObjectService.HashObject(request)
-		if gelError != nil {
-			cmd.PrintErrln(gelError.Message)
-			os.Exit(gelError.GetExitCode())
+		hashMap, _, err := hashObjectService.HashObject(args, write)
+		if err != nil {
+			cmd.PrintErrln("Error hashing objects:", err)
+			return
 		}
 
-		for path, hash := range response {
-			cmd.Printf("%s  %s\n", hash, path)
+		for _, path := range args {
+			hash := hashMap[path]
+			cmd.Println(hash)
 		}
 	},
 }

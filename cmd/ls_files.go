@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"Gel/application/dto"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -12,19 +9,15 @@ var lsFilesCmd = &cobra.Command{
 	Short:   "List all files tracked by Gel in the current repository",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		stage, _ := cmd.Flags().GetBool("stage")
-		cached, _ := cmd.Flags().GetBool("cached")
-		deleted, _ := cmd.Flags().GetBool("deleted")
-		modified, _ := cmd.Flags().GetBool("modified")
 
-		lsFilesRequest := dto.NewLsFilesRequest(cached, stage, deleted, modified)
-		files, gelError := container.LsFilesService.LsFiles(lsFilesRequest)
-		if gelError != nil {
-			cmd.PrintErrln(gelError)
-			os.Exit(gelError.GetExitCode())
+		output, err := lsFilesService.LsFiles(stage)
+		if err != nil {
+			cmd.PrintErrln("Error listing files:", err)
+			return
 		}
-		cmd.Println(files)
+
+		cmd.Print(output)
 	},
 }
 

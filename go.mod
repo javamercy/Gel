@@ -2,10 +2,7 @@ module Gel
 
 go 1.25
 
-require (
-	github.com/google/wire v0.7.0
-	github.com/spf13/cobra v1.10.1
-)
+require github.com/spf13/cobra v1.10.2
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

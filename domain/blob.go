@@ -1,4 +1,4 @@
-package objects
+package domain
 
 type Blob struct {
 	*BaseObject

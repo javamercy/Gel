@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -11,11 +9,12 @@ var writeTreeCmd = &cobra.Command{
 	Short:   "Write the current index as a tree object",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
-		hash, gelError := container.WriteTreeService.WriteTree()
-		if gelError != nil {
-			cmd.PrintErrln(gelError)
-			os.Exit(gelError.GetExitCode())
+		hash, err := writeTreeService.WriteTree()
+		if err != nil {
+			cmd.PrintErrln("Error writing tree:", err)
+			return
 		}
+
 		cmd.Println(hash)
 	},
 }

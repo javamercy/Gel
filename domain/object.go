@@ -1,4 +1,4 @@
-package objects
+package domain
 
 import (
 	"Gel/core/constant"
@@ -47,7 +47,7 @@ func DeserializeObject(content []byte) (IObject, error) {
 	}
 
 	header := content[:nullIndex]
-	objectType, size, err := deserializeHeader(header)
+	objectType, size, err := deserializeObjectHeader(header)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func DeserializeObject(content []byte) (IObject, error) {
 	return nil, nil
 }
 
-func deserializeHeader(data []byte) (ObjectType, int, error) {
+func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	spaceIndex := -1
 	for i, b := range data {
 		if b == constant.SpaceByte {

@@ -1,39 +1,36 @@
 package cmd
 
 import (
-	"Gel/application/dto"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
 var addCmd = &cobra.Command{
-	Use:     "add",
+	Use:     "add <pathspec>...",
 	Short:   "Add file contents to the index",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			cmd.PrintErrln("Error: no paths specified")
+			return
+		}
 
-		all, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		var pathspecs []string
-		if all {
-			pathspecs = []string{"."}
-		} else {
-			pathspecs = args
+		addedPaths, err := addService.Add(args, dryRun)
+		if err != nil {
+			cmd.PrintErrln("Error adding files:", err)
+			return
 		}
 
-		addRequest := dto.NewAddRequest(pathspecs, dryRun, verbose)
-
-		paths, gelError := container.AddService.Add(addRequest)
-		if gelError != nil {
-			cmd.PrintErrln(gelError.Message)
-			os.Exit(gelError.GetExitCode())
-		}
-
-		for _, path := range paths {
-			cmd.Println("Added:", path)
+		if verbose || dryRun {
+			for _, path := range addedPaths {
+				if dryRun {
+					cmd.Printf("add '%s'\n", path)
+				} else {
+					cmd.Println(path)
+				}
+			}
 		}
 	},
 }

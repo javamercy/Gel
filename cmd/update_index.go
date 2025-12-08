@@ -1,26 +1,31 @@
 package cmd
 
 import (
-	"Gel/application/dto"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
 var updateIndexCmd = &cobra.Command{
-	Use:     "update-index",
+	Use:     "update-index <file>...",
 	Short:   "Update the index with the current state of the working directory",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			cmd.PrintErrln("Error: no paths specified")
+			return
+		}
+
 		add, _ := cmd.Flags().GetBool("add")
 		remove, _ := cmd.Flags().GetBool("remove")
 
-		request := dto.NewUpdateIndexRequest(args, add, remove)
+		if !add && !remove {
+			cmd.PrintErrln("Error: must specify either --add or --remove")
+			return
+		}
 
-		gelError := container.UpdateIndexService.UpdateIndex(request)
-		if gelError != nil {
-			cmd.PrintErrln(gelError)
-			os.Exit(gelError.GetExitCode())
+		err := updateIndexService.UpdateIndex(args, add, remove)
+		if err != nil {
+			cmd.PrintErrln("Error updating index:", err)
+			return
 		}
 	},
 }

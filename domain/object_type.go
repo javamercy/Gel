@@ -1,4 +1,4 @@
-package objects
+package domain
 
 import (
 	"Gel/core/constant"

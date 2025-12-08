@@ -1,65 +1,68 @@
 package cmd
 
 import (
-	"Gel/application/dto"
-	objects2 "Gel/domain/objects"
+	"Gel/domain"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var catFileCmd = &cobra.Command{
-	Use:     "cat-file",
+	Use:     "cat-file <hash>",
 	Short:   "Display the content of a Git object",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
-			cmd.PrintErrln("ErrorMessage: object hash required")
+			cmd.PrintErrln("Error: object hash required")
 			_ = cmd.Help()
 			os.Exit(1)
 		}
 
 		hash := args[0]
-
-		showType, _ := cmd.Flags().GetBool("type")
-		showSize, _ := cmd.Flags().GetBool("size")
+		typeFlag, _ := cmd.Flags().GetBool("type")
 		pretty, _ := cmd.Flags().GetBool("pretty")
-		checkOnly, _ := cmd.Flags().GetBool("exists")
+		size, _ := cmd.Flags().GetBool("size")
+		exists, _ := cmd.Flags().GetBool("exists")
 
-		request := dto.NewCatFileRequest(hash, showType, showSize, pretty, checkOnly)
-
-		object, gelError := container.CatFileService.GetObject(request)
-		if gelError != nil {
-			cmd.PrintErrln(gelError.Message)
-			os.Exit(gelError.GetExitCode())
-		}
-
-		if showType {
-			cmd.Println(object.Type())
-			return
-		}
-
-		if showSize {
-			cmd.Println(object.Size())
-			return
-		}
-
-		if object.Type() == objects2.GelTreeObjectType {
-			treeEntries, err := object.(*objects2.Tree).DeserializeTree()
-			if err != nil {
-				cmd.PrintErrln(err.Error())
+		obj, err := catFileService.CatFile(hash)
+		if err != nil {
+			if exists {
 				os.Exit(1)
 			}
-			for _, entry := range treeEntries {
-				objectTypeStr, err := objects2.GetObjectTypeByMode(entry.Mode)
+			cmd.PrintErrln("Error reading object:", err)
+			return
+		}
+
+		if exists {
+			os.Exit(0)
+		}
+
+		if typeFlag {
+			cmd.Println(obj.Type())
+			return
+		}
+
+		if size {
+			cmd.Println(obj.Size())
+			return
+		}
+
+		if pretty {
+			switch o := obj.(type) {
+			case *domain.Blob:
+				cmd.Print(string(o.Data()))
+			case *domain.Tree:
+				entries, err := o.DeserializeTree()
 				if err != nil {
-					cmd.PrintErrln(err.Error())
-					os.Exit(1)
+					cmd.PrintErrln("Error deserializing tree:", err)
+					return
 				}
-				cmd.Printf("%s %s %s %s\n", entry.Mode, objectTypeStr, entry.Hash, entry.Name)
+				for _, entry := range entries {
+					cmd.Printf("%s %s %s\n", entry.Mode, entry.Hash, entry.Name)
+				}
+			default:
+				cmd.PrintErrln("Unknown object type")
 			}
-		} else if object.Type() == objects2.GelBlobObjectType {
-			cmd.Println(string(object.Data()))
 		}
 	},
 }

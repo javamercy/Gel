@@ -24,8 +24,8 @@ const (
 
 // permission constants
 const (
-	GelFilePermission os.FileMode = 0644 // -rw-r--r--
-	GelDirPermission  os.FileMode = 0755 // wxr-xr-x
+	GelFilePermission      os.FileMode = 0644 // -rw-r--r----r--
+	GelDirectoryPermission os.FileMode = 0755 // wxr-xr-x
 )
 
 // mode constants

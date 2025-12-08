@@ -5,10 +5,27 @@ package cmd
 
 import (
 	"Gel/core/context"
-	dependencyInjection2 "Gel/dependencyInjection"
+	"Gel/vcs"
 	"os"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	// Core services
+	filesystemService *vcs.FilesystemService
+	objectService     *vcs.ObjectService
+	indexService      *vcs.IndexService
+
+	// Command services
+	initService        *vcs.InitService
+	addService         *vcs.AddService
+	hashObjectService  *vcs.HashObjectService
+	catFileService     *vcs.CatFileService
+	lsFilesService     *vcs.LsFilesService
+	updateIndexService *vcs.UpdateIndexService
+	writeTreeService   *vcs.WriteTreeService
+	readTreeService    *vcs.ReadTreeService
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -16,8 +33,6 @@ var rootCmd = &cobra.Command{
 	Use:   "gel",
 	Short: "A simple version control system",
 }
-
-var container *dependencyInjection2.Container
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -28,9 +43,34 @@ func Execute() {
 	}
 }
 
-func init() {
-	container = dependencyInjection2.InitializeContainer()
+// InitializeServices sets up all the services for the commands
+func InitializeServices(
+	fs *vcs.FilesystemService,
+	obj *vcs.ObjectService,
+	idx *vcs.IndexService,
+	init *vcs.InitService,
+	add *vcs.AddService,
+	hashObj *vcs.HashObjectService,
+	catFile *vcs.CatFileService,
+	lsFiles *vcs.LsFilesService,
+	updateIdx *vcs.UpdateIndexService,
+	writeTree *vcs.WriteTreeService,
+	readTree *vcs.ReadTreeService,
+) {
+	filesystemService = fs
+	objectService = obj
+	indexService = idx
+	initService = init
+	addService = add
+	hashObjectService = hashObj
+	catFileService = catFile
+	lsFilesService = lsFiles
+	updateIndexService = updateIdx
+	writeTreeService = writeTree
+	readTreeService = readTree
+}
 
+func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
