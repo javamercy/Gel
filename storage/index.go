@@ -2,7 +2,7 @@ package storage
 
 import (
 	"Gel/core/constant"
-	"Gel/core/context"
+	"Gel/core/repository"
 	"Gel/domain"
 )
 
@@ -22,8 +22,8 @@ func NewIndexStorage(filesystemStorage IFilesystemStorage) *IndexStorage {
 }
 
 func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
-	ctx := context.GetContext()
-	data, err := indexStorage.filesystemStorage.ReadFile(ctx.IndexPath)
+	repo := repository.GetRepository()
+	data, err := indexStorage.filesystemStorage.ReadFile(repo.IndexPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,10 +32,10 @@ func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
 }
 
 func (indexStorage *IndexStorage) Write(index *domain.Index) error {
-	ctx := context.GetContext()
+	repo := repository.GetRepository()
 	content := index.Serialize()
 	return indexStorage.filesystemStorage.WriteFile(
-		ctx.IndexPath,
+		repo.IndexPath,
 		content, false,
 		constant.GelFilePermission)
 }

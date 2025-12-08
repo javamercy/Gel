@@ -4,7 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"Gel/core/context"
+	"Gel/core/repository"
 	"Gel/vcs"
 	"os"
 
@@ -83,5 +83,5 @@ func init() {
 }
 
 func requiresEnsureContextPreRun(cmd *cobra.Command, args []string) error {
-	return context.EnsureContext()
+	return repository.Initialize()
 }

@@ -2,7 +2,7 @@ package storage
 
 import (
 	"Gel/core/constant"
-	"Gel/core/context"
+	"Gel/core/repository"
 	"path/filepath"
 )
 
@@ -40,8 +40,8 @@ func (objectStorage *ObjectStorage) Exists(hash string) bool {
 }
 
 func (objectStorage *ObjectStorage) GetObjectPath(hash string) string {
-	ctx := context.GetContext()
+	repo := repository.GetRepository()
 	dir := hash[:2]
 	file := hash[2:]
-	return filepath.Join(ctx.ObjectsDir, dir, file)
+	return filepath.Join(repo.ObjectsDirectory, dir, file)
 }
