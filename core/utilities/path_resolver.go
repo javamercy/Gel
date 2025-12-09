@@ -1,13 +1,18 @@
 package utilities
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 type PathspecType int
+
+var (
+	ErrPathspecDidNotMatchAny = errors.New("pathspec did not match any file, directory, or glob pattern")
+	ErrUnknownPathspecType    = errors.New("unknown pathspec type")
+)
 
 const (
 	File PathspecType = iota
@@ -72,9 +77,9 @@ func (pathResolver *PathResolver) resolvePathspec(pathspec string) ([]string, er
 	case GlobPattern:
 		return expandGlobPattern(pathspec)
 	case NonExistent:
-		return nil, fmt.Errorf("pathspec '%s' did not match any files", pathspec)
+		return nil, ErrPathspecDidNotMatchAny
 	default:
-		return nil, fmt.Errorf("unknown pathspec type for '%s'", pathspec)
+		return nil, ErrUnknownPathspecType
 	}
 }
 
