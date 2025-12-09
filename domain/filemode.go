@@ -57,6 +57,20 @@ func ParseFileModeFromString(modeStr string) FileMode {
 	}
 }
 
+func ParseFileModeFromOsMode(osMode uint32) FileMode {
+	if osMode&0o170000 == 0o040000 {
+		return Directory
+	} else if osMode&0o170000 == 0o120000 {
+		return Symlink
+	} else if osMode&0o170000 == 0o160000 {
+		return Submodule
+	} else if osMode&0o111 != 0 {
+		return ExecutableFile
+	} else {
+		return RegularFile
+	}
+}
+
 func (fm FileMode) String() string {
 	switch fm {
 	case RegularFile:

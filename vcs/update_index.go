@@ -58,7 +58,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 		newEntry := domain.NewIndexEntry(p,
 			blobHash,
 			size,
-			fileStatInfo.Mode,
+			domain.ParseFileModeFromOsMode(fileStatInfo.Mode).Uint32(),
 			fileStatInfo.Device,
 			fileStatInfo.Inode,
 			fileStatInfo.UserId,
