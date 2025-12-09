@@ -20,6 +20,8 @@ const (
 	NewLineByte = '\n'
 	SlashStr    = "/"
 	SlashByte   = '/'
+	TabStr      = "\t"
+	TabByte     = '\t'
 )
 
 // permission constants
