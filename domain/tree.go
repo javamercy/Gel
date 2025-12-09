@@ -6,12 +6,12 @@ import (
 )
 
 type TreeEntry struct {
-	Mode string
+	Mode FileMode
 	Hash string
 	Name string
 }
 
-func NewTreeEntry(mode, hash, name string) *TreeEntry {
+func NewTreeEntry(mode FileMode, hash, name string) *TreeEntry {
 	return &TreeEntry{
 		Mode: mode,
 		Hash: hash,
@@ -41,7 +41,12 @@ func (tree *Tree) DeserializeTree() ([]*TreeEntry, error) {
 		for data[i] != constant.SpaceByte {
 			i++
 		}
-		mode := string(data[modeStart:i])
+		modeStr := string(data[modeStart:i])
+		mode := ParseFileModeFromString(modeStr)
+		if !mode.IsValid() {
+			return nil, ErrInvalidFileMode
+		}
+
 		i++
 
 		nameStart := i

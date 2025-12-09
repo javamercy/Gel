@@ -44,6 +44,7 @@ func main() {
 	lsFilesService := vcs.NewLsFilesService(indexService)
 	writeTreeService := vcs.NewWriteTreeService(indexService, objectService)
 	readTreeService := vcs.NewReadTreeService(indexService, objectService)
+	lsTreeService := vcs.NewLsTreeService(objectService)
 
 	// Initialize commands with all services
 	cmd.InitializeServices(
@@ -58,6 +59,7 @@ func main() {
 		updateIndexService,
 		writeTreeService,
 		readTreeService,
+		lsTreeService,
 	)
 
 	// Execute root command

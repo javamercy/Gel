@@ -18,7 +18,7 @@ func GetFileStatInfo(fileInfo *syscall.Stat_t) FileStatInfo {
 		Inode:   uint32(fileInfo.Ino),
 		UserId:  fileInfo.Uid,
 		GroupId: fileInfo.Gid,
-		Mode:    ConvertFilesystemModeToGelMode(uint32(fileInfo.Mode)),
+		Mode:    uint32(fileInfo.Mode),
 	}
 }
 

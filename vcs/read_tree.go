@@ -55,7 +55,7 @@ func (readTreeService *ReadTreeService) expandTree(treeHash, prefix string) ([]*
 	}
 
 	for _, treeEntry := range treeEntries {
-		objectType, err := domain.GetObjectTypeByMode(treeEntry.Mode)
+		objectType, err := treeEntry.Mode.ObjectType()
 		fullPath := path.Join(prefix, treeEntry.Name)
 		if err != nil {
 			return nil, err
@@ -83,7 +83,7 @@ func (readTreeService *ReadTreeService) expandTree(treeHash, prefix string) ([]*
 				fullPath,
 				treeEntry.Hash,
 				size,
-				utilities.ConvertModeToUint32(treeEntry.Mode),
+				treeEntry.Mode.Uint32(),
 				fileStatInfo.Device,
 				fileStatInfo.Inode,
 				fileStatInfo.UserId,
@@ -120,17 +120,17 @@ func (readTreeService *ReadTreeService) readTreeAndDeserializeTreeEntries(treeHa
 }
 
 type FileNode struct {
-	Name string
+	Mode domain.FileMode
 	Hash string
-	Mode string
+	Name string
 }
 
-func NewFileNode(name, hash, mode string) *FileNode {
+func NewFileNode(mode domain.FileMode, hash, name string) *FileNode {
 	{
 		return &FileNode{
-			Name: name,
-			Hash: hash,
 			Mode: mode,
+			Hash: hash,
+			Name: name,
 		}
 	}
 }
@@ -165,7 +165,7 @@ func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
 		currentDirectory := root
 		for i, name := range names {
 			if i == len(names)-1 {
-				fileNode := NewFileNode(name, entry.Hash, utilities.ConvertModeToString(entry.Mode))
+				fileNode := NewFileNode(domain.ParseFileMode(entry.Mode), entry.Hash, name)
 				currentDirectory.AddFile(fileNode)
 			} else {
 				var childDirectory *DirectoryNode
@@ -186,7 +186,7 @@ func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
 func buildTreeData(entries []*domain.TreeEntry) ([]byte, error) {
 	var buffer bytes.Buffer
 	for _, entry := range entries {
-		buffer.WriteString(entry.Mode)
+		buffer.WriteString(entry.Mode.String())
 		buffer.WriteString(constant.SpaceStr)
 		buffer.WriteString(entry.Name)
 		buffer.WriteString(constant.NullStr)
@@ -206,10 +206,10 @@ func sortTreeEntries(entries []*domain.TreeEntry) {
 		NameI := entries[i].Name
 		NameJ := entries[j].Name
 
-		if entries[i].Mode == constant.GelDirectoryModeStr {
+		if entries[i].Mode.IsDirectory() {
 			NameI += constant.SlashStr
 		}
-		if entries[j].Mode == constant.GelDirectoryModeStr {
+		if entries[j].Mode.IsDirectory() {
 			NameJ += constant.SlashStr
 		}
 		return NameI < NameJ

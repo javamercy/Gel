@@ -1,7 +1,6 @@
 package vcs
 
 import (
-	"Gel/core/constant"
 	"Gel/core/encoding"
 	"Gel/domain"
 )
@@ -41,7 +40,7 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		if err != nil {
 			return "", err
 		}
-		entry := domain.NewTreeEntry(constant.GelDirectoryModeStr, subTreeHash, childDirectory.Name)
+		entry := domain.NewTreeEntry(domain.Directory, subTreeHash, childDirectory.Name)
 		entries = append(entries, entry)
 	}
 

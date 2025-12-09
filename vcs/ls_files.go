@@ -2,7 +2,6 @@ package vcs
 
 import (
 	"Gel/core/constant"
-	"Gel/core/utilities"
 	"Gel/domain"
 	"strconv"
 	"strings"
@@ -39,7 +38,7 @@ func (lsFilesService *LsFilesService) LsFiles(stage bool) (string, error) {
 func lsFilesWithStage(index *domain.Index) string {
 	var stringBuilder strings.Builder
 	for _, entry := range index.Entries {
-		stringBuilder.WriteString(utilities.ConvertModeToString(entry.Mode))
+		stringBuilder.WriteString(domain.ParseFileMode(entry.Mode).String())
 		stringBuilder.WriteString(constant.SpaceStr)
 		stringBuilder.WriteString(entry.Hash)
 		stringBuilder.WriteString(constant.SpaceStr)

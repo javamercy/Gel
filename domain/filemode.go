@@ -74,7 +74,7 @@ func (fm FileMode) String() string {
 	}
 }
 
-func (fm FileMode) ToUint32() uint32 {
+func (fm FileMode) Uint32() uint32 {
 	return uint32(fm)
 }
 
