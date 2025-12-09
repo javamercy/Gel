@@ -9,14 +9,14 @@ import (
 type ObjectType string
 
 const (
-	GelBlobObjectType   ObjectType = "blob"
-	GelTreeObjectType   ObjectType = "tree"
-	GelCommitObjectType ObjectType = "commit"
+	ObjectTypeBlob   ObjectType = "blob"
+	ObjectTypeTree   ObjectType = "tree"
+	ObjectTypeCommit ObjectType = "commit"
 )
 
 func (objectType ObjectType) IsValid() bool {
 	switch objectType {
-	case GelBlobObjectType, GelTreeObjectType, GelCommitObjectType:
+	case ObjectTypeBlob, ObjectTypeTree, ObjectTypeCommit:
 		return true
 	default:
 		return false
@@ -34,9 +34,9 @@ func ParseObjectType(typeStr string) (ObjectType, bool) {
 func GetObjectTypeByMode(mode string) (ObjectType, error) {
 	switch mode {
 	case constant.GelRegularFileModeStr, constant.GelExecutableFileModeStr:
-		return GelBlobObjectType, nil
+		return ObjectTypeBlob, nil
 	case constant.GelDirectoryModeStr:
-		return GelTreeObjectType, nil
+		return ObjectTypeTree, nil
 	default:
 		return "", errors.New(fmt.Sprintf("Failed to get object type by mode: %v", mode))
 	}

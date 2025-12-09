@@ -61,13 +61,13 @@ func (readTreeService *ReadTreeService) expandTree(treeHash, prefix string) ([]*
 			return nil, err
 		}
 
-		if objectType == domain.GelTreeObjectType {
+		if objectType == domain.ObjectTypeTree {
 			indexEntries, err := readTreeService.expandTree(treeEntry.Hash, fullPath)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, indexEntries...)
-		} else if objectType == domain.GelBlobObjectType {
+		} else if objectType == domain.ObjectTypeBlob {
 
 			fileStatInfo, fileStatErr := utilities.GetFileStatFromPath(fullPath)
 			if fileStatErr != nil {

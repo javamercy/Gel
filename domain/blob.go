@@ -7,7 +7,7 @@ type Blob struct {
 func NewBlob(data []byte) *Blob {
 	return &Blob{
 		&BaseObject{
-			objectType: GelBlobObjectType,
+			objectType: ObjectTypeBlob,
 			data:       data,
 		},
 	}

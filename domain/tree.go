@@ -26,7 +26,7 @@ type Tree struct {
 func NewTree(data []byte) *Tree {
 	return &Tree{
 		BaseObject: &BaseObject{
-			objectType: GelTreeObjectType,
+			objectType: ObjectTypeTree,
 			data:       data,
 		},
 	}

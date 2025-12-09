@@ -58,10 +58,10 @@ func DeserializeObject(content []byte) (IObject, error) {
 	}
 
 	switch objectType {
-	case GelBlobObjectType:
+	case ObjectTypeBlob:
 		return NewBlob(data), nil
 
-	case GelTreeObjectType:
+	case ObjectTypeTree:
 		return NewTree(data), nil
 	}
 	// code will never reach here due to earlier validation
