@@ -60,3 +60,22 @@ func (objectService *ObjectService) Read(hash string) (domain.IObject, error) {
 	}
 	return object, nil
 }
+
+func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]*domain.TreeEntry, error) {
+	object, err := objectService.Read(treeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, ok := object.(*domain.Tree)
+	if !ok {
+		return nil, err
+	}
+
+	treeEntries, err := tree.DeserializeTree()
+	if err != nil {
+		return nil, err
+	}
+
+	return treeEntries, nil
+}
