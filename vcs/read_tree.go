@@ -1,14 +1,8 @@
 package vcs
 
 import (
-	"Gel/core/constant"
 	"Gel/core/utilities"
 	"Gel/domain"
-	"bytes"
-	"encoding/hex"
-	"path"
-	"sort"
-	"strings"
 	"time"
 )
 
@@ -24,11 +18,46 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 	}
 }
 
-func (readTreeService *ReadTreeService) ReadTree(hash string) error {
+func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 
-	indexEntries, expandErr := readTreeService.expandTree(hash, "")
-	if expandErr != nil {
-		return expandErr
+	var indexEntries []*domain.IndexEntry
+
+	processor := func(entry *domain.TreeEntry, relativePath string) error {
+		fileStatInfo := utilities.GetFileStatFromPath(relativePath)
+
+		size, err := readTreeService.objectService.GetObjectSize(entry.Hash)
+		if err != nil {
+			return err
+		}
+
+		indexEntry := domain.NewIndexEntry(
+			relativePath,
+			entry.Hash,
+			size,
+			entry.Mode.Uint32(),
+			fileStatInfo.Device,
+			fileStatInfo.Inode,
+			fileStatInfo.UserId,
+			fileStatInfo.GroupId,
+			domain.ComputeIndexFlags(relativePath, 0),
+			time.Now(),
+			time.Now())
+
+		indexEntries = append(indexEntries, indexEntry)
+		return nil
+	}
+
+	options := WalkOptions{
+		Recursive:    true,
+		IncludeTrees: false,
+		OnlyTrees:    false,
+	}
+
+	treeWalker := NewTreeWalker(readTreeService.objectService, options, processor)
+	err := treeWalker.Walk(treeHash, "")
+
+	if err != nil {
+		return err
 	}
 
 	index := domain.NewEmptyIndex()
@@ -36,182 +65,5 @@ func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 		index.AddEntry(entry)
 	}
 
-	writeErr := readTreeService.indexService.Write(index)
-
-	if writeErr != nil {
-		return writeErr
-	}
-
-	return nil
-
-}
-
-func (readTreeService *ReadTreeService) expandTree(treeHash, prefix string) ([]*domain.IndexEntry, error) {
-
-	result := make([]*domain.IndexEntry, 0)
-	treeEntries, gelError := readTreeService.readTreeAndDeserializeTreeEntries(treeHash)
-	if gelError != nil {
-		return nil, gelError
-	}
-
-	for _, treeEntry := range treeEntries {
-		objectType, err := treeEntry.Mode.ObjectType()
-		fullPath := path.Join(prefix, treeEntry.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		if objectType == domain.ObjectTypeTree {
-			indexEntries, err := readTreeService.expandTree(treeEntry.Hash, fullPath)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, indexEntries...)
-		} else if objectType == domain.ObjectTypeBlob {
-
-			fileStatInfo, fileStatErr := utilities.GetFileStatFromPath(fullPath)
-			if fileStatErr != nil {
-				return nil, fileStatErr
-			}
-
-			size, sizeErr := readTreeService.objectService.GetObjectSize(treeEntry.Hash)
-			if sizeErr != nil {
-				return nil, sizeErr
-			}
-
-			indexEntry := domain.NewIndexEntry(
-				fullPath,
-				treeEntry.Hash,
-				size,
-				treeEntry.Mode.Uint32(),
-				fileStatInfo.Device,
-				fileStatInfo.Inode,
-				fileStatInfo.UserId,
-				fileStatInfo.GroupId,
-				domain.ComputeIndexFlags(fullPath, 0),
-				time.Now(),
-				time.Now())
-
-			result = append(result, indexEntry)
-		}
-
-	}
-
-	return result, nil
-}
-
-func (readTreeService *ReadTreeService) readTreeAndDeserializeTreeEntries(treeHash string) ([]*domain.TreeEntry, error) {
-	object, err := readTreeService.objectService.Read(treeHash)
-	if err != nil {
-		return nil, err
-	}
-
-	tree, ok := object.(*domain.Tree)
-	if !ok {
-		return nil, err
-	}
-
-	treeEntries, err := tree.DeserializeTree()
-	if err != nil {
-		return nil, err
-	}
-
-	return treeEntries, nil
-}
-
-type FileNode struct {
-	Mode domain.FileMode
-	Hash string
-	Name string
-}
-
-func NewFileNode(mode domain.FileMode, hash, name string) *FileNode {
-	{
-		return &FileNode{
-			Mode: mode,
-			Hash: hash,
-			Name: name,
-		}
-	}
-}
-
-type DirectoryNode struct {
-	Name     string
-	Children map[string]*DirectoryNode
-	Files    []*FileNode
-}
-
-func NewDirectoryNode(name string, children map[string]*DirectoryNode, files []*FileNode) *DirectoryNode {
-	return &DirectoryNode{
-		Name:     name,
-		Children: children,
-		Files:    files,
-	}
-}
-
-func (directoryNode *DirectoryNode) AddFile(file *FileNode) {
-	directoryNode.Files = append(directoryNode.Files, file)
-}
-
-func (directoryNode *DirectoryNode) AddChildDirectory(child *DirectoryNode) {
-	directoryNode.Children[child.Name] = child
-}
-
-func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
-	root := NewDirectoryNode("", map[string]*DirectoryNode{}, []*FileNode{})
-	for _, entry := range entries {
-		names := strings.Split(entry.Path, "/")
-
-		currentDirectory := root
-		for i, name := range names {
-			if i == len(names)-1 {
-				fileNode := NewFileNode(domain.ParseFileMode(entry.Mode), entry.Hash, name)
-				currentDirectory.AddFile(fileNode)
-			} else {
-				var childDirectory *DirectoryNode
-				if existingChild, exists := currentDirectory.Children[name]; exists {
-					childDirectory = existingChild
-				} else {
-					childDirectory = NewDirectoryNode(name, map[string]*DirectoryNode{}, []*FileNode{})
-					currentDirectory.Children[name] = childDirectory
-				}
-
-				currentDirectory = childDirectory
-			}
-		}
-	}
-	return root
-}
-
-func buildTreeData(entries []*domain.TreeEntry) ([]byte, error) {
-	var buffer bytes.Buffer
-	for _, entry := range entries {
-		buffer.WriteString(entry.Mode.String())
-		buffer.WriteString(constant.SpaceStr)
-		buffer.WriteString(entry.Name)
-		buffer.WriteString(constant.NullStr)
-
-		hashBytes, err := hex.DecodeString(entry.Hash)
-		if err != nil {
-			return nil, err
-		}
-		buffer.Write(hashBytes)
-	}
-
-	return buffer.Bytes(), nil
-}
-
-func sortTreeEntries(entries []*domain.TreeEntry) {
-	sort.Slice(entries, func(i, j int) bool {
-		NameI := entries[i].Name
-		NameJ := entries[j].Name
-
-		if entries[i].Mode.IsDirectory() {
-			NameI += constant.SlashStr
-		}
-		if entries[j].Mode.IsDirectory() {
-			NameJ += constant.SlashStr
-		}
-		return NameI < NameJ
-	})
+	return readTreeService.indexService.Write(index)
 }

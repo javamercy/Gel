@@ -44,10 +44,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 
 	for _, p := range paths {
 
-		fileStatInfo, err := utilities.GetFileStatFromPath(p)
-		if err != nil {
-			return err
-		}
+		fileStatInfo := utilities.GetFileStatFromPath(p)
 
 		blobHash := hashMap[p]
 		size, readErr := updateIndexService.objectService.GetObjectSize(blobHash)

@@ -22,10 +22,16 @@ func GetFileStatInfo(fileInfo *syscall.Stat_t) FileStatInfo {
 	}
 }
 
-func GetFileStatFromPath(path string) (FileStatInfo, error) {
+func GetFileStatFromPath(path string) FileStatInfo {
 	var stat syscall.Stat_t
 	if err := syscall.Stat(path, &stat); err != nil {
-		return FileStatInfo{}, err
+		return FileStatInfo{
+			Device:  0,
+			Inode:   0,
+			UserId:  0,
+			GroupId: 0,
+			Mode:    0,
+		}
 	}
-	return GetFileStatInfo(&stat), nil
+	return GetFileStatInfo(&stat)
 }

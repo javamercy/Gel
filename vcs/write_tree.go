@@ -1,8 +1,13 @@
 package vcs
 
 import (
+	"Gel/core/constant"
 	"Gel/core/encoding"
 	"Gel/domain"
+	"bytes"
+	"encoding/hex"
+	"sort"
+	"strings"
 )
 
 type WriteTreeService struct {
@@ -68,4 +73,101 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		return "", writeErr
 	}
 	return hash, nil
+}
+
+func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
+	root := NewDirectoryNode("", map[string]*DirectoryNode{}, []*FileNode{})
+	for _, entry := range entries {
+		names := strings.Split(entry.Path, "/")
+
+		currentDirectory := root
+		for i, name := range names {
+			if i == len(names)-1 {
+				fileNode := NewFileNode(domain.ParseFileMode(entry.Mode), entry.Hash, name)
+				currentDirectory.AddFile(fileNode)
+			} else {
+				var childDirectory *DirectoryNode
+				if existingChild, exists := currentDirectory.Children[name]; exists {
+					childDirectory = existingChild
+				} else {
+					childDirectory = NewDirectoryNode(name, map[string]*DirectoryNode{}, []*FileNode{})
+					currentDirectory.Children[name] = childDirectory
+				}
+
+				currentDirectory = childDirectory
+			}
+		}
+	}
+	return root
+}
+
+func buildTreeData(entries []*domain.TreeEntry) ([]byte, error) {
+	var buffer bytes.Buffer
+	for _, entry := range entries {
+		buffer.WriteString(entry.Mode.String())
+		buffer.WriteString(constant.SpaceStr)
+		buffer.WriteString(entry.Name)
+		buffer.WriteString(constant.NullStr)
+
+		hashBytes, err := hex.DecodeString(entry.Hash)
+		if err != nil {
+			return nil, err
+		}
+		buffer.Write(hashBytes)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func sortTreeEntries(entries []*domain.TreeEntry) {
+	sort.Slice(entries, func(i, j int) bool {
+		NameI := entries[i].Name
+		NameJ := entries[j].Name
+
+		if entries[i].Mode.IsDirectory() {
+			NameI += constant.SlashStr
+		}
+		if entries[j].Mode.IsDirectory() {
+			NameJ += constant.SlashStr
+		}
+		return NameI < NameJ
+	})
+}
+
+type FileNode struct {
+	Mode domain.FileMode
+	Hash string
+	Name string
+}
+
+func NewFileNode(mode domain.FileMode, hash, name string) *FileNode {
+	{
+		return &FileNode{
+			Mode: mode,
+			Hash: hash,
+			Name: name,
+		}
+	}
+}
+
+type DirectoryNode struct {
+	Name     string
+	Children map[string]*DirectoryNode
+	Files    []*FileNode
+}
+
+func NewDirectoryNode(name string, children map[string]*DirectoryNode, files []*FileNode) *DirectoryNode {
+	return &DirectoryNode{
+		Name:     name,
+		Children: children,
+		Files:    files,
+	}
+}
+
+func (directoryNode *DirectoryNode) AddFile(file *FileNode) {
+	directoryNode.Files = append(directoryNode.Files, file)
+}
+
+func (directoryNode *DirectoryNode) AddChildDirectory(child *DirectoryNode) {
+	directoryNode.Children[child.Name] = child
 }
