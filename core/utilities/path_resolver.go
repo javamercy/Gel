@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"Gel/core/constant"
 	"errors"
 	"os"
 	"path/filepath"
@@ -22,12 +23,12 @@ const (
 )
 
 type PathResolver struct {
-	repositoryDir string
+	repositoryDirectory string
 }
 
 func NewPathResolver(repositoryDir string) *PathResolver {
 	return &PathResolver{
-		repositoryDir: repositoryDir,
+		repositoryDirectory: repositoryDir,
 	}
 }
 
@@ -49,9 +50,9 @@ func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) 
 			}
 
 			// TODO: Bypass .gel, .git, and .idea directories for now. Implement .gelignore for later.
-			if strings.Contains(path, ".gel"+string(os.PathSeparator)) ||
-				strings.Contains(path, ".git"+string(os.PathSeparator)) ||
-				strings.Contains(path, ".idea"+string(os.PathSeparator)) {
+			if strings.Contains(path, ".gel"+constant.SlashStr) ||
+				strings.Contains(path, ".git"+constant.SlashStr) ||
+				strings.Contains(path, ".idea"+constant.SlashStr) {
 				continue
 			}
 
@@ -88,7 +89,7 @@ func (pathResolver *PathResolver) normalizePath(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	relPath, err := filepath.Rel(pathResolver.repositoryDir, absPath)
+	relPath, err := filepath.Rel(pathResolver.repositoryDirectory, absPath)
 	if err != nil {
 		return "", err
 	}

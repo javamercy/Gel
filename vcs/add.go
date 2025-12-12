@@ -1,7 +1,9 @@
 package vcs
 
 import (
+	"Gel/core/constant"
 	"Gel/core/utilities"
+	"strings"
 )
 
 type AddService struct {
@@ -16,20 +18,26 @@ func NewAddService(updateIndexService *UpdateIndexService, pathResolver *utiliti
 	}
 }
 
-func (addService *AddService) Add(pathspecs []string, dryRun bool) ([]string, error) {
+func (addService *AddService) Add(pathspecs []string, dryRun bool) (string, error) {
 	normalizedPaths, err := addService.pathResolver.Resolve(pathspecs)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
+	// TODO: Git does not print the paths that are already staged
+	var result strings.Builder
 	if dryRun {
-		return normalizedPaths, nil
+		for _, path := range normalizedPaths {
+			result.WriteString(path)
+			result.WriteString(constant.NewLineStr)
+		}
 	}
 
-	addPathErr := addService.updateIndexService.UpdateIndex(normalizedPaths, true, false)
+	err = addService.updateIndexService.UpdateIndex(normalizedPaths, true, false)
 
-	if addPathErr != nil {
-		return nil, addPathErr
+	if err != nil {
+		return "", err
 	}
-	return normalizedPaths, nil
+
+	return result.String(), nil
 }
