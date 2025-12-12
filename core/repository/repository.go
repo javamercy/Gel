@@ -8,6 +8,10 @@ import (
 	"sync"
 )
 
+var (
+	ErrNotAGelRepository = errors.New("not a gel repository")
+)
+
 type Repository struct {
 	GelDirectory        string
 	ObjectsDirectory    string
@@ -26,7 +30,7 @@ func GetRepository() *Repository {
 func Initialize() error {
 	_, err := initializeRepository()
 	if err != nil {
-		return errors.New("not a gel repository")
+		return ErrNotAGelRepository
 	}
 	return nil
 }

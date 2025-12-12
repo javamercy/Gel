@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"Gel/domain"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,51 +18,17 @@ var catFileCmd = &cobra.Command{
 		}
 
 		hash := args[0]
-		typeFlag, _ := cmd.Flags().GetBool("type")
+		objectType, _ := cmd.Flags().GetBool("type")
 		pretty, _ := cmd.Flags().GetBool("pretty")
 		size, _ := cmd.Flags().GetBool("size")
 		exists, _ := cmd.Flags().GetBool("exists")
 
-		obj, err := catFileService.CatFile(hash)
+		output, err := catFileService.CatFile(hash, objectType, pretty, size, exists)
 		if err != nil {
-			if exists {
-				os.Exit(1)
-			}
-			cmd.PrintErrln("Error reading object:", err)
-			return
+			cmd.PrintErrln(err)
+			os.Exit(1)
 		}
-
-		if exists {
-			os.Exit(0)
-		}
-
-		if typeFlag {
-			cmd.Println(obj.Type())
-			return
-		}
-
-		if size {
-			cmd.Println(obj.Size())
-			return
-		}
-
-		if pretty {
-			switch o := obj.(type) {
-			case *domain.Blob:
-				cmd.Print(string(o.Data()))
-			case *domain.Tree:
-				entries, err := o.DeserializeTree()
-				if err != nil {
-					cmd.PrintErrln("Error deserializing tree:", err)
-					return
-				}
-				for _, entry := range entries {
-					cmd.Printf("%s %s %s\n", entry.Mode, entry.Hash, entry.Name)
-				}
-			default:
-				cmd.PrintErrln("Unknown object type")
-			}
-		}
+		cmd.Println(output)
 	},
 }
 

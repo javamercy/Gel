@@ -18,7 +18,7 @@ var hashObjectCmd = &cobra.Command{
 
 		hashMap, _, err := hashObjectService.HashObject(args, write)
 		if err != nil {
-			cmd.PrintErrln("Error hashing objects:", err)
+			cmd.PrintErrln(err)
 			return
 		}
 
@@ -31,6 +31,5 @@ var hashObjectCmd = &cobra.Command{
 
 func init() {
 	hashObjectCmd.Flags().BoolP("write", "w", false, "Write the object to the object database")
-	hashObjectCmd.Flags().StringP("type", "t", "blob", "Specify the object type (blob, tree, commit)")
 	rootCmd.AddCommand(hashObjectCmd)
 }

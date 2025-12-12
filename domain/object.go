@@ -11,6 +11,9 @@ type IObject interface {
 	Size() int
 	Data() []byte
 	Serialize() []byte
+	IsBlob() bool
+	IsTree() bool
+	IsCommit() bool
 }
 type BaseObject struct {
 	objectType ObjectType
@@ -32,6 +35,18 @@ func (baseObject *BaseObject) Data() []byte {
 func (baseObject *BaseObject) Serialize() []byte {
 	header := string(baseObject.objectType) + constant.SpaceStr + strconv.Itoa(baseObject.Size()) + constant.NullStr
 	return append([]byte(header), baseObject.data...)
+}
+
+func (baseObject *BaseObject) IsBlob() bool {
+	return baseObject.objectType == ObjectTypeBlob
+}
+
+func (baseObject *BaseObject) IsTree() bool {
+	return baseObject.objectType == ObjectTypeTree
+}
+
+func (baseObject *BaseObject) IsCommit() bool {
+	return baseObject.objectType == ObjectTypeCommit
 }
 
 func DeserializeObject(content []byte) (IObject, error) {
