@@ -2,6 +2,7 @@ package vcs
 
 import (
 	"Gel/core/constant"
+	"fmt"
 	"path/filepath"
 )
 
@@ -19,17 +20,17 @@ func NewInitService(objectService *ObjectService, filesystemService *FilesystemS
 
 func (initService *InitService) Init(path string) (string, error) {
 
-	base := filepath.Join(path, constant.GelDirName)
+	base := filepath.Join(path, constant.GelRepositoryName)
 
 	dirs := []string{
 		base,
-		filepath.Join(base, constant.GelObjectsDirName),
-		filepath.Join(base, constant.GelRefsDirName),
+		filepath.Join(base, constant.GelObjectsDirectoryName),
+		filepath.Join(base, constant.GelRefsDirectoryName),
 	}
 
 	exists := initService.filesystemService.Exists(base)
 	for _, dir := range dirs {
-		if err := initService.filesystemService.MakeDir(dir, constant.GelDirectoryPermission); err != nil {
+		if err := initService.filesystemService.MakeDirectory(dir, constant.GelDirectoryPermission); err != nil {
 			return "", err
 		}
 	}
@@ -38,5 +39,5 @@ func (initService *InitService) Init(path string) (string, error) {
 		return "Reinitialized existing Gel repository", nil
 	}
 
-	return "Initialized empty Gel repository in " + base, nil
+	return fmt.Sprintf("Initialized empty Gel repository in %v", base), nil
 }

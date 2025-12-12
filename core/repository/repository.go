@@ -47,8 +47,8 @@ func initializeRepository() (*Repository, error) {
 
 		repository = &Repository{
 			GelDirectory:        gelDirectory,
-			ObjectsDirectory:    filepath.Join(gelDirectory, constant.GelObjectsDirName),
-			RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirName),
+			ObjectsDirectory:    filepath.Join(gelDirectory, constant.GelObjectsDirectoryName),
+			RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirectoryName),
 			IndexPath:           filepath.Join(gelDirectory, constant.GelIndexFileName),
 			RepositoryDirectory: filepath.Dir(gelDirectory),
 		}
@@ -59,7 +59,7 @@ func initializeRepository() (*Repository, error) {
 func findGelDirectory(startPath string) (string, error) {
 	currentPath := startPath
 	for {
-		gelPath := filepath.Join(currentPath, constant.GelDirName)
+		gelPath := filepath.Join(currentPath, constant.GelRepositoryName)
 		info, err := os.Stat(gelPath)
 		if err == nil && info.IsDir() {
 			return gelPath, nil

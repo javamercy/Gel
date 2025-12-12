@@ -27,6 +27,6 @@ func (filesystemService *FilesystemService) Exists(path string) bool {
 	return filesystemService.filesystemStorage.Exists(path)
 }
 
-func (filesystemService *FilesystemService) MakeDir(path string, permission os.FileMode) error {
+func (filesystemService *FilesystemService) MakeDirectory(path string, permission os.FileMode) error {
 	return filesystemService.filesystemStorage.MakeDir(path, permission)
 }

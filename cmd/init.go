@@ -16,15 +16,15 @@ var initCmd = &cobra.Command{
 		} else {
 			cwd, err := os.Getwd()
 			if err != nil {
-				cmd.PrintErrln("Error getting current working directory:", err)
-				return
+				cmd.PrintErrln(err)
+				os.Exit(1)
 			}
 			path = cwd
 		}
 
 		message, err := initService.Init(path)
 		if err != nil {
-			cmd.PrintErrln("Error initializing repository:", err)
+			cmd.PrintErrln(err)
 			os.Exit(1)
 		}
 

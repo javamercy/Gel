@@ -4,10 +4,10 @@ import "os"
 
 // repository related constants
 const (
-	GelDirName        = ".gel"
-	GelObjectsDirName = "objects"
-	GelRefsDirName    = "refs"
-	GelIndexFileName  = "index"
+	GelRepositoryName       = ".gel"
+	GelObjectsDirectoryName = "objects"
+	GelRefsDirectoryName    = "refs"
+	GelIndexFileName        = "index"
 )
 
 // special character constants
