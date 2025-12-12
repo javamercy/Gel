@@ -41,7 +41,7 @@ func main() {
 	addService := vcs.NewAddService(updateIndexService, pathResolver)
 
 	// Create remaining services
-	lsFilesService := vcs.NewLsFilesService(indexService)
+	lsFilesService := vcs.NewLsFilesService(indexService, filesystemService, objectService)
 	writeTreeService := vcs.NewWriteTreeService(indexService, objectService)
 	readTreeService := vcs.NewReadTreeService(indexService, objectService)
 	lsTreeService := vcs.NewLsTreeService(objectService)

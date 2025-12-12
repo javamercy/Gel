@@ -4,7 +4,6 @@ import (
 	"Gel/core/encoding"
 	"Gel/core/utilities"
 	"Gel/domain"
-	"time"
 )
 
 type UpdateIndexService struct {
@@ -61,8 +60,8 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 			fileStatInfo.UserId,
 			fileStatInfo.GroupId,
 			domain.ComputeIndexFlags(p, 0),
-			time.Now(),
-			time.Now())
+			fileStatInfo.CreatedTime,
+			fileStatInfo.UpdatedTime)
 
 		index.AddOrUpdateEntry(newEntry)
 	}

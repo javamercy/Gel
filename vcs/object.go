@@ -79,3 +79,13 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 
 	return treeEntries, nil
 }
+
+func (objectService *ObjectService) HashObject(path string) (string, error) {
+	data, err := objectService.filesystemService.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	blob := domain.NewBlob(data)
+	content := blob.Serialize()
+	return encoding.ComputeHash(content), nil
+}

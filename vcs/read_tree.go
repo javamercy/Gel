@@ -25,15 +25,10 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 	processor := func(entry *domain.TreeEntry, relativePath string) error {
 		fileStatInfo := utilities.GetFileStatFromPath(relativePath)
 
-		size, err := readTreeService.objectService.GetObjectSize(entry.Hash)
-		if err != nil {
-			return err
-		}
-
 		indexEntry := domain.NewIndexEntry(
 			relativePath,
 			entry.Hash,
-			size,
+			fileStatInfo.Size,
 			entry.Mode.Uint32(),
 			fileStatInfo.Device,
 			fileStatInfo.Inode,

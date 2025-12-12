@@ -9,11 +9,18 @@ var lsFilesCmd = &cobra.Command{
 	Short:   "List all files tracked by Gel in the current repository",
 	PreRunE: requiresEnsureContextPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
+		cached, _ := cmd.Flags().GetBool("cached")
 		stage, _ := cmd.Flags().GetBool("stage")
+		modified, _ := cmd.Flags().GetBool("modified")
+		deleted, _ := cmd.Flags().GetBool("deleted")
 
-		output, err := lsFilesService.LsFiles(stage)
+		if !stage && !modified && !deleted {
+			cached = true
+		}
+
+		output, err := lsFilesService.LsFiles(cached, stage, modified, deleted)
 		if err != nil {
-			cmd.PrintErrln("Error listing files:", err)
+			cmd.PrintErrln(err)
 			return
 		}
 
