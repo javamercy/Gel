@@ -3,11 +3,8 @@ package vcs
 import (
 	"Gel/core/constant"
 	"Gel/domain"
-	"errors"
 	"strings"
 )
-
-var notATreeError = errors.New("object is not a tree")
 
 type LsTreeService struct {
 	objectService *ObjectService
