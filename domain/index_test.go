@@ -34,11 +34,11 @@ func TestAddEntry_SingleEntry(t *testing.T) {
 	)
 
 	index.AddEntry(entry)
-	assert.Equal(t, uint32(1), index.Header.NumEntries, "should have 1 entry")
-	assert.Len(t, index.Entries, 1, "entries slice should have length 1")
+	assert.Equal(t, 1, len(index.Entries), "entries slice should have length 1")
+	assert.Equal(t, uint32(len(index.Entries)), index.Header.NumEntries, "should have 1 entry")
 
 	addedEntry := index.Entries[0]
-	assert.ElementsMatch(t, addedEntry, entry)
+	assert.Equal(t, addedEntry, entry)
 }
 func TestAddEntry_MultipleEntries(t *testing.T) {
 	index := NewEmptyIndex()
@@ -67,7 +67,7 @@ func TestAddEntry_MultipleEntries(t *testing.T) {
 	index.AddEntry(secondEntry)
 
 	assert.Equal(t, 2, len(index.Entries), "entries len should be 2")
-	assert.Equal(t, len(index.Entries), index.Header.NumEntries, "entries slice length should match numEntries")
+	assert.Equal(t, uint32(len(index.Entries)), index.Header.NumEntries, "entries slice length should match numEntries")
 
 	firstAddedEntry := index.Entries[0]
 	secondAddedEntry := index.Entries[1]
