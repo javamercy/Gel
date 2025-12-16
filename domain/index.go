@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// Index errors
 var (
 	ErrInvalidHashLength     = errors.New("hash must be 64 hexadecimal characters (32 bytes)")
 	ErrIndexTooShort         = errors.New("index file is too short: minimum 12 bytes required for header")
