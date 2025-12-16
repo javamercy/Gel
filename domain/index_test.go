@@ -2,113 +2,253 @@ package domain
 
 import (
 	"Gel/core/constant"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-var hashList = []string{
-	"625786dc2c6ad841446f9394fd439ce53bf6442354d0b0d095b97f6b12499419",
-	"4c64cbb574119e68e31489ac8f38350b43f3ac75361a472563dd468f70b77652",
-	"658574d668dec4d0bb7145fed0ab97a3c348f0db21389e65416c03557ea48c3d",
-}
 
 func TestNewEmptyIndex(t *testing.T) {
 	index := NewEmptyIndex()
 
-	assert.Equal(t, constant.GelIndexSignature, string(index.Header.Signature[:]), "signature should be DIRC")
-	assert.Equal(t, uint32(constant.GelIndexVersion), index.Header.Version, "version should be 1")
-	assert.Equal(t, uint32(0), index.Header.NumEntries, "empty index should have 0 entries")
-
-	assert.NotNil(t, index.Entries, "entries slice should not be nil")
-	assert.Empty(t, index.Entries, "entries slice should be empty")
-
-	assert.Equal(t, "", index.Checksum, "checksum should be empty string")
+	assert.Equal(t, constant.GelIndexSignature, string(index.Header.Signature[:]))
+	assert.Equal(t, uint32(constant.GelIndexVersion), index.Header.Version)
+	assert.Equal(t, uint32(0), index.Header.NumEntries)
+	assert.Empty(t, index.Entries)
 }
 
 func TestAddEntry_SingleEntry(t *testing.T) {
 	index := NewEmptyIndex()
-	entry := createTestEntry("a.txt", hashList[0])
+	entry := createTestEntry("a.txt", "hash1")
 
 	index.AddEntry(entry)
-	assert.Equal(t, 1, len(index.Entries), "entries slice should have length 1")
-	assert.Equal(t, uint32(len(index.Entries)), index.Header.NumEntries, "should have 1 entry")
 
-	addedEntry := index.Entries[0]
-	assert.Equal(t, addedEntry, entry)
+	assert.Equal(t, 1, len(index.Entries))
+	assert.Equal(t, uint32(1), index.Header.NumEntries)
+	assert.Equal(t, entry, index.Entries[0])
 }
 
 func TestAddEntry_MultipleEntries(t *testing.T) {
 	index := NewEmptyIndex()
-	firstEntry := createTestEntry("a.txt", hashList[0])
-	secondEntry := createTestEntry("b.txt", hashList[1])
+	entry1 := createTestEntry("a.txt", "hash1")
+	entry2 := createTestEntry("b.txt", "hash2")
+	entry3 := createTestEntry("c.txt", "hash3")
 
-	index.AddEntry(firstEntry)
-	index.AddEntry(secondEntry)
+	index.AddEntry(entry1)
+	index.AddEntry(entry2)
+	index.AddEntry(entry3)
 
-	assert.Equal(t, 2, len(index.Entries), "entries len should be 2")
-	assert.Equal(t, uint32(len(index.Entries)), index.Header.NumEntries, "entries slice length should match numEntries")
+	assert.Equal(t, 3, len(index.Entries))
+	assert.Equal(t, uint32(3), index.Header.NumEntries)
+}
 
-	firstAddedEntry := index.Entries[0]
-	secondAddedEntry := index.Entries[1]
+func TestAddOrUpdateEntry_NewPath(t *testing.T) {
+	index := NewEmptyIndex()
+	entry := createTestEntry("new.txt", "hash1")
 
-	assert.Equal(t, firstEntry, firstAddedEntry)
-	assert.Equal(t, secondEntry, secondAddedEntry)
+	index.AddOrUpdateEntry(entry)
+
+	assert.Equal(t, 1, len(index.Entries))
+	assert.Equal(t, "new.txt", index.Entries[0].Path)
 }
 
 func TestAddOrUpdateEntry_ExistingPath(t *testing.T) {
 	index := NewEmptyIndex()
-	entry := createTestEntry("a.txt", hashList[0])
+	entry1 := createTestEntry("a.txt", "hash1")
+	index.AddEntry(entry1)
 
-	index.AddEntry(entry)
-	assert.Equal(t, entry, index.Entries[0])
+	entry2 := createTestEntry("a.txt", "hash2")
+	index.AddOrUpdateEntry(entry2)
 
-	entry.Hash = hashList[1]
-
-	index.AddOrUpdateEntry(entry)
-	assert.Equal(t, entry, index.Entries[0])
+	assert.Equal(t, 1, len(index.Entries))
+	assert.Equal(t, entry2.Hash, index.Entries[0].Hash)
 }
 
 func TestRemoveEntry_ExistingPath(t *testing.T) {
 	index := NewEmptyIndex()
-	entry := createTestEntry("a.txt", hashList[0])
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+	index.AddEntry(createTestEntry("b.txt", "hash2"))
+	index.AddEntry(createTestEntry("c.txt", "hash3"))
 
-	index.AddEntry(entry)
-	assert.Equal(t, 1, len(index.Entries))
-	assert.Equal(t, index.Header.NumEntries, uint32(len(index.Entries)))
+	index.RemoveEntry("b.txt")
 
-	index.RemoveEntry(entry.Path)
-	assert.Equal(t, 0, len(index.Entries))
-	assert.Equal(t, index.Header.NumEntries, uint32(len(index.Entries)))
+	assert.Equal(t, 2, len(index.Entries))
+	assert.Equal(t, uint32(2), index.Header.NumEntries)
+	assert.False(t, index.HasEntry("b.txt"))
 }
 
 func TestRemoveEntry_NonExistentPath(t *testing.T) {
 	index := NewEmptyIndex()
-	entry := createTestEntry("a.txt", hashList[0])
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+	index.AddEntry(createTestEntry("b.txt", "hash2"))
 
-	index.AddEntry(entry)
-	assert.Equal(t, 1, len(index.Entries))
-	assert.Equal(t, index.Header.NumEntries, uint32(len(index.Entries)))
+	index.RemoveEntry("nonexistent.txt")
 
-	index.RemoveEntry("nonexistent path")
-	assert.Equal(t, 1, len(index.Entries))
-	assert.Equal(t, index.Header.NumEntries, uint32(len(index.Entries)))
+	assert.Equal(t, 2, len(index.Entries))
+	assert.Equal(t, uint32(2), index.Header.NumEntries)
 }
 
-// func TestSerialize_EmptyIndex(t *testing.T)
-// func TestDeserialize_InvalidSignature(t *testing.T)
-// func TestDeserialize_ChecksumMismatch(t *testing.T)
+func TestFindEntry_Exists(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+	index.AddEntry(createTestEntry("b.txt", "hash2"))
+	index.AddEntry(createTestEntry("c.txt", "hash3"))
 
-func createTestEntry(path, hash string) *IndexEntry {
+	found := index.FindEntry("b.txt")
+
+	assert.NotNil(t, found)
+	assert.Equal(t, "b.txt", found.Path)
+}
+
+func TestFindEntry_NotExists(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+
+	found := index.FindEntry("nonexistent.txt")
+
+	assert.Nil(t, found)
+}
+
+func TestHasEntry_True(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+	index.AddEntry(createTestEntry("b.txt", "hash2"))
+
+	assert.True(t, index.HasEntry("a.txt"))
+	assert.True(t, index.HasEntry("b.txt"))
+}
+
+func TestHasEntry_False(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+
+	assert.False(t, index.HasEntry("nonexistent.txt"))
+	assert.False(t, index.HasEntry(""))
+}
+
+func TestSerialize_EmptyIndex(t *testing.T) {
+	index := NewEmptyIndex()
+
+	data, err := index.Serialize()
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, data)
+	assert.Equal(t, 44, len(data))
+}
+
+func TestSerialize_WithEntries(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+	index.AddEntry(createTestEntry("b.txt", "hash2"))
+
+	data, err := index.Serialize()
+
+	require.NoError(t, err)
+	assert.Greater(t, len(data), 44)
+}
+
+func TestDeserialize_Valid(t *testing.T) {
+	original := NewEmptyIndex()
+	original.AddEntry(createTestEntry("test.txt", "hash1"))
+	original.AddEntry(createTestEntry("another.txt", "hash2"))
+
+	data, err := original.Serialize()
+	require.NoError(t, err)
+
+	deserialized, err := DeserializeIndex(data)
+
+	require.NoError(t, err)
+	assert.Equal(t, original.Header.NumEntries, deserialized.Header.NumEntries)
+	assert.Equal(t, len(original.Entries), len(deserialized.Entries))
+}
+
+func TestDeserialize_InvalidSignature(t *testing.T) {
+	invalidData := []byte("XXXX_INVALID_DATA")
+
+	_, err := DeserializeIndex(invalidData)
+
+	assert.ErrorIs(t, err, ErrInvalidIndexSignature)
+}
+
+func TestDeserialize_ChecksumMismatch(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+
+	data, err := index.Serialize()
+	require.NoError(t, err)
+
+	data[len(data)-1] ^= 0xFF
+
+	_, err = DeserializeIndex(data)
+
+	assert.ErrorIs(t, err, ErrChecksumMismatch)
+}
+
+func TestSerializeDeserialize_RoundTrip(t *testing.T) {
+	tests := []struct {
+		name  string
+		paths []string
+	}{
+		{"empty", []string{}},
+		{"single", []string{"test.txt"}},
+		{"multiple", []string{"a.txt", "b.txt", "c.txt"}},
+		{"nested", []string{"dir/file.txt", "dir/sub/deep.txt"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			original := NewEmptyIndex()
+			for i, path := range tt.paths {
+				original.AddEntry(createTestEntry(path, fmt.Sprintf("hash%d", i)))
+			}
+
+			data, err := original.Serialize()
+			require.NoError(t, err)
+
+			deserialized, err := DeserializeIndex(data)
+			require.NoError(t, err)
+
+			assert.Equal(t, original.Header.NumEntries, deserialized.Header.NumEntries)
+			assert.Equal(t, len(original.Entries), len(deserialized.Entries))
+
+			for i := range original.Entries {
+				assert.Equal(t, original.Entries[i].Path, deserialized.Entries[i].Path)
+				assert.Equal(t, original.Entries[i].Hash, deserialized.Entries[i].Hash)
+			}
+		})
+	}
+}
+
+func TestDeserialize_EmptyData(t *testing.T) {
+	var data []byte
+
+	index, err := DeserializeIndex(data)
+
+	require.NoError(t, err)
+	assert.Equal(t, uint32(0), index.Header.NumEntries)
+}
+
+func TestDeserialize_TruncatedData(t *testing.T) {
+	truncatedData := []byte{0x44, 0x49, 0x52, 0x43}
+
+	_, err := DeserializeIndex(truncatedData)
+
+	assert.Error(t, err)
+}
+
+func createTestEntry(path, hashSeed string) *IndexEntry {
+
+	fullHash := fmt.Sprintf("%064x", hashSeed)
 	return NewIndexEntry(
 		path,
-		hash,
+		fullHash,
 		100,
 		uint32(RegularFile),
 		0, 0, 0, 0,
 		uint16(len(path)),
-		time.Now(),
-		time.Now(),
+		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 	)
 }

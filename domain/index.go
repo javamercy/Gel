@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+// Index errors
+var (
+	ErrInvalidHashLength     = errors.New("hash must be 64 hexadecimal characters (32 bytes)")
+	ErrIndexTooShort         = errors.New("index file is too short: minimum 12 bytes required for header")
+	ErrInvalidIndexSignature = errors.New("invalid index signature: expected 'DIRC', file may be corrupted")
+	ErrTruncatedEntryData    = errors.New("index file truncated: not enough data to read all entries")
+	ErrIncorrectChecksumSize = errors.New("invalid index checksum: expected 32 bytes at end of file")
+	ErrChecksumMismatch      = errors.New("index checksum verification failed: file may be corrupted")
+	ErrHeaderDataTooShort    = errors.New("index header is incomplete: expected 12 bytes")
+	ErrEntryDataTooShort     = errors.New("index entry is incomplete: minimum 74 bytes required")
+	ErrPathNotNullTerminated = errors.New("index entry path is malformed: missing null terminator")
+)
+
 type IndexHeader struct {
 	Signature  [4]byte
 	Version    uint32
@@ -222,7 +235,7 @@ func serializeEntry(entry *IndexEntry) ([]byte, error) {
 	}
 
 	if len(hashBytes) != constant.Sha256ByteLength {
-		return nil, errors.New("invalid hash length")
+		return nil, ErrInvalidHashLength
 	}
 
 	totalBytes += 32
@@ -262,7 +275,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 		return NewEmptyIndex(), nil
 	}
 	if len(data) < 12 {
-		return nil, errors.New("invalid index file: too short for header")
+		return nil, ErrIndexTooShort
 	}
 
 	index := &Index{}
@@ -275,7 +288,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	index.Header = header
 
 	if !bytes.Equal(header.Signature[:], []byte(constant.GelIndexSignature)) {
-		return nil, errors.New("invalid index signature")
+		return nil, ErrInvalidIndexSignature
 	}
 
 	numEntries := header.NumEntries
@@ -283,7 +296,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 
 	for i := uint32(0); i < numEntries; i++ {
 		if offset >= len(data)-32 {
-			return nil, errors.New("invalid index: truncated entry data")
+			return nil, ErrTruncatedEntryData
 		}
 
 		entry, bytesRead, err := deserializeEntry(data[offset:])
@@ -295,7 +308,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	}
 
 	if len(data)-offset != 32 {
-		return nil, errors.New("invalid index: incorrect checksum size")
+		return nil, ErrIncorrectChecksumSize
 	}
 
 	expectedChecksumBytes := data[len(data)-32:]
@@ -303,7 +316,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	actualChecksumBytes, _ := hex.DecodeString(actualChecksum)
 
 	if !bytes.Equal(expectedChecksumBytes, actualChecksumBytes) {
-		return nil, errors.New("index checksum mismatch")
+		return nil, ErrChecksumMismatch
 	}
 
 	index.Checksum = actualChecksum
@@ -312,7 +325,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 
 func deserializeHeader(data []byte) (*IndexHeader, error) {
 	if len(data) < 12 {
-		return nil, errors.New("header data too short")
+		return nil, ErrHeaderDataTooShort
 	}
 	header := &IndexHeader{}
 	copy(header.Signature[:], data[0:4])
@@ -323,7 +336,7 @@ func deserializeHeader(data []byte) (*IndexHeader, error) {
 
 func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 	if len(data) < 74 {
-		return nil, 0, errors.New("entry data too short")
+		return nil, 0, ErrEntryDataTooShort
 	}
 
 	entry := &IndexEntry{}
@@ -355,7 +368,7 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 	}
 
 	if pathEnd >= len(data) {
-		return nil, 0, errors.New("path not null-terminated")
+		return nil, 0, ErrPathNotNullTerminated
 	}
 
 	entry.Path = string(data[pathStart:pathEnd])
