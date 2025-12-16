@@ -66,7 +66,10 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 		index.AddOrUpdateEntry(newEntry)
 	}
 
-	indexBytes := index.Serialize()
+	indexBytes, err := index.Serialize()
+	if err != nil {
+		return err
+	}
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
 	writeErr := updateIndexService.indexService.Write(index)
@@ -80,10 +83,13 @@ func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domai
 	for _, p := range paths {
 		index.RemoveEntry(p)
 	}
-	indexBytes := index.Serialize()
+	indexBytes, err := index.Serialize()
+	if err != nil {
+		return err
+	}
 	index.Checksum = encoding.ComputeHash(indexBytes)
 
-	err := updateIndexService.indexService.Write(index)
+	err = updateIndexService.indexService.Write(index)
 	if err != nil {
 		return err
 	}

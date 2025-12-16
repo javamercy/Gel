@@ -89,9 +89,12 @@ func NewEmptyIndex() *Index {
 	return NewIndex(header, []*IndexEntry{}, "")
 }
 
-func (index *Index) Serialize() []byte {
+func (index *Index) Serialize() ([]byte, error) {
 	serializedHeader := index.serializeHeader()
-	serializedEntries := index.serializeEntries()
+	serializedEntries, err := index.serializeEntries()
+	if err != nil {
+		return nil, err
+	}
 
 	content := append(serializedHeader, serializedEntries...)
 	checksum := encoding.ComputeHash(content)
@@ -101,7 +104,7 @@ func (index *Index) Serialize() []byte {
 	result = append(result, content...)
 	result = append(result, checksumBytes...)
 
-	return result
+	return result, nil
 }
 
 func (index *Index) serializeHeader() []byte {
@@ -115,13 +118,16 @@ func (index *Index) serializeHeader() []byte {
 	return serializedHeader
 }
 
-func (index *Index) serializeEntries() []byte {
+func (index *Index) serializeEntries() ([]byte, error) {
 	var serializedEntries []byte
 	for _, entry := range index.Entries {
-		serializedEntry := serializeEntry(entry)
+		serializedEntry, err := serializeEntry(entry)
+		if err != nil {
+			return nil, err
+		}
 		serializedEntries = append(serializedEntries, serializedEntry...)
 	}
-	return serializedEntries
+	return serializedEntries, nil
 }
 
 func (index *Index) AddEntry(entry *IndexEntry) {
@@ -130,7 +136,7 @@ func (index *Index) AddEntry(entry *IndexEntry) {
 }
 
 func (index *Index) AddOrUpdateEntry(entry *IndexEntry) {
-	for i, _ := range index.Entries {
+	for i := range index.Entries {
 		if index.Entries[i].Path == entry.Path {
 			index.Entries[i] = entry
 			return
@@ -167,7 +173,7 @@ func (index *Index) HasEntry(path string) bool {
 	return false
 }
 
-func serializeEntry(entry *IndexEntry) []byte {
+func serializeEntry(entry *IndexEntry) ([]byte, error) {
 	totalBytes := 0
 
 	createdTime := make([]byte, 4)
@@ -211,8 +217,12 @@ func serializeEntry(entry *IndexEntry) []byte {
 	binary.BigEndian.PutUint32(size, entry.Size)
 
 	hashBytes, err := hex.DecodeString(entry.Hash)
-	if err != nil || len(hashBytes) != 32 {
-		hashBytes = make([]byte, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(hashBytes) != constant.Sha256ByteLength {
+		return nil, errors.New("invalid hash length")
 	}
 
 	totalBytes += 32
@@ -244,7 +254,7 @@ func serializeEntry(entry *IndexEntry) []byte {
 	result = append(result, flags...)
 	result = append(result, path...)
 
-	return result
+	return result, nil
 }
 
 func DeserializeIndex(data []byte) (*Index, error) {
