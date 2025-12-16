@@ -6,6 +6,14 @@ import (
 	"strconv"
 )
 
+var (
+	ErrNoNullByteFound    = errors.New("invalid object format: header must be terminated with null byte")
+	ErrObjectSizeMismatch = errors.New("invalid object format: data size does not match header size")
+	ErrNoSpaceInHeader    = errors.New("invalid object header: type and size must be separated by space")
+	ErrUnknownObjectType  = errors.New("invalid object header: unknown object type (expected 'blob' or 'tree')")
+	ErrInvalidSizeFormat  = errors.New("invalid object header: size must be a valid integer")
+)
+
 type IObject interface {
 	Type() ObjectType
 	Size() int
@@ -58,7 +66,7 @@ func DeserializeObject(content []byte) (IObject, error) {
 		}
 	}
 	if nullIndex == -1 {
-		return nil, errors.New("invalid object format: no null byte found")
+		return nil, ErrNoNullByteFound
 	}
 
 	header := content[:nullIndex]
@@ -69,7 +77,7 @@ func DeserializeObject(content []byte) (IObject, error) {
 
 	data := content[nullIndex+1:]
 	if len(data) != size {
-		return nil, errors.New("invalid object format: size mismatch")
+		return nil, ErrObjectSizeMismatch
 	}
 
 	switch objectType {
@@ -92,19 +100,19 @@ func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 		}
 	}
 	if spaceIndex == -1 {
-		return "", 0, errors.New("invalid header format: no space found")
+		return "", 0, ErrNoSpaceInHeader
 	}
 
 	objectTypeStr := string(data[:spaceIndex])
 	objectType, valid := ParseObjectType(objectTypeStr)
 	if !valid {
-		return "", 0, errors.New("invalid header format: unknown object type")
+		return "", 0, ErrUnknownObjectType
 	}
 
 	sizeStr := string(data[spaceIndex+1:])
 	size, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		return "", 0, errors.New("invalid header format: size is not a valid integer")
+		return "", 0, ErrInvalidSizeFormat
 	}
 
 	return objectType, size, nil

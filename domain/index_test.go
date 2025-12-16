@@ -186,7 +186,7 @@ func TestDeserialize_ChecksumMismatch(t *testing.T) {
 	assert.ErrorIs(t, err, ErrChecksumMismatch)
 }
 
-func TestSerializeDeserialize_RoundTrip(t *testing.T) {
+func TestSerializeDeserializeIndex_RoundTrip(t *testing.T) {
 	tests := []struct {
 		name  string
 		paths []string
