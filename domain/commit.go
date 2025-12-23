@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrInvalidCommitField = errors.New("invalid commit field")
+	ErrInvalidCommitFormat = errors.New("invalid commit format")
+	ErrInvalidCommitField  = errors.New("invalid commit field")
 )
 
 const (
@@ -15,28 +16,7 @@ const (
 	CommitFieldParent    string = "parent"
 	CommitFieldAuthor    string = "author"
 	CommitFieldCommitter string = "committer"
-	CommitFieldMessage   string = "message"
 )
-
-type Identity struct {
-	Name      string
-	Email     string
-	Timestamp string
-	Timezone  string
-}
-
-func (identity *Identity) serialize() []byte {
-	var buffer bytes.Buffer
-	buffer.WriteString(identity.Name)
-	buffer.WriteString(constant.SpaceStr)
-	buffer.WriteString(identity.Email)
-	buffer.WriteString(constant.SpaceStr)
-	buffer.WriteString(identity.Timestamp)
-	buffer.WriteString(constant.SpaceStr)
-	buffer.WriteString(identity.Timezone)
-
-	return buffer.Bytes()
-}
 
 type CommitFields struct {
 	TreeHash     string
@@ -57,17 +37,21 @@ func NewCommit(data []byte) *Commit {
 			objectType: ObjectTypeCommit,
 			data:       data,
 		},
-		fields: CommitFields{
-			TreeHash:     "",
-			ParentHashes: nil,
-			Author:       Identity{},
-			Committer:    Identity{},
-			Message:      "",
+	}
+}
+func NewCommitFromFields(data []byte, fields CommitFields) *Commit {
+	return &Commit{
+		BaseObject: &BaseObject{
+			objectType: ObjectTypeCommit,
+			data:       data,
 		},
+		fields: fields,
 	}
 }
 
 func (commit *Commit) SerializeBody() []byte {
+	// SerializeBody assumes the commit fields have been validated by the caller.
+
 	var buffer bytes.Buffer
 	buffer.WriteString(CommitFieldTree)
 	buffer.WriteByte(constant.SpaceByte)
@@ -88,87 +72,157 @@ func (commit *Commit) SerializeBody() []byte {
 	buffer.WriteByte(constant.SpaceByte)
 	buffer.Write(commit.fields.Committer.serialize())
 	buffer.WriteByte(constant.NewLineByte)
+	buffer.WriteByte(constant.NewLineByte)
 	buffer.WriteString(commit.fields.Message)
 	return buffer.Bytes()
 }
 
 func DeserializeCommit(data []byte) (*Commit, error) {
-	// TODO: implement deserialization logic
-	return nil, nil
-}
-
-func isValidField(field string) error {
-	switch field {
-	case CommitFieldTree,
-		CommitFieldParent,
-		CommitFieldAuthor,
-		CommitFieldCommitter,
-		CommitFieldMessage:
-		return nil
+	i := 0
+	var fields CommitFields
+	hasTree := false
+	hasAuthor := false
+	hasCommitter := false
+	hasMessage := false
+	for i < len(data) {
+		if data[i] == constant.NewLineByte {
+			i++
+			fields.Message = string(data[i:])
+			hasMessage = true
+			break
+		}
+		fieldStr, nextI, err := deserializeFieldStr(data, i)
+		if err != nil {
+			return nil, err
+		}
+		i = nextI
+		switch fieldStr {
+		case CommitFieldTree:
+			hexHash, nextI, err := deserializeTreeOrParent(data, i)
+			if err != nil {
+				return nil, err
+			}
+			fields.TreeHash = hexHash
+			hasTree = true
+			i = nextI
+		case CommitFieldParent:
+			hexHash, nextI, err := deserializeTreeOrParent(data, i)
+			if err != nil {
+				return nil, err
+			}
+			fields.ParentHashes = append(fields.ParentHashes, hexHash)
+			i = nextI
+		case CommitFieldAuthor:
+			author, nextI, err := deserializeIdentity(data, i)
+			if err != nil {
+				return nil, err
+			}
+			fields.Author = author
+			hasAuthor = true
+			i = nextI
+		case CommitFieldCommitter:
+			committer, nextI, err := deserializeIdentity(data, i)
+			if err != nil {
+				return nil, err
+			}
+			fields.Committer = committer
+			hasCommitter = true
+			i = nextI
+		}
 	}
-	return ErrInvalidCommitField
+	if !hasTree || !hasAuthor || !hasCommitter || !hasMessage {
+		return nil, ErrInvalidCommitFormat
+	}
+	return NewCommitFromFields(data, fields), nil
 }
 
-func deserializeIdentity(data []byte, start int) (Identity, int, error) {
+func deserializeFieldStr(data []byte, start int) (string, int, error) {
+	i := start
+	for i < len(data) && data[i] != constant.SpaceByte {
+		i++
+	}
+
+	if i >= len(data) {
+		return "", i, ErrInvalidCommitFormat
+	}
+
+	fieldStr := string(data[start:i])
+	if ok := isValidCommitField(fieldStr); !ok {
+		return "", i, ErrInvalidCommitField
+	}
+	return fieldStr, i + 1, nil
+}
+
+func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
 	i := start
 	for i < len(data) && data[i] != constant.NewLineByte {
 		i++
 	}
 	if i >= len(data) {
-		return Identity{}, i, errors.New("invalid identity format")
+		return "", i, ErrInvalidCommitFormat
 	}
-
-	fieldStr := string(data[start:i])
-	if err := isValidField(fieldStr); err != nil {
-		return Identity{}, i, err
-	}
-	i++
-
-	deserializeIdentityField := func(delimiter byte) (string, error) {
-		if i >= len(data) {
-			return "", errors.New("invalid identity format")
-		}
-		partStart := i
-		for i < len(data) && data[i] != delimiter {
-			i++
-		}
-		if i >= len(data) {
-			return "", errors.New("invalid identity format")
-		}
-		out := string(data[partStart:i])
-		i++
-		return out, nil
-	}
-
-	name, err := deserializeIdentityField(constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
-
-	email, err := deserializeIdentityField(constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
-
-	timestamp, err := deserializeIdentityField(constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
-
-	timezone, err := deserializeIdentityField(constant.NewLineByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
-
-	return Identity{
-		Name:      name,
-		Email:     email,
-		Timestamp: timestamp,
-		Timezone:  timezone,
-	}, i, nil
+	hexHash := string(data[start:i])
+	// TODO: validate hash
+	return hexHash, i + 1, nil
 }
 
-func deserializeMessage(data []byte, start int) string {
-	message := string(data[start:])
-	return message
+func deserializeIdentity(data []byte, start int) (Identity, int, error) {
+	i := start
+	lineEnd := i
+	for lineEnd < len(data) && data[lineEnd] != constant.NewLineByte {
+		lineEnd++
+	}
+	if lineEnd >= len(data) {
+		return Identity{}, i, ErrInvalidCommitFormat
+	}
+
+	name, i, err := parseDelimitedField(data, i, constant.SpaceByte)
+	if err != nil {
+		return Identity{}, i, err
+	}
+
+	email, i, err := parseDelimitedField(data, i, constant.SpaceByte)
+	if err != nil {
+		return Identity{}, i, err
+	}
+
+	timestamp, i, err := parseDelimitedField(data, i, constant.SpaceByte)
+	if err != nil {
+		return Identity{}, i, err
+	}
+
+	timezone, i, err := parseDelimitedField(data, i, constant.NewLineByte)
+	if err != nil {
+		return Identity{}, i, err
+	}
+
+	return Identity{name, email, timestamp, timezone}, i, nil
+}
+
+func parseDelimitedField(data []byte, start int, delimiter byte) (value string, nextPosition int, err error) {
+	i := start
+	if i >= len(data) {
+		return "", i, ErrInvalidCommitFormat
+	}
+
+	fieldStart := i
+	for i < len(data) && data[i] != delimiter {
+		i++
+	}
+	if i >= len(data) {
+		return "", i, ErrInvalidCommitFormat
+	}
+
+	return string(data[fieldStart:i]), i + 1, nil
+}
+
+func isValidCommitField(field string) bool {
+	switch field {
+	case CommitFieldTree,
+		CommitFieldParent,
+		CommitFieldAuthor,
+		CommitFieldCommitter:
+		return true
+	}
+	return false
 }

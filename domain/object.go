@@ -86,6 +86,9 @@ func DeserializeObject(content []byte) (IObject, error) {
 
 	case ObjectTypeTree:
 		return NewTree(data), nil
+
+	case ObjectTypeCommit:
+		return NewCommit(data), nil
 	}
 	// code will never reach here due to earlier validation
 	return nil, nil
