@@ -12,16 +12,20 @@ const (
 
 // special character constants
 const (
-	NullStr     = "\x00"
-	NullByte    = '\x00'
-	SpaceStr    = " "
-	SpaceByte   = ' '
-	NewLineStr  = "\n"
-	NewLineByte = '\n'
-	SlashStr    = "/"
-	SlashByte   = '/'
-	TabStr      = "\t"
-	TabByte     = '\t'
+	NullStr         = "\x00"
+	NullByte        = '\x00'
+	SpaceStr        = " "
+	SpaceByte       = ' '
+	NewLineStr      = "\n"
+	NewLineByte     = '\n'
+	SlashStr        = "/"
+	SlashByte       = '/'
+	TabStr          = "\t"
+	TabByte         = '\t'
+	LessThanStr     = "<"
+	LessThanByte    = '<'
+	GreaterThanStr  = ">"
+	GreaterThanByte = '>'
 )
 
 // permission constants
