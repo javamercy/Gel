@@ -4,6 +4,7 @@ import (
 	"Gel/core/constant"
 	"bytes"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -74,6 +75,7 @@ func (commit *Commit) SerializeBody() []byte {
 	buffer.WriteByte(constant.NewLineByte)
 	buffer.WriteByte(constant.NewLineByte)
 	buffer.WriteString(commit.fields.Message)
+
 	return buffer.Bytes()
 }
 
@@ -162,7 +164,17 @@ func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
 		return "", i, ErrInvalidCommitFormat
 	}
 	hexHash := string(data[start:i])
-	// TODO: validate hash
+
+	// TODO: refactor here to use a common validator
+	if len(hexHash) != constant.SHA256HexLength {
+		return "", i, fmt.Errorf("invalid hash length: got %d, expected %d", len(hexHash), constant.SHA256HexLength)
+	}
+	for _, c := range hexHash {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+			return "", i, fmt.Errorf("invalid hash character: '%c'", c)
+		}
+	}
+
 	return hexHash, i + 1, nil
 }
 
@@ -176,44 +188,53 @@ func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 		return Identity{}, i, ErrInvalidCommitFormat
 	}
 
-	name, i, err := parseDelimitedField(data, i, constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
+	emailStart := i
+	for emailStart < lineEnd && data[emailStart] != constant.LessThanByte {
+		emailStart++
+	}
+	if emailStart >= lineEnd {
+		return Identity{}, i, ErrInvalidCommitFormat
 	}
 
-	email, i, err := parseDelimitedField(data, i, constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
+	nameBytes := bytes.TrimSpace(data[i:emailStart])
+	name := string(nameBytes)
+
+	emailEnd := emailStart + 1
+	for emailEnd < lineEnd && data[emailEnd] != constant.GreaterThanByte {
+		emailEnd++
+	}
+	if emailEnd >= lineEnd {
+		return Identity{}, i, ErrInvalidCommitFormat
 	}
 
-	timestamp, i, err := parseDelimitedField(data, i, constant.SpaceByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
+	email := string(data[emailStart+1 : emailEnd])
 
-	timezone, i, err := parseDelimitedField(data, i, constant.NewLineByte)
-	if err != nil {
-		return Identity{}, i, err
-	}
-
-	return Identity{name, email, timestamp, timezone}, i, nil
-}
-
-func parseDelimitedField(data []byte, start int, delimiter byte) (value string, nextPosition int, err error) {
-	i := start
-	if i >= len(data) {
-		return "", i, ErrInvalidCommitFormat
-	}
-
-	fieldStart := i
-	for i < len(data) && data[i] != delimiter {
+	i = emailEnd + 1
+	for i < lineEnd && data[i] == constant.SpaceByte {
 		i++
 	}
-	if i >= len(data) {
-		return "", i, ErrInvalidCommitFormat
-	}
 
-	return string(data[fieldStart:i]), i + 1, nil
+	timestampStart := i
+	for i < lineEnd && data[i] != constant.SpaceByte {
+		i++
+	}
+	if i >= lineEnd {
+		return Identity{}, i, ErrInvalidCommitFormat
+	}
+	timestamp := string(data[timestampStart:i])
+
+	i++
+	if i >= lineEnd {
+		return Identity{}, i, ErrInvalidCommitFormat
+	}
+	timezone := string(data[i:lineEnd])
+
+	return Identity{
+		Name:      name,
+		Email:     email,
+		Timestamp: timestamp,
+		Timezone:  timezone,
+	}, lineEnd + 1, nil
 }
 
 func isValidCommitField(field string) bool {
