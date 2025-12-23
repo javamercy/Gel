@@ -5,7 +5,7 @@ package main
 
 import (
 	"Gel/cmd"
-	"Gel/core/utilities"
+	"Gel/core/util"
 	"Gel/storage"
 	"Gel/vcs"
 	"os"
@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		cwd = "."
 	}
-	pathResolver := utilities.NewPathResolver(cwd)
+	pathResolver := util.NewPathResolver(cwd)
 
 	// Create UpdateIndexService first (needed by AddService)
 	updateIndexService := vcs.NewUpdateIndexService(indexService, hashObjectService, objectService)

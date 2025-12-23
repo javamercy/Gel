@@ -1,7 +1,7 @@
 package vcs
 
 import (
-	"Gel/core/utilities"
+	"Gel/core/util"
 	"Gel/domain"
 	"time"
 )
@@ -23,7 +23,7 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 	var indexEntries []*domain.IndexEntry
 
 	processor := func(entry *domain.TreeEntry, relativePath string) error {
-		fileStatInfo := utilities.GetFileStatFromPath(relativePath)
+		fileStatInfo := util.GetFileStatFromPath(relativePath)
 
 		indexEntry := domain.NewIndexEntry(
 			relativePath,

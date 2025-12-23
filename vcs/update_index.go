@@ -2,7 +2,7 @@ package vcs
 
 import (
 	"Gel/core/encoding"
-	"Gel/core/utilities"
+	"Gel/core/util"
 	"Gel/domain"
 )
 
@@ -43,7 +43,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 
 	for _, p := range paths {
 
-		fileStatInfo := utilities.GetFileStatFromPath(p)
+		fileStatInfo := util.GetFileStatFromPath(p)
 
 		blobHash := hashMap[p]
 		size, readErr := updateIndexService.objectService.GetObjectSize(blobHash)

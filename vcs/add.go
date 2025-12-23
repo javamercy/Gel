@@ -2,16 +2,16 @@ package vcs
 
 import (
 	"Gel/core/constant"
-	"Gel/core/utilities"
+	"Gel/core/util"
 	"strings"
 )
 
 type AddService struct {
 	updateIndexService *UpdateIndexService
-	pathResolver       *utilities.PathResolver
+	pathResolver       *util.PathResolver
 }
 
-func NewAddService(updateIndexService *UpdateIndexService, pathResolver *utilities.PathResolver) *AddService {
+func NewAddService(updateIndexService *UpdateIndexService, pathResolver *util.PathResolver) *AddService {
 	return &AddService{
 		updateIndexService: updateIndexService,
 		pathResolver:       pathResolver,
