@@ -22,7 +22,7 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 
 	var indexEntries []*domain.IndexEntry
 
-	processor := func(entry *domain.TreeEntry, relativePath string) error {
+	processor := func(entry domain.TreeEntry, relativePath string) error {
 		fileStatInfo := util.GetFileStatFromPath(relativePath)
 
 		indexEntry := domain.NewIndexEntry(

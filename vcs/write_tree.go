@@ -38,7 +38,7 @@ func (writeTreeService *WriteTreeService) WriteTree() (string, error) {
 }
 
 func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *DirectoryNode) (string, error) {
-	var entries []*domain.TreeEntry
+	var entries []domain.TreeEntry
 
 	for _, childDirectory := range directory.Children {
 		subTreeHash, err := writeTreeService.buildTreeAndWrite(childDirectory)
@@ -50,7 +50,7 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 	}
 
 	for _, file := range directory.Files {
-		entry := &domain.TreeEntry{
+		entry := domain.TreeEntry{
 			Mode: file.Mode,
 			Hash: file.Hash,
 			Name: file.Name,
@@ -101,7 +101,7 @@ func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
 	return root
 }
 
-func buildTreeData(entries []*domain.TreeEntry) ([]byte, error) {
+func buildTreeData(entries []domain.TreeEntry) ([]byte, error) {
 	var buffer bytes.Buffer
 	for _, entry := range entries {
 		buffer.WriteString(entry.Mode.String())
@@ -119,7 +119,7 @@ func buildTreeData(entries []*domain.TreeEntry) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func sortTreeEntries(entries []*domain.TreeEntry) {
+func sortTreeEntries(entries []domain.TreeEntry) {
 	sort.Slice(entries, func(i, j int) bool {
 		NameI := entries[i].Name
 		NameJ := entries[j].Name

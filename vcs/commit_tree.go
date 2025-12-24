@@ -26,7 +26,7 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 		return "", domain.ErrInvalidObjectType
 	}
 
-	commitFields := &domain.CommitFields{
+	commitFields := domain.CommitFields{
 		TreeHash:     treeHash,
 		ParentHashes: nil,
 		Author: domain.Identity{

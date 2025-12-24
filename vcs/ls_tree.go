@@ -22,7 +22,7 @@ func (lsTreeService *LsTreeService) LsTree(treeHash string, recursive, showTrees
 
 	var result strings.Builder
 
-	processor := func(entry *domain.TreeEntry, relativePath string) error {
+	processor := func(entry domain.TreeEntry, relativePath string) error {
 		objectType, err := entry.Mode.ObjectType()
 		if err != nil {
 			return err

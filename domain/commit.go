@@ -28,8 +28,8 @@ type CommitFields struct {
 }
 
 type Commit struct {
-	body   []byte
-	Fields *CommitFields
+	body []byte
+	CommitFields
 }
 
 func (commit *Commit) Body() []byte {
@@ -55,14 +55,14 @@ func NewCommit(body []byte) (*Commit, error) {
 	}
 	return fields, nil
 }
-func NewCommitFromFields(fields *CommitFields) *Commit {
+func NewCommitFromFields(commitFields CommitFields) *Commit {
 	return &Commit{
-		body:   SerializeBody(fields),
-		Fields: fields,
+		body:         SerializeBody(commitFields),
+		CommitFields: commitFields,
 	}
 }
 
-func SerializeBody(fields *CommitFields) []byte {
+func SerializeBody(fields CommitFields) []byte {
 	// SerializeBody assumes the commit fields have been validated by the caller.
 
 	var buffer bytes.Buffer
@@ -147,7 +147,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 	if !hasTree || !hasAuthor || !hasCommitter || !hasMessage {
 		return nil, ErrInvalidCommitFormat
 	}
-	return NewCommitFromFields(&fields), nil
+	return NewCommitFromFields(fields), nil
 }
 
 func deserializeFieldStr(data []byte, start int) (string, int, error) {

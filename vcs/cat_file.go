@@ -64,10 +64,10 @@ func (catFileService *CatFileService) CatFile(hash string, objectType, pretty, s
 
 			result.WriteString(domain.CommitFieldTree)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.TreeHash)
+			result.WriteString(commit.TreeHash)
 			result.WriteString(constant.NewLineStr)
 
-			for _, parentHash := range commit.Fields.ParentHashes {
+			for _, parentHash := range commit.ParentHashes {
 				result.WriteString(domain.CommitFieldParent)
 				result.WriteString(constant.SpaceStr)
 				result.WriteString(parentHash)
@@ -76,31 +76,31 @@ func (catFileService *CatFileService) CatFile(hash string, objectType, pretty, s
 
 			result.WriteString(domain.CommitFieldAuthor)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Author.Name)
+			result.WriteString(commit.Author.Name)
 			result.WriteString(constant.SpaceStr)
 			result.WriteString(constant.LessThanStr)
-			result.WriteString(commit.Fields.Author.Email)
+			result.WriteString(commit.Author.Email)
 			result.WriteString(constant.GreaterThanStr)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Author.Timestamp)
+			result.WriteString(commit.Author.Timestamp)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Author.Timezone)
+			result.WriteString(commit.Author.Timezone)
 			result.WriteString(constant.NewLineStr)
 
 			result.WriteString(domain.CommitFieldCommitter)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Committer.Name)
+			result.WriteString(commit.Committer.Name)
 			result.WriteString(constant.SpaceStr)
 			result.WriteString(constant.LessThanStr)
-			result.WriteString(commit.Fields.Committer.Email)
+			result.WriteString(commit.Committer.Email)
 			result.WriteString(constant.GreaterThanStr)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Committer.Timestamp)
+			result.WriteString(commit.Committer.Timestamp)
 			result.WriteString(constant.SpaceStr)
-			result.WriteString(commit.Fields.Committer.Timezone)
+			result.WriteString(commit.Committer.Timezone)
 			result.WriteString(constant.NewLineStr)
 			result.WriteString(constant.NewLineStr)
-			result.WriteString(commit.Fields.Message)
+			result.WriteString(commit.Message)
 
 			return result.String(), nil
 		}

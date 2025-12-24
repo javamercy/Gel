@@ -66,13 +66,13 @@ func ParseFileModeFromOsMode(osMode uint32) FileMode {
 		return Submodule
 	} else if osMode&0o111 != 0 {
 		return ExecutableFile
-	} else {
-		return RegularFile
 	}
+
+	return RegularFile
 }
 
-func (fm FileMode) String() string {
-	switch fm {
+func (filemode FileMode) String() string {
+	switch filemode {
 	case RegularFile:
 		return RegularFileStr
 	case ExecutableFile:
@@ -88,36 +88,36 @@ func (fm FileMode) String() string {
 	}
 }
 
-func (fm FileMode) Uint32() uint32 {
-	return uint32(fm)
+func (filemode FileMode) Uint32() uint32 {
+	return uint32(filemode)
 }
 
-func (fm FileMode) IsValid() bool {
-	return fm != InvalidMode
+func (filemode FileMode) IsValid() bool {
+	return filemode != InvalidMode
 }
 
-func (fm FileMode) IsDirectory() bool {
-	return fm == Directory
+func (filemode FileMode) IsDirectory() bool {
+	return filemode == Directory
 }
 
-func (fm FileMode) IsRegularFile() bool {
-	return fm == RegularFile
+func (filemode FileMode) IsRegularFile() bool {
+	return filemode == RegularFile
 }
 
-func (fm FileMode) IsExecutableFile() bool {
-	return fm == ExecutableFile
+func (filemode FileMode) IsExecutableFile() bool {
+	return filemode == ExecutableFile
 }
 
-func (fm FileMode) IsSymlink() bool {
-	return fm == Symlink
+func (filemode FileMode) IsSymlink() bool {
+	return filemode == Symlink
 }
 
-func (fm FileMode) IsSubmodule() bool {
-	return fm == Submodule
+func (filemode FileMode) IsSubmodule() bool {
+	return filemode == Submodule
 }
 
-func (fm FileMode) ObjectType() (ObjectType, error) {
-	switch fm {
+func (filemode FileMode) ObjectType() (ObjectType, error) {
+	switch filemode {
 	case RegularFile, ExecutableFile, Symlink:
 		return ObjectTypeBlob, nil
 	case Directory:
@@ -129,6 +129,6 @@ func (fm FileMode) ObjectType() (ObjectType, error) {
 	}
 }
 
-func (fm FileMode) Equals(other FileMode) bool {
-	return fm == other
+func (filemode FileMode) Equals(other FileMode) bool {
+	return filemode == other
 }

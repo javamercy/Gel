@@ -5,7 +5,7 @@ import (
 	"path"
 )
 
-type EntryProcessor = func(entry *domain.TreeEntry, relativePath string) error
+type EntryProcessor = func(entry domain.TreeEntry, relativePath string) error
 type WalkOptions struct {
 	Recursive    bool
 	IncludeTrees bool

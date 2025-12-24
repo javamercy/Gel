@@ -28,8 +28,8 @@ type IndexHeader struct {
 	NumEntries uint32
 }
 
-func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) *IndexHeader {
-	return &IndexHeader{
+func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexHeader {
+	return IndexHeader{
 		Signature:  signature,
 		Version:    version,
 		NumEntries: numEntries,
@@ -82,12 +82,12 @@ func (indexEntry *IndexEntry) GetStage() uint16 {
 }
 
 type Index struct {
-	Header   *IndexHeader
+	Header   IndexHeader
 	Entries  []*IndexEntry
 	Checksum string
 }
 
-func NewIndex(header *IndexHeader, entries []*IndexEntry, checksum string) *Index {
+func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index {
 	return &Index{
 		Header:   header,
 		Entries:  entries,
@@ -322,11 +322,11 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	return index, nil
 }
 
-func deserializeHeader(data []byte) (*IndexHeader, error) {
+func deserializeHeader(data []byte) (IndexHeader, error) {
+	var header IndexHeader
 	if len(data) < 12 {
-		return nil, ErrHeaderDataTooShort
+		return header, ErrHeaderDataTooShort
 	}
-	header := &IndexHeader{}
 	copy(header.Signature[:], data[0:4])
 	header.Version = binary.BigEndian.Uint32(data[4:8])
 	header.NumEntries = binary.BigEndian.Uint32(data[8:12])

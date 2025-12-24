@@ -11,8 +11,8 @@ type TreeEntry struct {
 	Name string
 }
 
-func NewTreeEntry(mode FileMode, hash, name string) *TreeEntry {
-	return &TreeEntry{
+func NewTreeEntry(mode FileMode, hash, name string) TreeEntry {
+	return TreeEntry{
 		Mode: mode,
 		Hash: hash,
 		Name: name,
@@ -21,7 +21,7 @@ func NewTreeEntry(mode FileMode, hash, name string) *TreeEntry {
 
 type Tree struct {
 	body    []byte
-	entries []*TreeEntry
+	entries []TreeEntry
 }
 
 func (tree *Tree) Body() []byte {
@@ -34,7 +34,7 @@ func NewTree(body []byte) *Tree {
 	}
 }
 
-func NewTreeFromEntries(entries []*TreeEntry) *Tree {
+func NewTreeFromEntries(entries []TreeEntry) *Tree {
 	var body []byte
 	for _, entry := range entries {
 		modeStr := entry.Mode.String()
@@ -64,9 +64,9 @@ func (tree *Tree) Serialize() []byte {
 	return SerializeObject(ObjectTypeTree, tree.body)
 }
 
-func (tree *Tree) Deserialize() ([]*TreeEntry, error) {
+func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 	body := tree.body
-	var entries []*TreeEntry
+	var entries []TreeEntry
 	i := 0
 	for i < len(body) {
 		modeStart := i

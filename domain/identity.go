@@ -12,8 +12,8 @@ type Identity struct {
 	Timezone  string
 }
 
-func NewIdentity(name, email, timestamp, timezone string) *Identity {
-	return &Identity{
+func NewIdentity(name, email, timestamp, timezone string) Identity {
+	return Identity{
 		Name:      name,
 		Email:     email,
 		Timestamp: timestamp,
@@ -21,7 +21,7 @@ func NewIdentity(name, email, timestamp, timezone string) *Identity {
 	}
 }
 
-func (identity *Identity) serialize() []byte {
+func (identity Identity) serialize() []byte {
 	var buffer bytes.Buffer
 	buffer.WriteString(identity.Name)
 	buffer.WriteByte(constant.SpaceByte)
