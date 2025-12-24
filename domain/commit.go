@@ -28,38 +28,50 @@ type CommitFields struct {
 }
 
 type Commit struct {
-	*BaseObject
-	fields CommitFields
+	body   []byte
+	Fields *CommitFields
 }
 
-func NewCommit(data []byte) *Commit {
-	return &Commit{
-		BaseObject: &BaseObject{
-			objectType: ObjectTypeCommit,
-			data:       data,
-		},
-	}
+func (commit *Commit) Body() []byte {
+	return commit.body
 }
-func NewCommitFromFields(data []byte, fields CommitFields) *Commit {
+
+func (commit *Commit) Type() ObjectType {
+	return ObjectTypeCommit
+}
+
+func (commit *Commit) Size() int {
+	return len(commit.body)
+}
+
+func (commit *Commit) Serialize() []byte {
+	return SerializeObject(ObjectTypeCommit, commit.body)
+}
+
+func NewCommit(body []byte) (*Commit, error) {
+	fields, err := DeserializeCommit(body)
+	if err != nil {
+		return nil, err
+	}
+	return fields, nil
+}
+func NewCommitFromFields(fields *CommitFields) *Commit {
 	return &Commit{
-		BaseObject: &BaseObject{
-			objectType: ObjectTypeCommit,
-			data:       data,
-		},
-		fields: fields,
+		body:   SerializeBody(fields),
+		Fields: fields,
 	}
 }
 
-func (commit *Commit) SerializeBody() []byte {
+func SerializeBody(fields *CommitFields) []byte {
 	// SerializeBody assumes the commit fields have been validated by the caller.
 
 	var buffer bytes.Buffer
 	buffer.WriteString(CommitFieldTree)
 	buffer.WriteByte(constant.SpaceByte)
-	buffer.WriteString(commit.fields.TreeHash)
+	buffer.WriteString(fields.TreeHash)
 	buffer.WriteByte(constant.NewLineByte)
 
-	for _, parentHash := range commit.fields.ParentHashes {
+	for _, parentHash := range fields.ParentHashes {
 		buffer.WriteString(CommitFieldParent)
 		buffer.WriteByte(constant.SpaceByte)
 		buffer.WriteString(parentHash)
@@ -67,14 +79,14 @@ func (commit *Commit) SerializeBody() []byte {
 	}
 	buffer.WriteString(CommitFieldAuthor)
 	buffer.WriteByte(constant.SpaceByte)
-	buffer.Write(commit.fields.Author.serialize())
+	buffer.Write(fields.Author.serialize())
 	buffer.WriteByte(constant.NewLineByte)
 	buffer.WriteString(CommitFieldCommitter)
 	buffer.WriteByte(constant.SpaceByte)
-	buffer.Write(commit.fields.Committer.serialize())
+	buffer.Write(fields.Committer.serialize())
 	buffer.WriteByte(constant.NewLineByte)
 	buffer.WriteByte(constant.NewLineByte)
-	buffer.WriteString(commit.fields.Message)
+	buffer.WriteString(fields.Message)
 
 	return buffer.Bytes()
 }
@@ -135,7 +147,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 	if !hasTree || !hasAuthor || !hasCommitter || !hasMessage {
 		return nil, ErrInvalidCommitFormat
 	}
-	return NewCommitFromFields(data, fields), nil
+	return NewCommitFromFields(&fields), nil
 }
 
 func deserializeFieldStr(data []byte, start int) (string, int, error) {

@@ -17,49 +17,13 @@ var (
 type IObject interface {
 	Type() ObjectType
 	Size() int
-	Data() []byte
 	Serialize() []byte
-	IsBlob() bool
-	IsTree() bool
-	IsCommit() bool
-}
-type BaseObject struct {
-	objectType ObjectType
-	data       []byte
+	Body() []byte
 }
 
-func (baseObject *BaseObject) Type() ObjectType {
-	return baseObject.objectType
-}
-
-func (baseObject *BaseObject) Size() int {
-	return len(baseObject.data)
-}
-
-func (baseObject *BaseObject) Data() []byte {
-	return baseObject.data
-}
-
-func (baseObject *BaseObject) Serialize() []byte {
-	header := string(baseObject.objectType) + constant.SpaceStr + strconv.Itoa(baseObject.Size()) + constant.NullStr
-	return append([]byte(header), baseObject.data...)
-}
-
-func (baseObject *BaseObject) IsBlob() bool {
-	return baseObject.objectType == ObjectTypeBlob
-}
-
-func (baseObject *BaseObject) IsTree() bool {
-	return baseObject.objectType == ObjectTypeTree
-}
-
-func (baseObject *BaseObject) IsCommit() bool {
-	return baseObject.objectType == ObjectTypeCommit
-}
-
-func DeserializeObject(content []byte) (IObject, error) {
+func DeserializeObject(data []byte) (IObject, error) {
 	nullIndex := -1
-	for i, b := range content {
+	for i, b := range data {
 		if b == constant.NullByte {
 			nullIndex = i
 			break
@@ -69,26 +33,26 @@ func DeserializeObject(content []byte) (IObject, error) {
 		return nil, ErrNoNullByteFound
 	}
 
-	header := content[:nullIndex]
+	header := data[:nullIndex]
 	objectType, size, err := deserializeObjectHeader(header)
 	if err != nil {
 		return nil, err
 	}
 
-	data := content[nullIndex+1:]
-	if len(data) != size {
+	body := data[nullIndex+1:]
+	if len(body) != size {
 		return nil, ErrObjectSizeMismatch
 	}
 
 	switch objectType {
 	case ObjectTypeBlob:
-		return NewBlob(data), nil
+		return NewBlob(body), nil
 
 	case ObjectTypeTree:
-		return NewTree(data), nil
+		return NewTree(body), nil
 
 	case ObjectTypeCommit:
-		return NewCommit(data), nil
+		return NewCommit(body)
 	}
 	// code will never reach here due to earlier validation
 	return nil, nil
@@ -119,4 +83,10 @@ func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	}
 
 	return objectType, size, nil
+}
+
+func SerializeObject(objectType ObjectType, body []byte) []byte {
+	header := string(objectType) + constant.SpaceStr +
+		strconv.Itoa(len(body)) + constant.NullStr
+	return append([]byte(header), body...)
 }

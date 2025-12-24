@@ -11,11 +11,23 @@ var commitTreeCmd = &cobra.Command{
 			cmd.PrintErrln("Error: no tree hash specified")
 			return
 		}
+
+		treeHash := args[0]
+		message, _ := cmd.Flags().GetString("message")
+		if message == "" {
+			message = "Commiting tree " + treeHash
+		}
+
+		commitHash, err := commitTreeService.CommitTree(treeHash, message)
+		if err != nil {
+			cmd.PrintErrln("Error creating commit:", err)
+			return
+		}
+		cmd.Println(commitHash)
 	},
 }
 
 func init() {
-	commitTreeCmd.Flags().StringP("tree-hash", "t", "", "Tree hash")
 	commitTreeCmd.Flags().StringP("message", "m", "", "Commit message")
 	rootCmd.AddCommand(commitTreeCmd)
 }

@@ -27,6 +27,7 @@ var (
 	writeTreeService   *vcs.WriteTreeService
 	readTreeService    *vcs.ReadTreeService
 	lsTreeService      *vcs.LsTreeService
+	commitTreeService  *vcs.CommitTreeService
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -58,6 +59,7 @@ func InitializeServices(
 	writeTree *vcs.WriteTreeService,
 	readTree *vcs.ReadTreeService,
 	lsTree *vcs.LsTreeService,
+	commitTree *vcs.CommitTreeService,
 ) {
 	filesystemService = fs
 	objectService = obj
@@ -71,6 +73,7 @@ func InitializeServices(
 	writeTreeService = writeTree
 	readTreeService = readTree
 	lsTreeService = lsTree
+	commitTreeService = commitTree
 }
 
 func init() {

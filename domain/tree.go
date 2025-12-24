@@ -20,28 +20,60 @@ func NewTreeEntry(mode FileMode, hash, name string) *TreeEntry {
 }
 
 type Tree struct {
-	*BaseObject
+	body    []byte
+	entries []*TreeEntry
 }
 
-func NewTree(data []byte) *Tree {
+func (tree *Tree) Body() []byte {
+	return tree.body
+}
+
+func NewTree(body []byte) *Tree {
 	return &Tree{
-		BaseObject: &BaseObject{
-			objectType: ObjectTypeTree,
-			data:       data,
-		},
+		body: body,
 	}
 }
 
-func (tree *Tree) DeserializeTree() ([]*TreeEntry, error) {
-	data := tree.data
+func NewTreeFromEntries(entries []*TreeEntry) *Tree {
+	var body []byte
+	for _, entry := range entries {
+		modeStr := entry.Mode.String()
+		name := entry.Name
+		hashBytes, _ := hex.DecodeString(entry.Hash)
+		body = append(body, []byte(modeStr)...)
+		body = append(body, constant.SpaceByte)
+		body = append(body, []byte(name)...)
+		body = append(body, constant.NullByte)
+		body = append(body, hashBytes...)
+	}
+	return &Tree{
+		body:    body,
+		entries: entries,
+	}
+}
+
+func (tree *Tree) Type() ObjectType {
+	return ObjectTypeTree
+}
+
+func (tree *Tree) Size() int {
+	return len(tree.body)
+}
+
+func (tree *Tree) Serialize() []byte {
+	return SerializeObject(ObjectTypeTree, tree.body)
+}
+
+func (tree *Tree) Deserialize() ([]*TreeEntry, error) {
+	body := tree.body
 	var entries []*TreeEntry
 	i := 0
-	for i < len(data) {
+	for i < len(body) {
 		modeStart := i
-		for data[i] != constant.SpaceByte {
+		for body[i] != constant.SpaceByte {
 			i++
 		}
-		modeStr := string(data[modeStart:i])
+		modeStr := string(body[modeStart:i])
 		mode := ParseFileModeFromString(modeStr)
 		if !mode.IsValid() {
 			return nil, ErrInvalidFileMode
@@ -50,13 +82,13 @@ func (tree *Tree) DeserializeTree() ([]*TreeEntry, error) {
 		i++
 
 		nameStart := i
-		for data[i] != constant.NullByte {
+		for body[i] != constant.NullByte {
 			i++
 		}
-		name := string(data[nameStart:i])
+		name := string(body[nameStart:i])
 		i++
 
-		hashBytes := data[i : i+32]
+		hashBytes := body[i : i+32]
 		hash := hex.EncodeToString(hashBytes)
 		i += 32
 		entry := NewTreeEntry(mode, hash, name)

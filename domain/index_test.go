@@ -96,19 +96,19 @@ func TestFindEntry_Exists(t *testing.T) {
 	index.AddEntry(createTestEntry("b.txt", "hash2"))
 	index.AddEntry(createTestEntry("c.txt", "hash3"))
 
-	found := index.FindEntry("b.txt")
+	entry := index.FindEntry("b.txt")
 
-	assert.NotNil(t, found)
-	assert.Equal(t, "b.txt", found.Path)
+	require.NotNil(t, entry)
+	assert.Equal(t, "b.txt", entry.Path)
 }
 
 func TestFindEntry_NotExists(t *testing.T) {
 	index := NewEmptyIndex()
 	index.AddEntry(createTestEntry("a.txt", "hash1"))
 
-	found := index.FindEntry("nonexistent.txt")
+	entry := index.FindEntry("nonexistent.txt")
 
-	assert.Nil(t, found)
+	assert.Nil(t, entry)
 }
 
 func TestHasEntry_True(t *testing.T) {
@@ -150,18 +150,18 @@ func TestSerialize_WithEntries(t *testing.T) {
 }
 
 func TestDeserialize_Valid(t *testing.T) {
-	original := NewEmptyIndex()
-	original.AddEntry(createTestEntry("test.txt", "hash1"))
-	original.AddEntry(createTestEntry("another.txt", "hash2"))
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("test.txt", "hash1"))
+	index.AddEntry(createTestEntry("another.txt", "hash2"))
 
-	data, err := original.Serialize()
+	data, err := index.Serialize()
 	require.NoError(t, err)
 
-	deserialized, err := DeserializeIndex(data)
+	deserializedIndex, err := DeserializeIndex(data)
 
 	require.NoError(t, err)
-	assert.Equal(t, original.Header.NumEntries, deserialized.Header.NumEntries)
-	assert.Equal(t, len(original.Entries), len(deserialized.Entries))
+	assert.Equal(t, index.Header.NumEntries, deserializedIndex.Header.NumEntries)
+	assert.Equal(t, len(index.Entries), len(deserializedIndex.Entries))
 }
 
 func TestDeserialize_InvalidSignature(t *testing.T) {
@@ -199,23 +199,23 @@ func TestSerializeDeserializeIndex_RoundTrip(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			original := NewEmptyIndex()
+			index := NewEmptyIndex()
 			for i, path := range tt.paths {
-				original.AddEntry(createTestEntry(path, fmt.Sprintf("hash%d", i)))
+				index.AddEntry(createTestEntry(path, fmt.Sprintf("hash%d", i)))
 			}
 
-			data, err := original.Serialize()
+			data, err := index.Serialize()
 			require.NoError(t, err)
 
-			deserialized, err := DeserializeIndex(data)
+			deserializedIndex, err := DeserializeIndex(data)
 			require.NoError(t, err)
 
-			assert.Equal(t, original.Header.NumEntries, deserialized.Header.NumEntries)
-			assert.Equal(t, len(original.Entries), len(deserialized.Entries))
+			assert.Equal(t, index.Header.NumEntries, deserializedIndex.Header.NumEntries)
+			assert.Equal(t, len(index.Entries), len(deserializedIndex.Entries))
 
-			for i := range original.Entries {
-				assert.Equal(t, original.Entries[i].Path, deserialized.Entries[i].Path)
-				assert.Equal(t, original.Entries[i].Hash, deserialized.Entries[i].Hash)
+			for i := range index.Entries {
+				assert.Equal(t, index.Entries[i].Path, deserializedIndex.Entries[i].Path)
+				assert.Equal(t, index.Entries[i].Hash, deserializedIndex.Entries[i].Hash)
 			}
 		})
 	}

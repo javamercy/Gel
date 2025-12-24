@@ -72,7 +72,7 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 		return nil, err
 	}
 
-	treeEntries, err := tree.DeserializeTree()
+	treeEntries, err := tree.Deserialize()
 	if err != nil {
 		return nil, err
 	}
