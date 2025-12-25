@@ -12,26 +12,27 @@ const (
 
 // special character constants
 const (
-	NullStr         = "\x00"
-	NullByte        = '\x00'
-	SpaceStr        = " "
-	SpaceByte       = ' '
-	NewLineStr      = "\n"
-	NewLineByte     = '\n'
-	SlashStr        = "/"
-	SlashByte       = '/'
-	TabStr          = "\t"
-	TabByte         = '\t'
-	LessThanStr     = "<"
-	LessThanByte    = '<'
-	GreaterThanStr  = ">"
-	GreaterThanByte = '>'
+	NullStr              = "\x00"
+	NullByte             = '\x00'
+	SpaceStr             = " "
+	SpaceByte            = ' '
+	NewLineStr           = "\n"
+	NewLineByte          = '\n'
+	SlashStr             = "/"
+	SlashByte            = '/'
+	TabStr               = "\t"
+	LessThanStr          = "<"
+	LessThanByte         = '<'
+	GreaterThanStr       = ">"
+	GreaterThanByte      = '>'
+	PreviousDirectoryStr = ".."
+	CurrentDirectoryStr  = "."
 )
 
 // permission constants
 const (
-	GelFilePermission      os.FileMode = 0644 // -rw-r--r----r--
-	GelDirectoryPermission os.FileMode = 0755 // wxr-xr-x
+	GelFilePermission      os.FileMode = 0o0644 // -rw-r--r----r--
+	GelDirectoryPermission os.FileMode = 0o0755 // wxr-xr-x
 )
 
 // index constants
@@ -40,6 +41,7 @@ const (
 	GelIndexVersion   = 1
 )
 
+// hash constants
 const (
 	SHA256HexLength  = 64
 	Sha256ByteLength = 32

@@ -5,6 +5,7 @@ package main
 
 import (
 	"Gel/cmd"
+	"Gel/core/constant"
 	"Gel/core/util"
 	"Gel/storage"
 	"Gel/vcs"
@@ -30,7 +31,7 @@ func main() {
 	// Get current directory for path resolver
 	cwd, err := os.Getwd()
 	if err != nil {
-		cwd = "."
+		cwd = constant.CurrentDirectoryStr
 	}
 	pathResolver := util.NewPathResolver(cwd)
 
