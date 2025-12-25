@@ -283,7 +283,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 		return nil, ErrIndexTooShort
 	}
 
-	index := &Index{}
+	var index Index
 
 	header, err := deserializeHeader(data[:12])
 	if err != nil {
@@ -318,14 +318,17 @@ func DeserializeIndex(data []byte) (*Index, error) {
 
 	expectedChecksumBytes := data[len(data)-32:]
 	actualChecksum := encoding.ComputeHash(data[:len(data)-32])
-	actualChecksumBytes, _ := hex.DecodeString(actualChecksum)
+	actualChecksumBytes, err := hex.DecodeString(actualChecksum)
+	if err != nil {
+		return nil, err
+	}
 
 	if !bytes.Equal(expectedChecksumBytes, actualChecksumBytes) {
 		return nil, ErrChecksumMismatch
 	}
 
 	index.Checksum = actualChecksum
-	return index, nil
+	return &index, nil
 }
 
 func deserializeHeader(data []byte) (IndexHeader, error) {
@@ -344,7 +347,7 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, ErrEntryDataTooShort
 	}
 
-	entry := &IndexEntry{}
+	var entry IndexEntry
 
 	createdTimeUnix := int64(binary.BigEndian.Uint32(data[0:4]))
 	createdTimeNanoseconds := int64(binary.BigEndian.Uint32(data[4:8]))
@@ -378,11 +381,16 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 
 	entry.Path = string(data[pathStart:pathEnd])
 
+	validator := validation.GetValidator()
+	if err := validator.Struct(entry); err != nil {
+		return nil, 0, err
+	}
+
 	totalSize := 74 + len(entry.Path) + 1
 	padding := (8 - (totalSize % 8)) % 8
 	totalSize += padding
 
-	return entry, totalSize, nil
+	return &entry, totalSize, nil
 }
 
 func ComputeIndexFlags(path string, stage uint16) uint16 {

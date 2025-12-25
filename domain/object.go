@@ -2,6 +2,7 @@ package domain
 
 import (
 	"Gel/core/constant"
+	"Gel/core/util"
 	"errors"
 	"strconv"
 )
@@ -22,13 +23,7 @@ type IObject interface {
 }
 
 func DeserializeObject(data []byte) (IObject, error) {
-	nullIndex := -1
-	for i, b := range data {
-		if b == constant.NullByte {
-			nullIndex = i
-			break
-		}
-	}
+	nullIndex := util.FindNullByteIndex(data)
 	if nullIndex == -1 {
 		return nil, ErrNoNullByteFound
 	}
@@ -46,10 +41,10 @@ func DeserializeObject(data []byte) (IObject, error) {
 
 	switch objectType {
 	case ObjectTypeBlob:
-		return NewBlob(body), nil
+		return NewBlob(body)
 
 	case ObjectTypeTree:
-		return NewTree(body), nil
+		return NewTree(body)
 
 	case ObjectTypeCommit:
 		return NewCommit(body)

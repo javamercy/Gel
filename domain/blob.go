@@ -1,17 +1,24 @@
 package domain
 
+import "Gel/core/validation"
+
 type Blob struct {
-	body []byte
+	body []byte `validate:"required"`
 }
 
 func (blob *Blob) Body() []byte {
 	return blob.body
 }
 
-func NewBlob(body []byte) *Blob {
-	return &Blob{
+func NewBlob(body []byte) (*Blob, error) {
+	validator := validation.GetValidator()
+	blob := &Blob{
 		body: body,
 	}
+	if err := validator.Struct(blob); err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
 
 func (blob *Blob) Type() ObjectType {

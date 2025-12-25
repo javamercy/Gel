@@ -25,7 +25,10 @@ func (hashObjectService *HashObjectService) HashObject(paths []string, write boo
 		if err != nil {
 			return nil, nil, err
 		}
-		blob := domain.NewBlob(data)
+		blob, err := domain.NewBlob(data)
+		if err != nil {
+			return nil, nil, err
+		}
 		content := blob.Serialize()
 		hash := encoding.ComputeHash(content)
 		hashMap[path] = hash

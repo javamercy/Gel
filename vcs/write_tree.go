@@ -68,7 +68,10 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		return "", buildTreeErr
 	}
 
-	treeObject := domain.NewTree(treeData)
+	treeObject, err := domain.NewTree(treeData)
+	if err != nil {
+		return "", err
+	}
 	content := treeObject.Serialize()
 	hash := encoding.ComputeHash(content)
 	writeErr := writeTreeService.objectService.Write(hash, content)

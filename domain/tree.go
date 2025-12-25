@@ -26,18 +26,29 @@ func NewTreeEntry(mode FileMode, hash, name string) (TreeEntry, error) {
 }
 
 type Tree struct {
-	body    []byte
-	entries []TreeEntry
+	body    []byte      `validate:"required"`
+	entries []TreeEntry `validate:"-"`
 }
 
 func (tree *Tree) Body() []byte {
 	return tree.body
 }
 
-func NewTree(body []byte) *Tree {
-	return &Tree{
+func NewTree(body []byte) (*Tree, error) {
+	tree := &Tree{
 		body: body,
 	}
+	validator := validation.GetValidator()
+	if err := validator.Struct(tree); err != nil {
+		return nil, err
+	}
+
+	entries, err := tree.Deserialize()
+	if err != nil {
+		return nil, err
+	}
+	tree.entries = entries
+	return tree, nil
 }
 
 func NewTreeFromEntries(entries []TreeEntry) *Tree {

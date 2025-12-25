@@ -85,7 +85,10 @@ func (objectService *ObjectService) HashObject(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	blob := domain.NewBlob(data)
+	blob, err := domain.NewBlob(data)
+	if err != nil {
+		return "", err
+	}
 	content := blob.Serialize()
 	return encoding.ComputeHash(content), nil
 }
