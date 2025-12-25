@@ -106,6 +106,10 @@ func expandDirectory(path string) ([]string, error) {
 		}
 
 		if !d.IsDir() {
+			info, statErr := os.Stat(p)
+			if statErr == nil && info.IsDir() {
+				return nil
+			}
 			files = append(files, p)
 		}
 		return nil
