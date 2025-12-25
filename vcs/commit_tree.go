@@ -26,25 +26,27 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 		return "", domain.ErrInvalidObjectType
 	}
 
+	author, err := domain.NewIdentity(
+		"Linus Torvalds",
+		"torvalds@linux-foundation.org",
+		"2025-01-01T00:00:00Z",
+		"+0000")
+	if err != nil {
+		return "", err
+	}
+
 	commitFields := domain.CommitFields{
 		TreeHash:     treeHash,
 		ParentHashes: nil,
-		Author: domain.Identity{
-			Name:      "Linus Torvalds",
-			Email:     "torvalds@linux-foundation.org",
-			Timestamp: "2025-01-01T00:00:00Z",
-			Timezone:  "+0000",
-		},
-		Committer: domain.Identity{
-			Name:      "Linus Torvalds",
-			Email:     "torvalds@linux-foundation.org",
-			Timestamp: "2025-01-01T00:00:00Z",
-			Timezone:  "+0000",
-		},
-		Message: message,
+		Author:       author,
+		Committer:    author,
+		Message:      message,
 	}
 
-	commit := domain.NewCommitFromFields(commitFields)
+	commit, err := domain.NewCommitFromFields(commitFields)
+	if err != nil {
+		return "", err
+	}
 	serializedCommit := commit.Serialize()
 	hash := encoding.ComputeHash(serializedCommit)
 	err = commitTreeService.objectService.Write(hash, serializedCommit)

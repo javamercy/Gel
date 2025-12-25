@@ -45,7 +45,10 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		if err != nil {
 			return "", err
 		}
-		entry := domain.NewTreeEntry(domain.Directory, subTreeHash, childDirectory.Name)
+		entry, err := domain.NewTreeEntry(domain.Directory, subTreeHash, childDirectory.Name)
+		if err != nil {
+			return "", err
+		}
 		entries = append(entries, entry)
 	}
 

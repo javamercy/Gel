@@ -25,7 +25,7 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 	processor := func(entry domain.TreeEntry, relativePath string) error {
 		fileStatInfo := util.GetFileStatFromPath(relativePath)
 
-		indexEntry := domain.NewIndexEntry(
+		indexEntry, err := domain.NewIndexEntry(
 			relativePath,
 			entry.Hash,
 			fileStatInfo.Size,
@@ -38,6 +38,9 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 			time.Now(),
 			time.Now())
 
+		if err != nil {
+			return err
+		}
 		indexEntries = append(indexEntries, indexEntry)
 		return nil
 	}

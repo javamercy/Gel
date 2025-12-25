@@ -2,6 +2,7 @@ package domain
 
 import (
 	"Gel/core/constant"
+	"Gel/core/validation"
 	"bytes"
 	"errors"
 	"fmt"
@@ -20,11 +21,11 @@ const (
 )
 
 type CommitFields struct {
-	TreeHash     string
-	ParentHashes []string
-	Author       Identity
-	Committer    Identity
-	Message      string
+	TreeHash     string   `validate:"required,sha256hex"`
+	ParentHashes []string `validate:"dive,sha256hex"`
+	Author       Identity `validate:"required"`
+	Committer    Identity `validate:"required"`
+	Message      string   `validate:"required,min=1"`
 }
 
 type Commit struct {
@@ -55,11 +56,15 @@ func NewCommit(body []byte) (*Commit, error) {
 	}
 	return fields, nil
 }
-func NewCommitFromFields(commitFields CommitFields) *Commit {
+func NewCommitFromFields(commitFields CommitFields) (*Commit, error) {
+	validator := validation.GetValidator()
+	if err := validator.Struct(commitFields); err != nil {
+		return nil, err
+	}
 	return &Commit{
 		body:         SerializeBody(commitFields),
 		CommitFields: commitFields,
-	}
+	}, nil
 }
 
 func SerializeBody(fields CommitFields) []byte {
@@ -147,7 +152,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 	if !hasTree || !hasAuthor || !hasCommitter || !hasMessage {
 		return nil, ErrInvalidCommitFormat
 	}
-	return NewCommitFromFields(fields), nil
+	return NewCommitFromFields(fields)
 }
 
 func deserializeFieldStr(data []byte, start int) (string, int, error) {

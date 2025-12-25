@@ -3,6 +3,7 @@ package domain
 import (
 	"Gel/core/constant"
 	"Gel/core/encoding"
+	"Gel/core/validation"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
@@ -37,17 +38,17 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 }
 
 type IndexEntry struct {
-	Path        string
-	Hash        string
-	Size        uint32
-	Mode        uint32
+	Path        string `validate:"required,relativepath"`
+	Hash        string `validate:"required,sha256hex"`
+	Size        uint32 `validate:"gte=0"`
+	Mode        uint32 `validate:"required"`
 	Device      uint32
 	Inode       uint32
 	UserId      uint32
 	GroupId     uint32
 	Flags       uint16
-	CreatedTime time.Time
-	UpdatedTime time.Time
+	CreatedTime time.Time `validate:"required"`
+	UpdatedTime time.Time `validate:"required"`
 }
 
 func NewIndexEntry(
@@ -61,8 +62,8 @@ func NewIndexEntry(
 	groupId uint32,
 	flags uint16,
 	createdTime time.Time,
-	updatedTime time.Time) *IndexEntry {
-	return &IndexEntry{
+	updatedTime time.Time) (*IndexEntry, error) {
+	entry := IndexEntry{
 		path,
 		hash,
 		size,
@@ -75,6 +76,11 @@ func NewIndexEntry(
 		createdTime,
 		updatedTime,
 	}
+	validator := validation.GetValidator()
+	if err := validator.Struct(entry); err != nil {
+		return nil, err
+	}
+	return &entry, nil
 }
 
 func (indexEntry *IndexEntry) GetStage() uint16 {

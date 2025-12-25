@@ -51,7 +51,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 			return readErr
 		}
 
-		newEntry := domain.NewIndexEntry(p,
+		newEntry, err := domain.NewIndexEntry(p,
 			blobHash,
 			size,
 			domain.ParseFileModeFromOsMode(fileStatInfo.Mode).Uint32(),
@@ -62,6 +62,10 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 			domain.ComputeIndexFlags(p, 0),
 			fileStatInfo.CreatedTime,
 			fileStatInfo.UpdatedTime)
+
+		if err != nil {
+			return err
+		}
 
 		index.AddOrUpdateEntry(newEntry)
 	}
