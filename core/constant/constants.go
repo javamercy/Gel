@@ -8,6 +8,7 @@ const (
 	GelObjectsDirectoryName = "objects"
 	GelRefsDirectoryName    = "refs"
 	GelIndexFileName        = "index"
+	GelConfigFileName       = "config"
 )
 
 // special character constants

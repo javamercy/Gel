@@ -18,6 +18,7 @@ type Repository struct {
 	RefsDirectory       string
 	IndexPath           string
 	RepositoryDirectory string
+	ConfigPath          string
 }
 
 var repository *Repository
@@ -55,6 +56,7 @@ func initializeRepository() (*Repository, error) {
 			RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirectoryName),
 			IndexPath:           filepath.Join(gelDirectory, constant.GelIndexFileName),
 			RepositoryDirectory: filepath.Dir(gelDirectory),
+			ConfigPath:          filepath.Join(gelDirectory, constant.GelConfigFileName),
 		}
 	})
 	return repository, err
