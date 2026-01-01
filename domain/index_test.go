@@ -241,7 +241,7 @@ func TestDeserialize_TruncatedData(t *testing.T) {
 func createTestEntry(path, hashSeed string) *IndexEntry {
 
 	fullHash := fmt.Sprintf("%064x", hashSeed)
-	return NewIndexEntry(
+	entry, err := NewIndexEntry(
 		path,
 		fullHash,
 		100,
@@ -251,4 +251,8 @@ func createTestEntry(path, hashSeed string) *IndexEntry {
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 	)
+	if err != nil {
+		panic(err)
+	}
+	return entry
 }

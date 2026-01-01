@@ -9,7 +9,8 @@ import (
 
 func TestSerialize_Blob(t *testing.T) {
 	body := []byte("hello world")
-	blob := NewBlob(body)
+	blob, err := NewBlob(body)
+	require.NoError(t, err)
 
 	serializedBlob := blob.Serialize()
 
@@ -19,24 +20,26 @@ func TestSerialize_Blob(t *testing.T) {
 }
 
 func TestSerialize_Tree(t *testing.T) {
-	body := []byte("tree content")
-	tree := NewTree(body)
+	entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
+	require.NoError(t, err)
+	tree := NewTreeFromEntries([]TreeEntry{entry})
 
 	serializedTree := tree.Serialize()
 
 	assert.Contains(t, string(serializedTree), "tree")
-	assert.Contains(t, string(serializedTree), "12")
 }
 
 func TestBaseObject_Type(t *testing.T) {
-	blob := NewBlob([]byte("test"))
+	blob, err := NewBlob([]byte("test"))
+	require.NoError(t, err)
 
 	assert.Equal(t, ObjectTypeBlob, blob.Type())
 }
 
 func TestBaseObject_Size(t *testing.T) {
 	body := []byte("test data")
-	blob := NewBlob(body)
+	blob, err := NewBlob(body)
+	require.NoError(t, err)
 
 	assert.Equal(t, len(body), blob.Size())
 	assert.Equal(t, 9, blob.Size())
@@ -44,14 +47,17 @@ func TestBaseObject_Size(t *testing.T) {
 
 func TestBaseObject_Data(t *testing.T) {
 	body := []byte("test data")
-	blob := NewBlob(body)
+	blob, err := NewBlob(body)
+	require.NoError(t, err)
 
 	assert.Equal(t, body, blob.Body())
 }
 
 func TestDeserializeObject_ValidBlob(t *testing.T) {
 	body := []byte("hello")
-	blob := NewBlob(body)
+	blob, err := NewBlob(body)
+	require.NoError(t, err)
+
 	serializedBlob := blob.Serialize()
 
 	object, err := DeserializeObject(serializedBlob)
@@ -66,8 +72,10 @@ func TestDeserializeObject_ValidBlob(t *testing.T) {
 }
 
 func TestDeserializeObject_ValidTree(t *testing.T) {
-	body := []byte("tree data")
-	tree := NewTree(body)
+	entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
+	require.NoError(t, err)
+	tree := NewTreeFromEntries([]TreeEntry{entry})
+
 	serializedTree := tree.Serialize()
 
 	object, err := DeserializeObject(serializedTree)
@@ -76,7 +84,7 @@ func TestDeserializeObject_ValidTree(t *testing.T) {
 
 	deserializedTree, ok := object.(*Tree)
 	require.True(t, ok)
-	assert.Equal(t, len(body), deserializedTree.Size())
+	assert.Equal(t, tree.Size(), deserializedTree.Size())
 }
 
 func TestDeserializeObject_NoNullByte(t *testing.T) {
@@ -129,17 +137,12 @@ func TestSerializeDeserializeObject_RoundTrip(t *testing.T) {
 		{"small blob", []byte("test"), ObjectTypeBlob},
 		{"large blob", []byte("this is a much larger content for testing"), ObjectTypeBlob},
 		{"blob with newlines", []byte("line1\nline2\nline3"), ObjectTypeBlob},
-		{"tree", []byte("tree content"), ObjectTypeTree},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var object IObject
-			if tt.type_ == ObjectTypeBlob {
-				object = NewBlob(tt.body)
-			} else {
-				object = NewTree(tt.body)
-			}
+			object, err := NewBlob(tt.body)
+			require.NoError(t, err)
 
 			serializedObject := object.Serialize()
 			deserializedObject, err := DeserializeObject(serializedObject)
@@ -148,17 +151,26 @@ func TestSerializeDeserializeObject_RoundTrip(t *testing.T) {
 			assert.Equal(t, object.Type(), deserializedObject.Type())
 			assert.Equal(t, object.Size(), deserializedObject.Size())
 
-			if tt.type_ == ObjectTypeBlob {
-				blob := object.(*Blob)
-				deserializedBlob := deserializedObject.(*Blob)
-				assert.Equal(t, blob.Body(), deserializedBlob.Body())
-			} else {
-				tree := object.(*Tree)
-				deserializedTree := deserializedObject.(*Tree)
-				assert.Equal(t, tree.Body(), deserializedTree.Body())
-			}
+			deserializedBlob := deserializedObject.(*Blob)
+			assert.Equal(t, object.Body(), deserializedBlob.Body())
 		})
 	}
+
+	t.Run("tree", func(t *testing.T) {
+		entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
+		require.NoError(t, err)
+		tree := NewTreeFromEntries([]TreeEntry{entry})
+
+		serializedObject := tree.Serialize()
+		deserializedObject, err := DeserializeObject(serializedObject)
+
+		require.NoError(t, err)
+		assert.Equal(t, tree.Type(), deserializedObject.Type())
+		assert.Equal(t, tree.Size(), deserializedObject.Size())
+
+		deserializedTree := deserializedObject.(*Tree)
+		assert.Equal(t, tree.Body(), deserializedTree.Body())
+	})
 }
 
 func TestDeserializeObject_EmptyData(t *testing.T) {
@@ -170,7 +182,9 @@ func TestDeserializeObject_EmptyData(t *testing.T) {
 }
 
 func TestSerialize_Format(t *testing.T) {
-	blob := NewBlob([]byte("hello"))
+	blob, err := NewBlob([]byte("hello"))
+	require.NoError(t, err)
+
 	serializedBlob := blob.Serialize()
 
 	expectedData := "blob 5\x00hello"
