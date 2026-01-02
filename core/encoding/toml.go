@@ -13,19 +13,19 @@ var (
 	ErrFailedToEncodeTomlFile = errors.New("failed to encode TOML file")
 )
 
-type IToml interface {
+type ITomlHelper interface {
 	Decode(data []byte, value any) error
 	Encode(value any) ([]byte, error)
 }
 
-type BurntSushiToml struct {
+type BurntSushiTomlHelper struct {
 }
 
-func NewBurntSushiToml() *BurntSushiToml {
-	return &BurntSushiToml{}
+func NewBurntSushiTomlHelper() *BurntSushiTomlHelper {
+	return &BurntSushiTomlHelper{}
 }
 
-func (burntSushiToml *BurntSushiToml) Decode(data []byte, value any) error {
+func (burntSushiToml *BurntSushiTomlHelper) Decode(data []byte, value any) error {
 
 	_, err := toml.Decode(string(data), value)
 	if err != nil {
@@ -34,7 +34,7 @@ func (burntSushiToml *BurntSushiToml) Decode(data []byte, value any) error {
 	return nil
 }
 
-func (burntSushiToml *BurntSushiToml) Encode(value any) ([]byte, error) {
+func (burntSushiToml *BurntSushiTomlHelper) Encode(value any) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := toml.NewEncoder(&buffer)
 	if err := encoder.Encode(value); err != nil {

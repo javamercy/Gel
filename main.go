@@ -6,6 +6,7 @@ package main
 import (
 	"Gel/cmd"
 	"Gel/core/constant"
+	"Gel/core/encoding"
 	"Gel/core/util"
 	"Gel/storage"
 	"Gel/vcs"
@@ -17,11 +18,13 @@ func main() {
 	filesystemStorage := storage.NewFilesystemStorage()
 	objectStorage := storage.NewObjectStorage(filesystemStorage)
 	indexStorage := storage.NewIndexStorage(filesystemStorage)
+	configStorage := storage.NewConfigStorage(filesystemStorage)
 
 	// Core services
 	filesystemService := vcs.NewFilesystemService(filesystemStorage)
 	objectService := vcs.NewObjectService(objectStorage, filesystemService)
 	indexService := vcs.NewIndexService(indexStorage)
+	configService := vcs.NewConfigService(configStorage, encoding.NewBurntSushiTomlHelper())
 
 	// Command services
 	initService := vcs.NewInitService(objectService, filesystemService)
@@ -53,6 +56,7 @@ func main() {
 		filesystemService,
 		objectService,
 		indexService,
+		configService,
 		initService,
 		addService,
 		hashObjectService,

@@ -8,7 +8,7 @@ const (
 	GelObjectsDirectoryName = "objects"
 	GelRefsDirectoryName    = "refs"
 	GelIndexFileName        = "index"
-	GelConfigFileName       = "config"
+	GelConfigFileName       = "config.toml"
 )
 
 // special character constants

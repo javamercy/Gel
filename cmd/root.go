@@ -16,6 +16,7 @@ var (
 	filesystemService *vcs.FilesystemService
 	objectService     *vcs.ObjectService
 	indexService      *vcs.IndexService
+	configService     *vcs.ConfigService
 
 	// Command services
 	initService        *vcs.InitService
@@ -50,6 +51,7 @@ func InitializeServices(
 	fs *vcs.FilesystemService,
 	obj *vcs.ObjectService,
 	idx *vcs.IndexService,
+	cfg *vcs.ConfigService,
 	init *vcs.InitService,
 	add *vcs.AddService,
 	hashObj *vcs.HashObjectService,
@@ -60,10 +62,12 @@ func InitializeServices(
 	readTree *vcs.ReadTreeService,
 	lsTree *vcs.LsTreeService,
 	commitTree *vcs.CommitTreeService,
+
 ) {
 	filesystemService = fs
 	objectService = obj
 	indexService = idx
+	configService = cfg
 	initService = init
 	addService = add
 	hashObjectService = hashObj
