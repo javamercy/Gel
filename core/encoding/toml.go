@@ -25,8 +25,7 @@ func NewBurntSushiTomlHelper() *BurntSushiTomlHelper {
 	return &BurntSushiTomlHelper{}
 }
 
-func (burntSushiToml *BurntSushiTomlHelper) Decode(data []byte, value any) error {
-
+func (burntSushiTomlHelper *BurntSushiTomlHelper) Decode(data []byte, value any) error {
 	_, err := toml.Decode(string(data), value)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrFailedToDecodeTomlFile, err.Error())
@@ -34,7 +33,7 @@ func (burntSushiToml *BurntSushiTomlHelper) Decode(data []byte, value any) error
 	return nil
 }
 
-func (burntSushiToml *BurntSushiTomlHelper) Encode(value any) ([]byte, error) {
+func (burntSushiTomlHelper *BurntSushiTomlHelper) Encode(value any) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := toml.NewEncoder(&buffer)
 	if err := encoder.Encode(value); err != nil {
