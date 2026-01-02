@@ -1,6 +1,8 @@
 package util
 
-import "Gel/core/constant"
+import (
+	"Gel/core/constant"
+)
 
 func FindNullByteIndex(data []byte) int {
 	for i, b := range data {

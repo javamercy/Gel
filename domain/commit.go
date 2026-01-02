@@ -247,8 +247,10 @@ func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 	timezone := string(data[i:lineEnd])
 
 	return Identity{
-		Name:      name,
-		Email:     email,
+		User: UserIdentity{
+			Name:  name,
+			Email: email,
+		},
 		Timestamp: timestamp,
 		Timezone:  timezone,
 	}, lineEnd + 1, nil

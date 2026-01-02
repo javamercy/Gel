@@ -25,6 +25,27 @@ var ConfigCmd = &cobra.Command{
 			}
 			return
 		}
+
+		if len(args) == 1 {
+			value, err := configService.Get(args[0])
+			if err != nil {
+				cmd.PrintErrln("Error getting config:", err)
+				return
+			}
+			cmd.Println(value)
+			return
+		}
+
+		if len(args) == 2 {
+			err := configService.Set(args[0], args[1])
+			if err != nil {
+				cmd.PrintErrln("Error setting config:", err)
+				return
+			}
+			return
+		}
+
+		cmd.PrintErrln("Invalid usage. Use --help for more information.")
 	},
 }
 

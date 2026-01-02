@@ -28,9 +28,24 @@ func (initService *InitService) Init(path string) (string, error) {
 		filepath.Join(base, constant.GelRefsDirectoryName),
 	}
 
+	files := []string{
+		filepath.Join(base, constant.GelConfigFileName),
+	}
+
 	exists := initService.filesystemService.Exists(base)
 	for _, dir := range dirs {
-		if err := initService.filesystemService.MakeDirectory(dir, constant.GelDirectoryPermission); err != nil {
+		if err := initService.filesystemService.MakeDirectory(
+			dir,
+			constant.GelDirectoryPermission); err != nil {
+			return "", err
+		}
+	}
+
+	for _, file := range files {
+		if err := initService.filesystemService.WriteFile(
+			file,
+			[]byte{}, false,
+			constant.GelFilePermission); err != nil {
 			return "", err
 		}
 	}

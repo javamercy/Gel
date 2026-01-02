@@ -49,7 +49,7 @@ func main() {
 	writeTreeService := vcs.NewWriteTreeService(indexService, objectService)
 	readTreeService := vcs.NewReadTreeService(indexService, objectService)
 	lsTreeService := vcs.NewLsTreeService(objectService)
-	commitTreeService := vcs.NewCommitTreeService(objectService)
+	commitTreeService := vcs.NewCommitTreeService(objectService, configService)
 
 	// Initialize commands with all services
 	cmd.InitializeServices(

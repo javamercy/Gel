@@ -2,16 +2,20 @@ package vcs
 
 import (
 	"Gel/core/encoding"
+	"Gel/core/util"
 	"Gel/domain"
+	"time"
 )
 
 type CommitTreeService struct {
 	objectService *ObjectService
+	configService *ConfigService
 }
 
-func NewCommitTreeService(objectService *ObjectService) *CommitTreeService {
+func NewCommitTreeService(objectService *ObjectService, configService *ConfigService) *CommitTreeService {
 	return &CommitTreeService{
 		objectService: objectService,
+		configService: configService,
 	}
 }
 
@@ -21,19 +25,24 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	if err != nil {
 		return "", err
 	}
+
 	_, ok := object.(*domain.Tree)
 	if !ok {
 		return "", domain.ErrInvalidObjectType
 	}
 
-	author, err := domain.NewIdentity(
-		"Linus Torvalds",
-		"torvalds@linux-foundation.org",
-		"2025-01-01T00:00:00Z",
-		"+0000")
+	userIdentity, err := commitTreeService.configService.GetUserIdentity()
 	if err != nil {
 		return "", err
 	}
+	now := time.Now()
+
+	author, err := domain.NewIdentity(
+		userIdentity.Name,
+		userIdentity.Email,
+		util.FormatCommitTimestamp(now),
+		util.FormatCommitTimezone(now),
+	)
 
 	commitFields := domain.CommitFields{
 		TreeHash:     treeHash,
@@ -47,6 +56,7 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	if err != nil {
 		return "", err
 	}
+
 	serializedCommit := commit.Serialize()
 	hash := encoding.ComputeHash(serializedCommit)
 	err = commitTreeService.objectService.Write(hash, serializedCommit)

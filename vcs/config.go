@@ -34,12 +34,16 @@ func NewConfigService(configStorage *storage.ConfigStorage, tomlHelper encoding.
 }
 
 func (configService *ConfigService) DecodeConfig() (*domain.Config, error) {
+	config := domain.Config{}
 	data, err := configService.configStorage.Read()
 	if err != nil {
 		return nil, err
 	}
 
-	var config domain.Config
+	if len(data) == 0 {
+		return &config, nil
+	}
+
 	if err := configService.tomlHelper.Decode(data, &config); err != nil {
 		return nil, err
 	}
@@ -47,27 +51,15 @@ func (configService *ConfigService) DecodeConfig() (*domain.Config, error) {
 	return &config, nil
 }
 
-func (configService *ConfigService) GetUserIdentity() (domain.Identity, error) {
+func (configService *ConfigService) GetUserIdentity() (domain.UserIdentity, error) {
 
+	var user domain.UserIdentity
 	config, err := configService.DecodeConfig()
 
 	if err != nil {
-		return domain.Identity{}, err
+		return user, err
 	}
-
-	if config.User.Name == "" {
-		return domain.Identity{}, ErrUserNameNotSet
-	}
-	if config.User.Email == "" {
-		return domain.Identity{}, ErrUserEmailNotSet
-	}
-
-	return domain.Identity{
-		Name:      config.User.Name,
-		Email:     config.User.Email,
-		Timestamp: "",
-		Timezone:  "",
-	}, nil
+	return domain.NewUserIdentity(config.User.Name, config.User.Email)
 }
 
 func (configService *ConfigService) Get(key string) (string, error) {
@@ -97,7 +89,6 @@ func (configService *ConfigService) Get(key string) (string, error) {
 }
 
 func (configService *ConfigService) Set(key, value string) error {
-
 	config, err := configService.DecodeConfig()
 	if err != nil {
 		return err

@@ -6,17 +6,38 @@ import (
 	"bytes"
 )
 
+type UserIdentity struct {
+	Name  string `validate:"required,min=1,max=256"`
+	Email string `validate:"required,email"`
+}
+
+func NewUserIdentity(name, email string) (UserIdentity, error) {
+	userIdentity := UserIdentity{
+		Name:  name,
+		Email: email,
+	}
+
+	validator := validation.GetValidator()
+	if err := validator.Struct(userIdentity); err != nil {
+		return UserIdentity{}, err
+	}
+
+	return userIdentity, nil
+}
+
 type Identity struct {
-	Name      string `validate:"required,min=1,max=256"`
-	Email     string `validate:"required,email"`
-	Timestamp string `validate:"required"`
-	Timezone  string `validate:"required,timezone"`
+	User      UserIdentity `validate:"required"`
+	Timestamp string       `validate:"required"`
+	Timezone  string       `validate:"required,timezone"`
 }
 
 func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
+
 	identity := Identity{
-		Name:      name,
-		Email:     email,
+		User: UserIdentity{
+			Name:  name,
+			Email: email,
+		},
 		Timestamp: timestamp,
 		Timezone:  timezone,
 	}
@@ -31,10 +52,10 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 
 func (identity Identity) serialize() []byte {
 	var buffer bytes.Buffer
-	buffer.WriteString(identity.Name)
+	buffer.WriteString(identity.User.Name)
 	buffer.WriteByte(constant.SpaceByte)
 	buffer.WriteByte(constant.LessThanByte)
-	buffer.WriteString(identity.Email)
+	buffer.WriteString(identity.User.Email)
 	buffer.WriteByte(constant.GreaterThanByte)
 	buffer.WriteByte(constant.SpaceByte)
 	buffer.WriteString(identity.Timestamp)
