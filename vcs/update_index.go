@@ -74,7 +74,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 	if err != nil {
 		return err
 	}
-	index.Checksum = encoding.ComputeHash(indexBytes)
+	index.Checksum = encoding.ComputeSha256(indexBytes)
 
 	writeErr := updateIndexService.indexService.Write(index)
 	if writeErr != nil {
@@ -91,7 +91,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domai
 	if err != nil {
 		return err
 	}
-	index.Checksum = encoding.ComputeHash(indexBytes)
+	index.Checksum = encoding.ComputeSha256(indexBytes)
 
 	err = updateIndexService.indexService.Write(index)
 	if err != nil {

@@ -73,7 +73,7 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *Directory
 		return "", err
 	}
 	content := treeObject.Serialize()
-	hash := encoding.ComputeHash(content)
+	hash := encoding.ComputeSha256(content)
 	writeErr := writeTreeService.objectService.Write(hash, content)
 	if writeErr != nil {
 		return "", writeErr

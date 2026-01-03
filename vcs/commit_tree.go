@@ -58,7 +58,7 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	}
 
 	serializedCommit := commit.Serialize()
-	hash := encoding.ComputeHash(serializedCommit)
+	hash := encoding.ComputeSha256(serializedCommit)
 	err = commitTreeService.objectService.Write(hash, serializedCommit)
 	if err != nil {
 		return "", err

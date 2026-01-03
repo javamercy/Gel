@@ -30,7 +30,7 @@ func (hashObjectService *HashObjectService) HashObject(paths []string, write boo
 			return nil, nil, err
 		}
 		content := blob.Serialize()
-		hash := encoding.ComputeHash(content)
+		hash := encoding.ComputeSha256(content)
 		hashMap[path] = hash
 		contentMap[hash] = content
 

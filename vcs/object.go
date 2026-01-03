@@ -90,5 +90,5 @@ func (objectService *ObjectService) HashObject(path string) (string, error) {
 		return "", err
 	}
 	content := blob.Serialize()
-	return encoding.ComputeHash(content), nil
+	return encoding.ComputeSha256(content), nil
 }

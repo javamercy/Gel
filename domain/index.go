@@ -115,7 +115,7 @@ func (index *Index) Serialize() ([]byte, error) {
 	}
 
 	content := append(serializedHeader, serializedEntries...)
-	checksum := encoding.ComputeHash(content)
+	checksum := encoding.ComputeSha256(content)
 	checksumBytes, _ := hex.DecodeString(checksum)
 
 	result := make([]byte, 0, len(content)+len(checksumBytes))
@@ -317,7 +317,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	}
 
 	expectedChecksumBytes := data[len(data)-32:]
-	actualChecksum := encoding.ComputeHash(data[:len(data)-32])
+	actualChecksum := encoding.ComputeSha256(data[:len(data)-32])
 	actualChecksumBytes, err := hex.DecodeString(actualChecksum)
 	if err != nil {
 		return nil, err
