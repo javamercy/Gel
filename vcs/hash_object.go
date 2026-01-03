@@ -16,30 +16,34 @@ func NewHashObjectService(objectService *ObjectService, filesystemService *Files
 		filesystemService: filesystemService,
 	}
 }
-func (hashObjectService *HashObjectService) HashObject(paths []string, write bool) (map[string]string, map[string][]byte, error) {
+
+// HashObject hashes the contents of the files at the given paths.
+// If write is true, it writes the hashed objects to the object storage.
+// It returns a map of file paths to their corresponding hashes.
+func (hashObjectService *HashObjectService) HashObject(paths []string, write bool) (map[string]string, error) {
 
 	hashMap := make(map[string]string)
-	contentMap := make(map[string][]byte)
+
 	for _, path := range paths {
 		data, err := hashObjectService.filesystemService.ReadFile(path)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
+
 		blob, err := domain.NewBlob(data)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
+
 		content := blob.Serialize()
 		hash := encoding.ComputeSha256(content)
 		hashMap[path] = hash
-		contentMap[hash] = content
 
 		if write {
 			if err := hashObjectService.objectService.Write(hash, content); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
-
-	return hashMap, contentMap, nil
+	return hashMap, nil
 }

@@ -36,7 +36,7 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 
 func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
 
-	hashMap, _, err := updateIndexService.hashObjectService.HashObject(paths, true)
+	hashMap, err := updateIndexService.hashObjectService.HashObject(paths, true)
 	if err != nil {
 		return err
 	}

@@ -16,7 +16,7 @@ var hashObjectCmd = &cobra.Command{
 
 		write, _ := cmd.Flags().GetBool("write")
 
-		hashMap, _, err := hashObjectService.HashObject(args, write)
+		hashMap, err := hashObjectService.HashObject(args, write)
 		if err != nil {
 			cmd.PrintErrln(err)
 			return
