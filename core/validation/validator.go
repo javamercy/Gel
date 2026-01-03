@@ -35,7 +35,7 @@ func validateRelativePath(fieldLevel validator.FieldLevel) bool {
 	if path == "" {
 		return false
 	}
-	if path[0] == constant.SlashByte || strings.Contains(path, constant.PreviousDirectoryStr) {
+	if path[0] == constant.SlashByte || strings.Contains(path, constant.DoubleDotStr) {
 		return false
 	}
 	return true

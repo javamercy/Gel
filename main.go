@@ -34,7 +34,7 @@ func main() {
 	// Get current directory for path resolver
 	cwd, err := os.Getwd()
 	if err != nil {
-		cwd = constant.CurrentDirectoryStr
+		cwd = constant.SingleDotStr
 	}
 	pathResolver := util.NewPathResolver(cwd)
 

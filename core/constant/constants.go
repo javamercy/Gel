@@ -13,21 +13,21 @@ const (
 
 // special character constants
 const (
-	NullStr              = "\x00"
-	NullByte             = '\x00'
-	SpaceStr             = " "
-	SpaceByte            = ' '
-	NewLineStr           = "\n"
-	NewLineByte          = '\n'
-	SlashStr             = "/"
-	SlashByte            = '/'
-	TabStr               = "\t"
-	LessThanStr          = "<"
-	LessThanByte         = '<'
-	GreaterThanStr       = ">"
-	GreaterThanByte      = '>'
-	PreviousDirectoryStr = ".."
-	CurrentDirectoryStr  = "."
+	NullStr         = "\x00"
+	NullByte        = '\x00'
+	SpaceStr        = " "
+	SpaceByte       = ' '
+	NewLineStr      = "\n"
+	NewLineByte     = '\n'
+	SlashStr        = "/"
+	SlashByte       = '/'
+	TabStr          = "\t"
+	LessThanStr     = "<"
+	LessThanByte    = '<'
+	GreaterThanStr  = ">"
+	GreaterThanByte = '>'
+	DoubleDotStr    = ".."
+	SingleDotStr    = "."
 )
 
 // permission constants
