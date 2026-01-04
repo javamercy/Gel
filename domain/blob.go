@@ -3,7 +3,7 @@ package domain
 import "Gel/core/validation"
 
 type Blob struct {
-	body []byte `validate:"required"`
+	body []byte
 }
 
 func (blob *Blob) Body() []byte {

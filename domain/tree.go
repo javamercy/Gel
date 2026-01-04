@@ -4,6 +4,7 @@ import (
 	"Gel/core/constant"
 	"Gel/core/validation"
 	"encoding/hex"
+	"errors"
 )
 
 type TreeEntry struct {
@@ -87,8 +88,11 @@ func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 	i := 0
 	for i < len(body) {
 		modeStart := i
-		for body[i] != constant.SpaceByte {
+		for i < len(body) && body[i] != constant.SpaceByte {
 			i++
+		}
+		if i >= len(body) {
+			return nil, ErrInvalidFileMode
 		}
 		modeStr := string(body[modeStart:i])
 		mode := ParseFileModeFromString(modeStr)
@@ -99,12 +103,18 @@ func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 		i++
 
 		nameStart := i
-		for body[i] != constant.NullByte {
+		for i < len(body) && body[i] != constant.NullByte {
 			i++
+		}
+		if i >= len(body) {
+			return nil, errors.New("invalid tree format: missing null byte after name")
 		}
 		name := string(body[nameStart:i])
 		i++
 
+		if i+32 > len(body) {
+			return nil, errors.New("invalid tree format: truncated hash")
+		}
 		hashBytes := body[i : i+32]
 		hash := hex.EncodeToString(hashBytes)
 		i += 32
