@@ -2,6 +2,9 @@ package cmd
 
 import "github.com/spf13/cobra"
 
+var (
+	messageFlag string
+)
 var commitTreeCmd = &cobra.Command{
 	Use:     "commit-tree <tree-hash>",
 	Short:   "Create a new commit object from a tree object",
@@ -13,12 +16,8 @@ var commitTreeCmd = &cobra.Command{
 		}
 
 		treeHash := args[0]
-		message, _ := cmd.Flags().GetString("message")
-		if message == "" {
-			message = "Commiting tree " + treeHash
-		}
 
-		commitHash, err := commitTreeService.CommitTree(treeHash, message)
+		commitHash, err := commitTreeService.CommitTree(treeHash, messageFlag)
 		if err != nil {
 			cmd.PrintErrln("Error creating commit:", err)
 			return
@@ -28,6 +27,6 @@ var commitTreeCmd = &cobra.Command{
 }
 
 func init() {
-	commitTreeCmd.Flags().StringP("message", "m", "", "Commit message")
+	commitTreeCmd.Flags().StringVarP(&messageFlag, "message", "m", "", "Commit message")
 	rootCmd.AddCommand(commitTreeCmd)
 }

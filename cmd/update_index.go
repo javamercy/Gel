@@ -4,6 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	addFlag    bool
+	removeFlag bool
+)
 var updateIndexCmd = &cobra.Command{
 	Use:     "update-index <file>...",
 	Short:   "Update the index with the current state of the working directory",
@@ -14,15 +18,12 @@ var updateIndexCmd = &cobra.Command{
 			return
 		}
 
-		add, _ := cmd.Flags().GetBool("add")
-		remove, _ := cmd.Flags().GetBool("remove")
-
-		if !add && !remove {
+		if !addFlag && !removeFlag {
 			cmd.PrintErrln("Error: must specify either --add or --remove")
 			return
 		}
 
-		err := updateIndexService.UpdateIndex(args, add, remove)
+		err := updateIndexService.UpdateIndex(args, addFlag, removeFlag)
 		if err != nil {
 			cmd.PrintErrln("Error updating index:", err)
 			return
@@ -31,7 +32,7 @@ var updateIndexCmd = &cobra.Command{
 }
 
 func init() {
-	updateIndexCmd.Flags().BoolP("add", "a", false, "Add files to the index")
-	updateIndexCmd.Flags().BoolP("remove", "r", false, "Remove files from the index")
+	updateIndexCmd.Flags().BoolVarP(&addFlag, "add", "a", false, "Add specified files to the index")
+	updateIndexCmd.Flags().BoolVarP(&removeFlag, "remove", "r", false, "Remove specified files from the index")
 	rootCmd.AddCommand(updateIndexCmd)
 }

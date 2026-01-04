@@ -4,6 +4,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	writeFlag bool
+)
 var hashObjectCmd = &cobra.Command{
 	Use:     "hash-object <file>...",
 	Short:   "Compute the hash of a file",
@@ -30,6 +33,6 @@ var hashObjectCmd = &cobra.Command{
 }
 
 func init() {
-	hashObjectCmd.Flags().BoolP("write", "w", false, "Write the object to the object database")
+	hashObjectCmd.Flags().BoolVarP(&writeFlag, "write", "w", false, "Write the object to the object database")
 	rootCmd.AddCommand(hashObjectCmd)
 }

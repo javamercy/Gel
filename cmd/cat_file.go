@@ -6,6 +6,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	typeFlag   bool
+	prettyFlag bool
+	sizeFlag   bool
+	existsFlag bool
+)
 var catFileCmd = &cobra.Command{
 	Use:     "cat-file <hash>",
 	Short:   "Display the content of a Git object",
@@ -18,12 +24,8 @@ var catFileCmd = &cobra.Command{
 		}
 
 		hash := args[0]
-		objectType, _ := cmd.Flags().GetBool("type")
-		pretty, _ := cmd.Flags().GetBool("pretty")
-		size, _ := cmd.Flags().GetBool("size")
-		exists, _ := cmd.Flags().GetBool("exists")
 
-		output, err := catFileService.CatFile(hash, objectType, pretty, size, exists)
+		output, err := catFileService.CatFile(hash, typeFlag, prettyFlag, sizeFlag, existsFlag)
 		if err != nil {
 			cmd.PrintErrln(err)
 			os.Exit(1)
@@ -33,9 +35,9 @@ var catFileCmd = &cobra.Command{
 }
 
 func init() {
-	catFileCmd.Flags().BoolP("type", "t", false, "Show the object type")
-	catFileCmd.Flags().BoolP("pretty", "p", false, "Pretty-print the object content")
-	catFileCmd.Flags().BoolP("size", "s", false, "Show the object size")
-	catFileCmd.Flags().BoolP("exists", "e", false, "Check if the object exists")
+	catFileCmd.Flags().BoolVarP(&typeFlag, "type", "t", false, "Show the object type")
+	catFileCmd.Flags().BoolVarP(&prettyFlag, "pretty", "p", false, "Pretty-print the object content")
+	catFileCmd.Flags().BoolVarP(&sizeFlag, "size", "s", false, "Show the object size")
+	catFileCmd.Flags().BoolVarP(&existsFlag, "exists", "e", false, "Check if the object exists")
 	rootCmd.AddCommand(catFileCmd)
 }

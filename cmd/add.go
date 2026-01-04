@@ -6,6 +6,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	dryRunFlag bool
+)
 var addCmd = &cobra.Command{
 	Use:     "add <pathspec>...",
 	Short:   "Add file contents to the index",
@@ -16,9 +19,7 @@ var addCmd = &cobra.Command{
 			return
 		}
 
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
-
-		output, err := addService.Add(args, dryRun)
+		output, err := addService.Add(args, dryRunFlag)
 		if err != nil {
 			cmd.PrintErrln(err)
 			os.Exit(1)
@@ -28,6 +29,6 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
-	addCmd.Flags().BoolP("dry-run", "n", false, "Show what would be done, without making any changes")
+	addCmd.Flags().BoolVarP(&dryRunFlag, "dry-run", "n", false, "Dry run the add operation without making any changes")
 	rootCmd.AddCommand(addCmd)
 }

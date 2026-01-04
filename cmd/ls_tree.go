@@ -6,6 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	recursiveFlag bool
+	showTreesFlag bool
+)
 var lsTreeCmd = &cobra.Command{
 	Use:     "ls-tree",
 	Short:   "List the contents of a tree",
@@ -17,10 +21,7 @@ var lsTreeCmd = &cobra.Command{
 		}
 		hash := args[0]
 
-		recursive, _ := cmd.Flags().GetBool("recursive")
-		showTrees, _ := cmd.Flags().GetBool("show-trees")
-
-		output, err := lsTreeService.LsTree(hash, recursive, showTrees)
+		output, err := lsTreeService.LsTree(hash, recursiveFlag, showTreesFlag)
 		if err != nil {
 			return err
 		}
@@ -31,7 +32,7 @@ var lsTreeCmd = &cobra.Command{
 
 func init() {
 	lsTreeCmd.SilenceUsage = true
-	lsTreeCmd.Flags().BoolP("recursive", "r", false, "")
-	lsTreeCmd.Flags().BoolP("show-trees", "t", false, "")
+	lsTreeCmd.Flags().BoolVarP(&recursiveFlag, "recursive", "r", false, "Recursively list subtrees")
+	lsTreeCmd.Flags().BoolVarP(&showTreesFlag, "show-trees", "t", false, "Show tree objects in the listing")
 	rootCmd.AddCommand(lsTreeCmd)
 }
