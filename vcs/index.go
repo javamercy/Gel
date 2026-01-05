@@ -3,6 +3,12 @@ package vcs
 import (
 	"Gel/domain"
 	"Gel/storage"
+	"errors"
+	"io/fs"
+)
+
+var (
+	ErrIndexNotFound = errors.New("index not found")
 )
 
 type IndexService struct {
@@ -16,7 +22,11 @@ func NewIndexService(indexStorage storage.IIndexStorage) *IndexService {
 }
 
 func (indexService *IndexService) Read() (*domain.Index, error) {
-	return indexService.indexStorage.Read()
+	index, err := indexService.indexStorage.Read()
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, ErrIndexNotFound
+	}
+	return index, err
 }
 
 func (indexService *IndexService) Write(index *domain.Index) error {
@@ -45,8 +55,8 @@ func (indexService *IndexService) AddOrUpdateEntries(entries []*domain.IndexEntr
 	if err != nil {
 		return err
 	}
-	for _, e := range entries {
-		index.AddOrUpdateEntry(e)
+	for _, entry := range entries {
+		index.AddOrUpdateEntry(entry)
 	}
 	return indexService.indexStorage.Write(index)
 }

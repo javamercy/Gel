@@ -23,6 +23,17 @@ var (
 	ErrPathNotNullTerminated = errors.New("index entry path is malformed: missing null terminator")
 )
 
+const (
+	IndexHeaderSignatureSize  int = 4
+	IndexHeaderVersionSize    int = 4
+	IndexHeaderNumEntriesSize int = 4
+	IndexHeaderSize               = IndexHeaderSignatureSize + IndexHeaderVersionSize + IndexHeaderNumEntriesSize
+
+	IndexEntryBaseSize int = 74
+	IndexEntryHashSize int = 32
+	IndexChecksumSize  int = 32
+)
+
 type IndexHeader struct {
 	Signature  [4]byte
 	Version    uint32
@@ -126,12 +137,12 @@ func (index *Index) Serialize() ([]byte, error) {
 }
 
 func (index *Index) serializeHeader() []byte {
-	serializedHeader := make([]byte, 12)
-	indexHeader := index.Header
+	serializedHeader := make([]byte, IndexHeaderSize)
+	header := index.Header
 
-	copy(serializedHeader[0:4], indexHeader.Signature[:])
-	binary.BigEndian.PutUint32(serializedHeader[4:8], indexHeader.Version)
-	binary.BigEndian.PutUint32(serializedHeader[8:12], indexHeader.NumEntries)
+	copy(serializedHeader[0:IndexHeaderSignatureSize], header.Signature[:])
+	binary.BigEndian.PutUint32(serializedHeader[IndexHeaderSignatureSize:IndexHeaderSignatureSize+IndexHeaderVersionSize], header.Version)
+	binary.BigEndian.PutUint32(serializedHeader[IndexHeaderSignatureSize+IndexHeaderVersionSize:], header.NumEntries)
 
 	return serializedHeader
 }

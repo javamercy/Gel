@@ -4,6 +4,7 @@ import (
 	"Gel/core/encoding"
 	"Gel/core/util"
 	"Gel/domain"
+	"errors"
 )
 
 type UpdateIndexService struct {
@@ -21,9 +22,12 @@ func NewUpdateIndexService(indexService *IndexService, hashObjectService *HashOb
 }
 
 func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, remove bool) error {
+
 	index, err := updateIndexService.indexService.Read()
-	if err != nil {
+	if errors.Is(err, ErrIndexNotFound) {
 		index = domain.NewEmptyIndex()
+	} else if err != nil {
+		return err
 	}
 
 	if add {
@@ -31,6 +35,7 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 	} else if remove {
 		return updateIndexService.updateIndexWithRemove(index, paths)
 	}
+
 	return nil
 }
 
@@ -41,17 +46,18 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 		return err
 	}
 
-	for _, p := range paths {
+	for _, path := range paths {
 
-		fileStatInfo := util.GetFileStatFromPath(p)
+		fileStatInfo := util.GetFileStatFromPath(path)
 
-		blobHash := hashMap[p]
-		size, readErr := updateIndexService.objectService.GetObjectSize(blobHash)
-		if readErr != nil {
-			return readErr
+		blobHash := hashMap[path]
+		size, err := updateIndexService.objectService.GetObjectSize(blobHash)
+		if err != nil {
+			return err
 		}
 
-		newEntry, err := domain.NewIndexEntry(p,
+		newEntry, err := domain.NewIndexEntry(
+			path,
 			blobHash,
 			size,
 			domain.ParseFileModeFromOsMode(fileStatInfo.Mode).Uint32(),
@@ -59,7 +65,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 			fileStatInfo.Inode,
 			fileStatInfo.UserId,
 			fileStatInfo.GroupId,
-			domain.ComputeIndexFlags(p, 0),
+			domain.ComputeIndexFlags(path, 0),
 			fileStatInfo.CreatedTime,
 			fileStatInfo.UpdatedTime)
 
