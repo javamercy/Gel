@@ -28,10 +28,34 @@ const (
 	IndexHeaderVersionSize    int = 4
 	IndexHeaderNumEntriesSize int = 4
 	IndexHeaderSize               = IndexHeaderSignatureSize + IndexHeaderVersionSize + IndexHeaderNumEntriesSize
+)
 
-	IndexEntryBaseSize int = 74
-	IndexEntryHashSize int = 32
-	IndexChecksumSize  int = 32
+const (
+	IndexChecksumSize = 32
+	PaddingAlignment  = 8
+)
+
+const (
+	IndexEntryTimeSize         = 4
+	IndexEntryDeviceSize       = 4
+	IndexEntryInodeSize        = 4
+	IndexEntryModeSize         = 4
+	IndexEntryUidSize          = 4
+	IndexEntryGidSize          = 4
+	IndexEntrySizeFieldSize    = 4
+	IndexEntryHashSize         = constant.Sha256ByteLength
+	IndexEntryFlagsSize        = 2
+	IndexEntryPathNullTermSize = 1
+	IndexEntryFixedSize        = 10*IndexEntryTimeSize + IndexEntryHashSize + IndexEntryFlagsSize
+	IndexEntryHashOffset       = 10 * IndexEntryTimeSize
+	IndexEntryFlagsOffset      = IndexEntryHashOffset + IndexEntryHashSize
+	IndexEntryPathOffset       = IndexEntryFlagsOffset + IndexEntryFlagsSize
+)
+
+const (
+	MaxPathLength = 0xFFF
+	StageMask     = 0x3
+	StageShift    = 12
 )
 
 type IndexHeader struct {
@@ -95,7 +119,7 @@ func NewIndexEntry(
 }
 
 func (indexEntry *IndexEntry) GetStage() uint16 {
-	return (indexEntry.Flags >> 12) & 0x3
+	return (indexEntry.Flags >> StageShift) & StageMask
 }
 
 type Index struct {
@@ -205,44 +229,44 @@ func (index *Index) HasEntry(path string) bool {
 func serializeEntry(entry *IndexEntry) ([]byte, error) {
 	totalBytes := 0
 
-	createdTime := make([]byte, 4)
-	totalBytes += 4
+	createdTime := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
 	binary.BigEndian.PutUint32(createdTime, uint32(entry.CreatedTime.Unix()))
 
-	createdTimeNanoseconds := make([]byte, 4)
-	totalBytes += 4
+	createdTimeNanoseconds := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
 	binary.BigEndian.PutUint32(createdTimeNanoseconds, uint32(entry.CreatedTime.Nanosecond()))
 
-	updatedTime := make([]byte, 4)
-	totalBytes += 4
+	updatedTime := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
 	binary.BigEndian.PutUint32(updatedTime, uint32(entry.UpdatedTime.Unix()))
 
-	updatedTimeNanoseconds := make([]byte, 4)
-	totalBytes += 4
+	updatedTimeNanoseconds := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
 	binary.BigEndian.PutUint32(updatedTimeNanoseconds, uint32(entry.UpdatedTime.Nanosecond()))
 
-	device := make([]byte, 4)
-	totalBytes += 4
+	device := make([]byte, IndexEntryDeviceSize)
+	totalBytes += IndexEntryDeviceSize
 	binary.BigEndian.PutUint32(device, entry.Device)
 
-	inode := make([]byte, 4)
-	totalBytes += 4
+	inode := make([]byte, IndexEntryInodeSize)
+	totalBytes += IndexEntryInodeSize
 	binary.BigEndian.PutUint32(inode, entry.Inode)
 
-	mode := make([]byte, 4)
-	totalBytes += 4
+	mode := make([]byte, IndexEntryModeSize)
+	totalBytes += IndexEntryModeSize
 	binary.BigEndian.PutUint32(mode, entry.Mode)
 
-	userId := make([]byte, 4)
-	totalBytes += 4
+	userId := make([]byte, IndexEntryUidSize)
+	totalBytes += IndexEntryUidSize
 	binary.BigEndian.PutUint32(userId, entry.UserId)
 
-	groupId := make([]byte, 4)
-	totalBytes += 4
+	groupId := make([]byte, IndexEntryGidSize)
+	totalBytes += IndexEntryGidSize
 	binary.BigEndian.PutUint32(groupId, entry.GroupId)
 
-	size := make([]byte, 4)
-	totalBytes += 4
+	size := make([]byte, IndexEntrySizeFieldSize)
+	totalBytes += IndexEntrySizeFieldSize
 	binary.BigEndian.PutUint32(size, entry.Size)
 
 	hashBytes, err := hex.DecodeString(entry.Hash)
@@ -254,17 +278,17 @@ func serializeEntry(entry *IndexEntry) ([]byte, error) {
 		return nil, ErrInvalidHashLength
 	}
 
-	totalBytes += 32
+	totalBytes += IndexEntryHashSize
 
-	flags := make([]byte, 2)
-	totalBytes += 2
+	flags := make([]byte, IndexEntryFlagsSize)
+	totalBytes += IndexEntryFlagsSize
 	binary.BigEndian.PutUint16(flags, entry.Flags)
 
 	path := []byte(entry.Path)
 	path = append(path, 0)
 	totalBytes += len(path)
 
-	padding := (8 - (totalBytes % 8)) % 8
+	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
 	path = append(path, make([]byte, padding)...)
 	totalBytes += padding
 
@@ -290,13 +314,13 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	if len(data) == 0 {
 		return NewEmptyIndex(), nil
 	}
-	if len(data) < 12 {
+	if len(data) < IndexHeaderSize {
 		return nil, ErrIndexTooShort
 	}
 
 	var index Index
 
-	header, err := deserializeHeader(data[:12])
+	header, err := deserializeHeader(data[:IndexHeaderSize])
 	if err != nil {
 		return nil, err
 	}
@@ -308,10 +332,10 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	}
 
 	numEntries := header.NumEntries
-	offset := 12
+	offset := IndexHeaderSize
 
 	for i := uint32(0); i < numEntries; i++ {
-		if offset >= len(data)-32 {
+		if offset >= len(data)-IndexChecksumSize {
 			return nil, ErrTruncatedEntryData
 		}
 
@@ -323,12 +347,12 @@ func DeserializeIndex(data []byte) (*Index, error) {
 		offset += bytesRead
 	}
 
-	if len(data)-offset != 32 {
+	if len(data)-offset != IndexChecksumSize {
 		return nil, ErrIncorrectChecksumSize
 	}
 
-	expectedChecksumBytes := data[len(data)-32:]
-	actualChecksum := encoding.ComputeSha256(data[:len(data)-32])
+	expectedChecksumBytes := data[len(data)-IndexChecksumSize:]
+	actualChecksum := encoding.ComputeSha256(data[:len(data)-IndexChecksumSize])
 	actualChecksumBytes, err := hex.DecodeString(actualChecksum)
 	if err != nil {
 		return nil, err
@@ -344,7 +368,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 
 func deserializeHeader(data []byte) (IndexHeader, error) {
 	var header IndexHeader
-	if len(data) < 12 {
+	if len(data) < IndexHeaderSize {
 		return header, ErrHeaderDataTooShort
 	}
 	copy(header.Signature[:], data[0:4])
@@ -354,7 +378,7 @@ func deserializeHeader(data []byte) (IndexHeader, error) {
 }
 
 func deserializeEntry(data []byte) (*IndexEntry, int, error) {
-	if len(data) < 74 {
+	if len(data) < IndexEntryFixedSize {
 		return nil, 0, ErrEntryDataTooShort
 	}
 
@@ -375,12 +399,12 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 	entry.GroupId = binary.BigEndian.Uint32(data[32:36])
 	entry.Size = binary.BigEndian.Uint32(data[36:40])
 
-	hashBytes := data[40:72]
+	hashBytes := data[IndexEntryHashOffset : IndexEntryHashOffset+IndexEntryHashSize]
 	entry.Hash = hex.EncodeToString(hashBytes)
 
-	entry.Flags = binary.BigEndian.Uint16(data[72:74])
+	entry.Flags = binary.BigEndian.Uint16(data[IndexEntryFlagsOffset : IndexEntryFlagsOffset+IndexEntryFlagsSize])
 
-	pathStart := 74
+	pathStart := IndexEntryPathOffset
 	pathEnd := pathStart
 	for pathEnd < len(data) && data[pathEnd] != 0 {
 		pathEnd++
@@ -397,15 +421,15 @@ func deserializeEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, err
 	}
 
-	totalSize := 74 + len(entry.Path) + 1
-	padding := (8 - (totalSize % 8)) % 8
+	totalSize := IndexEntryPathOffset + len(entry.Path) + IndexEntryPathNullTermSize
+	padding := (PaddingAlignment - (totalSize % PaddingAlignment)) % PaddingAlignment
 	totalSize += padding
 
 	return &entry, totalSize, nil
 }
 
 func ComputeIndexFlags(path string, stage uint16) uint16 {
-	pathLength := min(len(path), 0xFFF)
-	flags := uint16(pathLength) | (stage << 12)
+	pathLength := min(len(path), MaxPathLength)
+	flags := uint16(pathLength) | (stage << StageShift)
 	return flags
 }
