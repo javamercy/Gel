@@ -122,6 +122,89 @@ func (indexEntry *IndexEntry) GetStage() uint16 {
 	return (indexEntry.Flags >> StageShift) & StageMask
 }
 
+func (indexEntry *IndexEntry) serialize() ([]byte, error) {
+	totalBytes := 0
+
+	createdTime := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
+	binary.BigEndian.PutUint32(createdTime, uint32(indexEntry.CreatedTime.Unix()))
+
+	createdTimeNanoseconds := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
+	binary.BigEndian.PutUint32(createdTimeNanoseconds, uint32(indexEntry.CreatedTime.Nanosecond()))
+
+	updatedTime := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
+	binary.BigEndian.PutUint32(updatedTime, uint32(indexEntry.UpdatedTime.Unix()))
+
+	updatedTimeNanoseconds := make([]byte, IndexEntryTimeSize)
+	totalBytes += IndexEntryTimeSize
+	binary.BigEndian.PutUint32(updatedTimeNanoseconds, uint32(indexEntry.UpdatedTime.Nanosecond()))
+
+	device := make([]byte, IndexEntryDeviceSize)
+	totalBytes += IndexEntryDeviceSize
+	binary.BigEndian.PutUint32(device, indexEntry.Device)
+
+	inode := make([]byte, IndexEntryInodeSize)
+	totalBytes += IndexEntryInodeSize
+	binary.BigEndian.PutUint32(inode, indexEntry.Inode)
+
+	mode := make([]byte, IndexEntryModeSize)
+	totalBytes += IndexEntryModeSize
+	binary.BigEndian.PutUint32(mode, indexEntry.Mode)
+
+	userId := make([]byte, IndexEntryUidSize)
+	totalBytes += IndexEntryUidSize
+	binary.BigEndian.PutUint32(userId, indexEntry.UserId)
+
+	groupId := make([]byte, IndexEntryGidSize)
+	totalBytes += IndexEntryGidSize
+	binary.BigEndian.PutUint32(groupId, indexEntry.GroupId)
+
+	size := make([]byte, IndexEntrySizeFieldSize)
+	totalBytes += IndexEntrySizeFieldSize
+	binary.BigEndian.PutUint32(size, indexEntry.Size)
+
+	hashBytes, err := hex.DecodeString(indexEntry.Hash)
+	if err != nil {
+		return nil, err
+	}
+	if len(hashBytes) != IndexEntryHashSize {
+		return nil, ErrInvalidHashLength
+	}
+
+	totalBytes += IndexEntryHashSize
+
+	flags := make([]byte, IndexEntryFlagsSize)
+	totalBytes += IndexEntryFlagsSize
+	binary.BigEndian.PutUint16(flags, indexEntry.Flags)
+
+	path := []byte(indexEntry.Path)
+	path = append(path, 0)
+	totalBytes += len(path)
+
+	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
+	path = append(path, make([]byte, padding)...)
+	totalBytes += padding
+
+	result := make([]byte, 0, totalBytes)
+	result = append(result, createdTime...)
+	result = append(result, createdTimeNanoseconds...)
+	result = append(result, updatedTime...)
+	result = append(result, updatedTimeNanoseconds...)
+	result = append(result, device...)
+	result = append(result, inode...)
+	result = append(result, mode...)
+	result = append(result, userId...)
+	result = append(result, groupId...)
+	result = append(result, size...)
+	result = append(result, hashBytes...)
+	result = append(result, flags...)
+	result = append(result, path...)
+
+	return result, nil
+}
+
 type Index struct {
 	Header   IndexHeader
 	Entries  []*IndexEntry
@@ -174,7 +257,7 @@ func (index *Index) serializeHeader() []byte {
 func (index *Index) serializeEntries() ([]byte, error) {
 	var serializedEntries []byte
 	for _, entry := range index.Entries {
-		serializedEntry, err := serializeEntry(entry)
+		serializedEntry, err := entry.serialize()
 		if err != nil {
 			return nil, err
 		}
@@ -224,90 +307,6 @@ func (index *Index) HasEntry(path string) bool {
 		}
 	}
 	return false
-}
-
-func serializeEntry(entry *IndexEntry) ([]byte, error) {
-	totalBytes := 0
-
-	createdTime := make([]byte, IndexEntryTimeSize)
-	totalBytes += IndexEntryTimeSize
-	binary.BigEndian.PutUint32(createdTime, uint32(entry.CreatedTime.Unix()))
-
-	createdTimeNanoseconds := make([]byte, IndexEntryTimeSize)
-	totalBytes += IndexEntryTimeSize
-	binary.BigEndian.PutUint32(createdTimeNanoseconds, uint32(entry.CreatedTime.Nanosecond()))
-
-	updatedTime := make([]byte, IndexEntryTimeSize)
-	totalBytes += IndexEntryTimeSize
-	binary.BigEndian.PutUint32(updatedTime, uint32(entry.UpdatedTime.Unix()))
-
-	updatedTimeNanoseconds := make([]byte, IndexEntryTimeSize)
-	totalBytes += IndexEntryTimeSize
-	binary.BigEndian.PutUint32(updatedTimeNanoseconds, uint32(entry.UpdatedTime.Nanosecond()))
-
-	device := make([]byte, IndexEntryDeviceSize)
-	totalBytes += IndexEntryDeviceSize
-	binary.BigEndian.PutUint32(device, entry.Device)
-
-	inode := make([]byte, IndexEntryInodeSize)
-	totalBytes += IndexEntryInodeSize
-	binary.BigEndian.PutUint32(inode, entry.Inode)
-
-	mode := make([]byte, IndexEntryModeSize)
-	totalBytes += IndexEntryModeSize
-	binary.BigEndian.PutUint32(mode, entry.Mode)
-
-	userId := make([]byte, IndexEntryUidSize)
-	totalBytes += IndexEntryUidSize
-	binary.BigEndian.PutUint32(userId, entry.UserId)
-
-	groupId := make([]byte, IndexEntryGidSize)
-	totalBytes += IndexEntryGidSize
-	binary.BigEndian.PutUint32(groupId, entry.GroupId)
-
-	size := make([]byte, IndexEntrySizeFieldSize)
-	totalBytes += IndexEntrySizeFieldSize
-	binary.BigEndian.PutUint32(size, entry.Size)
-
-	hashBytes, err := hex.DecodeString(entry.Hash)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(hashBytes) != constant.Sha256ByteLength {
-		return nil, ErrInvalidHashLength
-	}
-
-	totalBytes += IndexEntryHashSize
-
-	flags := make([]byte, IndexEntryFlagsSize)
-	totalBytes += IndexEntryFlagsSize
-	binary.BigEndian.PutUint16(flags, entry.Flags)
-
-	path := []byte(entry.Path)
-	path = append(path, 0)
-	totalBytes += len(path)
-
-	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
-	path = append(path, make([]byte, padding)...)
-	totalBytes += padding
-
-	result := make([]byte, 0, totalBytes)
-	result = append(result, createdTime...)
-	result = append(result, createdTimeNanoseconds...)
-	result = append(result, updatedTime...)
-	result = append(result, updatedTimeNanoseconds...)
-	result = append(result, device...)
-	result = append(result, inode...)
-	result = append(result, mode...)
-	result = append(result, userId...)
-	result = append(result, groupId...)
-	result = append(result, size...)
-	result = append(result, hashBytes...)
-	result = append(result, flags...)
-	result = append(result, path...)
-
-	return result, nil
 }
 
 func DeserializeIndex(data []byte) (*Index, error) {
