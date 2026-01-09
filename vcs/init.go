@@ -7,13 +7,11 @@ import (
 )
 
 type InitService struct {
-	objectService     *ObjectService
 	filesystemService *FilesystemService
 }
 
-func NewInitService(objectService *ObjectService, filesystemService *FilesystemService) *InitService {
+func NewInitService(filesystemService *FilesystemService) *InitService {
 	return &InitService{
-		objectService:     objectService,
 		filesystemService: filesystemService,
 	}
 }

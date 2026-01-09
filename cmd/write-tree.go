@@ -5,9 +5,8 @@ import (
 )
 
 var writeTreeCmd = &cobra.Command{
-	Use:     "write-tree",
-	Short:   "Write the current index as a tree object",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "write-tree",
+	Short: "Write the current index as a tree object",
 	Run: func(cmd *cobra.Command, args []string) {
 		hash, err := writeTreeService.WriteTree()
 		if err != nil {

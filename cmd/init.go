@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"Gel/storage"
+	"Gel/vcs"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -22,7 +24,9 @@ var initCmd = &cobra.Command{
 			path = cwd
 		}
 
+		initService := initializeInitService()
 		message, err := initService.Init(path)
+
 		if err != nil {
 			cmd.PrintErrln(err)
 			os.Exit(1)
@@ -30,6 +34,13 @@ var initCmd = &cobra.Command{
 
 		cmd.Println(message)
 	},
+}
+
+func initializeInitService() *vcs.InitService {
+	filesystemStorage := storage.NewFilesystemStorage()
+	filesystemService = vcs.NewFilesystemService(filesystemStorage)
+	initService = vcs.NewInitService(filesystemService)
+	return initService
 }
 
 func init() {

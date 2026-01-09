@@ -3,14 +3,43 @@ package repository
 import (
 	"Gel/core/constant"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
 var (
-	ErrNotAGelRepository = errors.New("not a gel repository")
+	ErrNotAGelRepository = errors.New(fmt.Sprintf("not a Gel repository (%s not found)", constant.GelRepositoryName))
 )
+
+type IRepositoryProvider interface {
+	GetRepository() *Repository
+	HasRepository() bool
+}
+
+type RepositoryProvider struct {
+	repository *Repository
+}
+
+func NewRepositoryProvider(path string) *RepositoryProvider {
+	repository, err := NewRepositoryFromPath(path)
+	if err != nil {
+		return &RepositoryProvider{
+			repository: nil,
+		}
+	}
+	return &RepositoryProvider{
+		repository: repository,
+	}
+}
+
+func (repositoryProvider *RepositoryProvider) GetRepository() *Repository {
+	return repositoryProvider.repository
+}
+
+func (repositoryProvider *RepositoryProvider) HasRepository() bool {
+	return repositoryProvider.repository != nil
+}
 
 type Repository struct {
 	GelDirectory        string
@@ -21,45 +50,19 @@ type Repository struct {
 	ConfigPath          string
 }
 
-var repository *Repository
-var repositoryOnce sync.Once
-
-func GetRepository() *Repository {
-	return repository
-}
-
-func Initialize() error {
-	_, err := initializeRepository()
+func NewRepositoryFromPath(path string) (*Repository, error) {
+	gelDirectory, err := findGelDirectory(path)
 	if err != nil {
-		return ErrNotAGelRepository
+		return nil, err
 	}
-	return nil
-}
-
-func initializeRepository() (*Repository, error) {
-	var err error
-	repositoryOnce.Do(func() {
-		cwd, e := os.Getwd()
-		if e != nil {
-			err = e
-			return
-		}
-		gelDirectory, e := findGelDirectory(cwd)
-		if e != nil {
-			err = e
-			return
-		}
-
-		repository = &Repository{
-			GelDirectory:        gelDirectory,
-			ObjectsDirectory:    filepath.Join(gelDirectory, constant.GelObjectsDirectoryName),
-			RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirectoryName),
-			IndexPath:           filepath.Join(gelDirectory, constant.GelIndexFileName),
-			RepositoryDirectory: filepath.Dir(gelDirectory),
-			ConfigPath:          filepath.Join(gelDirectory, constant.GelConfigFileName),
-		}
-	})
-	return repository, err
+	return &Repository{
+		GelDirectory:        gelDirectory,
+		ObjectsDirectory:    filepath.Join(gelDirectory, constant.GelObjectsDirectoryName),
+		RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirectoryName),
+		IndexPath:           filepath.Join(gelDirectory, constant.GelIndexFileName),
+		RepositoryDirectory: filepath.Dir(gelDirectory),
+		ConfigPath:          filepath.Join(gelDirectory, constant.GelConfigFileName),
+	}, nil
 }
 
 func findGelDirectory(startPath string) (string, error) {
@@ -78,5 +81,5 @@ func findGelDirectory(startPath string) (string, error) {
 		currentPath = parentPath
 	}
 
-	return "", os.ErrNotExist
+	return "", ErrNotAGelRepository
 }

@@ -9,9 +9,8 @@ var (
 	removeFlag bool
 )
 var updateIndexCmd = &cobra.Command{
-	Use:     "update-index <file>...",
-	Short:   "Update the index with the current state of the working directory",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "update-index <file>...",
+	Short: "Update the index with the current state of the working directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.PrintErrln("Error: no paths specified")

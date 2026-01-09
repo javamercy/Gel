@@ -13,9 +13,8 @@ var (
 	existsFlag bool
 )
 var catFileCmd = &cobra.Command{
-	Use:     "cat-file <hash>",
-	Short:   "Display the content of a Git object",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "cat-file <hash>",
+	Short: "Display the content of a Git object",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			cmd.PrintErrln("Error: object hash required")

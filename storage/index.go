@@ -13,17 +13,18 @@ type IIndexStorage interface {
 
 type IndexStorage struct {
 	filesystemStorage IFilesystemStorage
+	repository        *repository.Repository
 }
 
-func NewIndexStorage(filesystemStorage IFilesystemStorage) *IndexStorage {
+func NewIndexStorage(filesystemStorage IFilesystemStorage, repository *repository.Repository) *IndexStorage {
 	return &IndexStorage{
 		filesystemStorage: filesystemStorage,
+		repository:        repository,
 	}
 }
 
 func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
-	repo := repository.GetRepository()
-	data, err := indexStorage.filesystemStorage.ReadFile(repo.IndexPath)
+	data, err := indexStorage.filesystemStorage.ReadFile(indexStorage.repository.IndexPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,13 +33,12 @@ func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
 }
 
 func (indexStorage *IndexStorage) Write(index *domain.Index) error {
-	repo := repository.GetRepository()
 	content, err := index.Serialize()
 	if err != nil {
 		return err
 	}
 	return indexStorage.filesystemStorage.WriteFile(
-		repo.IndexPath,
+		indexStorage.repository.IndexPath,
 		content, false,
 		constant.GelFilePermission)
 }

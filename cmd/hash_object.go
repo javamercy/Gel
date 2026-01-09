@@ -8,9 +8,8 @@ var (
 	writeFlag bool
 )
 var hashObjectCmd = &cobra.Command{
-	Use:     "hash-object <file>...",
-	Short:   "Compute the hash of a file",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "hash-object <file>...",
+	Short: "Compute the hash of a file",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.PrintErrln("Error: no paths specified")

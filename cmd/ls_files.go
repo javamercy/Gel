@@ -11,9 +11,8 @@ var (
 	modifiedFlag bool
 )
 var lsFilesCmd = &cobra.Command{
-	Use:     "ls-files",
-	Short:   "List all files tracked by Gel in the current repository",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "ls-files",
+	Short: "List all files tracked by Gel in the current repository",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if !stageFlag && !modifiedFlag && !deletedFlag {

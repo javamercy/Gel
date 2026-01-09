@@ -11,9 +11,8 @@ var (
 	showTreesFlag bool
 )
 var lsTreeCmd = &cobra.Command{
-	Use:     "ls-tree",
-	Short:   "List the contents of a tree",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "ls-tree",
+	Short: "List the contents of a tree",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			cmd.PrintErrln("ls-tree command requires exactly one argument: the tree hash")

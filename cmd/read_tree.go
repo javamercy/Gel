@@ -5,9 +5,8 @@ import (
 )
 
 var readTreeCmd = &cobra.Command{
-	Use:     "read-tree <tree-hash>",
-	Short:   "Read tree objects into the index",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "read-tree <tree-hash>",
+	Short: "Read tree objects into the index",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.PrintErrln("Error: tree hash required")

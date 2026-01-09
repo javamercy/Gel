@@ -1,10 +1,10 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"Gel/core/encoding"
 	"Gel/core/repository"
+	"Gel/core/util"
+	"Gel/storage"
 	"Gel/vcs"
 	"os"
 
@@ -12,13 +12,11 @@ import (
 )
 
 var (
-	// Core services
 	filesystemService *vcs.FilesystemService
 	objectService     *vcs.ObjectService
 	indexService      *vcs.IndexService
 	configService     *vcs.ConfigService
 
-	// Command services
 	initService        *vcs.InitService
 	addService         *vcs.AddService
 	hashObjectService  *vcs.HashObjectService
@@ -29,12 +27,24 @@ var (
 	readTreeService    *vcs.ReadTreeService
 	lsTreeService      *vcs.LsTreeService
 	commitTreeService  *vcs.CommitTreeService
+
+	isServicesInitialized bool
 )
+
+var commandsWithoutRepository = map[string]bool{
+	"init": true,
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gel",
-	Short: "A simple version control system",
+	Short: "An Agentic Version Control System",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if commandsWithoutRepository[cmd.Name()] {
+			return nil
+		}
+		return initializeServices()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -46,52 +56,54 @@ func Execute() {
 	}
 }
 
-// InitializeServices sets up all the services for the commands
-func InitializeServices(
-	fs *vcs.FilesystemService,
-	obj *vcs.ObjectService,
-	idx *vcs.IndexService,
-	cfg *vcs.ConfigService,
-	init *vcs.InitService,
-	add *vcs.AddService,
-	hashObj *vcs.HashObjectService,
-	catFile *vcs.CatFileService,
-	lsFiles *vcs.LsFilesService,
-	updateIdx *vcs.UpdateIndexService,
-	writeTree *vcs.WriteTreeService,
-	readTree *vcs.ReadTreeService,
-	lsTree *vcs.LsTreeService,
-	commitTree *vcs.CommitTreeService,
+// initializeServices sets up all services lazily when a command needs them
+func initializeServices() error {
+	if isServicesInitialized {
+		return nil
+	}
 
-) {
-	filesystemService = fs
-	objectService = obj
-	indexService = idx
-	configService = cfg
-	initService = init
-	addService = add
-	hashObjectService = hashObj
-	catFileService = catFile
-	lsFilesService = lsFiles
-	updateIndexService = updateIdx
-	writeTreeService = writeTree
-	readTreeService = readTree
-	lsTreeService = lsTree
-	commitTreeService = commitTree
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	repo, err := repository.NewRepositoryFromPath(cwd)
+	if err != nil {
+		return err
+	}
+
+	filesystemStorage := storage.NewFilesystemStorage()
+	objectStorage := storage.NewObjectStorage(filesystemStorage, repo)
+	indexStorage := storage.NewIndexStorage(filesystemStorage, repo)
+	configStorage := storage.NewConfigStorage(filesystemStorage, repo)
+
+	filesystemService = vcs.NewFilesystemService(filesystemStorage)
+	objectService = vcs.NewObjectService(objectStorage, filesystemService)
+	indexService = vcs.NewIndexService(indexStorage)
+	configService = vcs.NewConfigService(configStorage, encoding.NewBurntSushiTomlHelper())
+
+	initService = vcs.NewInitService(filesystemService)
+	hashObjectService = vcs.NewHashObjectService(objectService, filesystemService)
+	catFileService = vcs.NewCatFileService(objectService)
+
+	pathResolver := util.NewPathResolver(cwd)
+	updateIndexService = vcs.NewUpdateIndexService(indexService, hashObjectService, objectService)
+	addService = vcs.NewAddService(updateIndexService, pathResolver)
+	lsFilesService = vcs.NewLsFilesService(indexService, filesystemService, objectService)
+	writeTreeService = vcs.NewWriteTreeService(indexService, objectService)
+	readTreeService = vcs.NewReadTreeService(indexService, objectService)
+	lsTreeService = vcs.NewLsTreeService(objectService)
+	commitTreeService = vcs.NewCommitTreeService(objectService, configService)
+
+	isServicesInitialized = true
+
+	return nil
+}
+
+func persistentPreRunE(cmd *cobra.Command, args []string) error {
+	return initializeServices()
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.Gel.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-func requiresEnsureContextPreRun(cmd *cobra.Command, args []string) error {
-	return repository.Initialize()
 }

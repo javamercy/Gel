@@ -6,9 +6,8 @@ var (
 	messageFlag string
 )
 var commitTreeCmd = &cobra.Command{
-	Use:     "commit-tree <tree-hash>",
-	Short:   "Create a new commit object from a tree object",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "commit-tree <tree-hash>",
+	Short: "Create a new commit object from a tree object",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.PrintErrln("Error: no tree hash specified")

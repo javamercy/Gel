@@ -9,9 +9,8 @@ var (
 )
 
 var ConfigCmd = &cobra.Command{
-	Use:     "config [key] [value]",
-	Short:   "Get or set repository or global options",
-	PreRunE: requiresEnsureContextPreRun,
+	Use:   "config [key] [value]",
+	Short: "Get or set repository or global options",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if listFlag {
