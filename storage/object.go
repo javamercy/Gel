@@ -14,14 +14,14 @@ type IObjectStorage interface {
 }
 
 type ObjectStorage struct {
-	filesystemStorage IFilesystemStorage
-	repository        *repository.Repository
+	filesystemStorage  IFilesystemStorage
+	repositoryProvider repository.IRepositoryProvider
 }
 
-func NewObjectStorage(filesystemStorage IFilesystemStorage, repository *repository.Repository) *ObjectStorage {
+func NewObjectStorage(filesystemStorage IFilesystemStorage, repositoryProvider repository.IRepositoryProvider) *ObjectStorage {
 	return &ObjectStorage{
-		filesystemStorage: filesystemStorage,
-		repository:        repository,
+		filesystemStorage:  filesystemStorage,
+		repositoryProvider: repositoryProvider,
 	}
 }
 
@@ -41,7 +41,8 @@ func (objectStorage *ObjectStorage) Exists(hash string) bool {
 }
 
 func (objectStorage *ObjectStorage) GetObjectPath(hash string) string {
+	repo := objectStorage.repositoryProvider.GetRepository()
 	dir := hash[:2]
 	file := hash[2:]
-	return filepath.Join(objectStorage.repository.ObjectsDirectory, dir, file)
+	return filepath.Join(repo.ObjectsDirectory, dir, file)
 }

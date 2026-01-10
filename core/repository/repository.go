@@ -14,31 +14,24 @@ var (
 
 type IRepositoryProvider interface {
 	GetRepository() *Repository
-	HasRepository() bool
 }
 
 type RepositoryProvider struct {
 	repository *Repository
 }
 
-func NewRepositoryProvider(path string) *RepositoryProvider {
+func NewRepositoryProvider(path string) (*RepositoryProvider, error) {
 	repository, err := NewRepositoryFromPath(path)
 	if err != nil {
-		return &RepositoryProvider{
-			repository: nil,
-		}
+		return nil, err
 	}
 	return &RepositoryProvider{
 		repository: repository,
-	}
+	}, nil
 }
 
 func (repositoryProvider *RepositoryProvider) GetRepository() *Repository {
 	return repositoryProvider.repository
-}
-
-func (repositoryProvider *RepositoryProvider) HasRepository() bool {
-	return repositoryProvider.repository != nil
 }
 
 type Repository struct {

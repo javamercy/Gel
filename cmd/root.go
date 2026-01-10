@@ -68,15 +68,15 @@ func initializeServices() error {
 		return err
 	}
 
-	repo, err := repository.NewRepositoryFromPath(cwd)
+	repositoryProvider, err := repository.NewRepositoryProvider(cwd)
 	if err != nil {
 		return err
 	}
 
 	filesystemStorage := storage.NewFilesystemStorage()
-	objectStorage := storage.NewObjectStorage(filesystemStorage, repo)
-	indexStorage := storage.NewIndexStorage(filesystemStorage, repo)
-	configStorage := storage.NewConfigStorage(filesystemStorage, repo)
+	objectStorage := storage.NewObjectStorage(filesystemStorage, repositoryProvider)
+	indexStorage := storage.NewIndexStorage(filesystemStorage, repositoryProvider)
+	configStorage := storage.NewConfigStorage(filesystemStorage, repositoryProvider)
 
 	filesystemService = vcs.NewFilesystemService(filesystemStorage)
 	objectService = vcs.NewObjectService(objectStorage, filesystemService)

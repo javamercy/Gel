@@ -6,20 +6,20 @@ import (
 )
 
 type ConfigStorage struct {
-	filesystemStorage IFilesystemStorage
-	repository        *repository.Repository
+	filesystemStorage  IFilesystemStorage
+	repositoryProvider repository.IRepositoryProvider
 }
 
-func NewConfigStorage(filesystemStorage IFilesystemStorage, repository *repository.Repository) *ConfigStorage {
+func NewConfigStorage(filesystemStorage IFilesystemStorage, repositoryProvider repository.IRepositoryProvider) *ConfigStorage {
 	return &ConfigStorage{
-		filesystemStorage: filesystemStorage,
-		repository:        repository,
+		filesystemStorage:  filesystemStorage,
+		repositoryProvider: repositoryProvider,
 	}
 }
 
 func (configStorage *ConfigStorage) Read() ([]byte, error) {
-
-	data, err := configStorage.filesystemStorage.ReadFile(configStorage.repository.ConfigPath)
+	repo := configStorage.repositoryProvider.GetRepository()
+	data, err := configStorage.filesystemStorage.ReadFile(repo.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +28,9 @@ func (configStorage *ConfigStorage) Read() ([]byte, error) {
 }
 
 func (configStorage *ConfigStorage) Write(data []byte) error {
-
+	repo := configStorage.repositoryProvider.GetRepository()
 	return configStorage.filesystemStorage.WriteFile(
-		configStorage.repository.ConfigPath,
+		repo.ConfigPath,
 		data,
 		true,
 		constant.GelFilePermission)
