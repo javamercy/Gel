@@ -33,6 +33,7 @@ var (
 
 var commandsWithoutRepository = map[string]bool{
 	"init": true,
+	"help": true,
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -98,10 +99,6 @@ func initializeServices() error {
 	isServicesInitialized = true
 
 	return nil
-}
-
-func persistentPreRunE(cmd *cobra.Command, args []string) error {
-	return initializeServices()
 }
 
 func init() {
