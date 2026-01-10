@@ -82,17 +82,18 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 	}
 	index.Checksum = encoding.ComputeSha256(indexBytes)
 
-	writeErr := updateIndexService.indexService.Write(index)
-	if writeErr != nil {
-		return writeErr
+	err = updateIndexService.indexService.Write(index)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string) error {
-	for _, p := range paths {
-		index.RemoveEntry(p)
+	for _, path := range paths {
+		index.RemoveEntry(path)
 	}
+
 	indexBytes, err := index.Serialize()
 	if err != nil {
 		return err
