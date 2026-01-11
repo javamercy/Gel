@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -11,22 +13,16 @@ var (
 var updateIndexCmd = &cobra.Command{
 	Use:   "update-index <file>...",
 	Short: "Update the index with the current state of the working directory",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			cmd.PrintErrln("Error: no paths specified")
-			return
+			return fmt.Errorf("no paths specified")
 		}
 
 		if !addFlag && !removeFlag {
-			cmd.PrintErrln("Error: must specify either --add or --remove")
-			return
+			return fmt.Errorf("must specify either --add or --remove")
 		}
 
-		err := updateIndexService.UpdateIndex(args, addFlag, removeFlag)
-		if err != nil {
-			cmd.PrintErrln("Error updating index:", err)
-			return
-		}
+		return updateIndexService.UpdateIndex(args, addFlag, removeFlag)
 	},
 }
 

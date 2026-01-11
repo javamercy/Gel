@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -15,17 +15,12 @@ var lsTreeCmd = &cobra.Command{
 	Short: "List the contents of a tree",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			cmd.PrintErrln("ls-tree command requires exactly one argument: the tree hash")
-			os.Exit(1)
+			return fmt.Errorf("ls-tree command requires tree hash")
 		}
-		hash := args[0]
 
-		output, err := lsTreeService.LsTree(hash, recursiveFlag, showTreesFlag)
-		if err != nil {
-			return err
-		}
-		cmd.Println(output)
-		return nil
+		hash := args[0]
+		return lsTreeService.LsTree(cmd.OutOrStdout(), hash, recursiveFlag, showTreesFlag)
+
 	},
 }
 

@@ -1,24 +1,23 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 var readTreeCmd = &cobra.Command{
 	Use:   "read-tree <tree-hash>",
 	Short: "Read tree objects into the index",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			cmd.PrintErrln("Error: tree hash required")
-			return
+			return fmt.Errorf("tree hash required")
+
 		}
 
 		hash := args[0]
-		err := readTreeService.ReadTree(hash)
-		if err != nil {
-			cmd.PrintErrln("Error reading tree:", err)
-			return
-		}
+		return readTreeService.ReadTree(hash)
+
 	},
 }
 

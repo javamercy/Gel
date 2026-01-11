@@ -40,25 +40,22 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 }
 
 func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
-
-	hashMap, err := updateIndexService.hashObjectService.HashObject(paths, true)
-	if err != nil {
-		return err
-	}
-
 	for _, path := range paths {
 
 		fileStatInfo := util.GetFileStatFromPath(path)
+		hash, _, err := updateIndexService.hashObjectService.HashObject(path)
+		if err != nil {
+			return err
+		}
 
-		blobHash := hashMap[path]
-		size, err := updateIndexService.objectService.GetObjectSize(blobHash)
+		size, err := updateIndexService.objectService.GetObjectSize(hash)
 		if err != nil {
 			return err
 		}
 
 		newEntry, err := domain.NewIndexEntry(
 			path,
-			blobHash,
+			hash,
 			size,
 			domain.ParseFileModeFromOsMode(fileStatInfo.Mode).Uint32(),
 			fileStatInfo.Device,

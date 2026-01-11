@@ -7,14 +7,14 @@ import (
 var writeTreeCmd = &cobra.Command{
 	Use:   "write-tree",
 	Short: "Write the current index as a tree object",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		hash, err := writeTreeService.WriteTree()
 		if err != nil {
-			cmd.PrintErrln("Error writing tree:", err)
-			return
+			return err
 		}
 
 		cmd.Println(hash)
+		return nil
 	},
 }
 

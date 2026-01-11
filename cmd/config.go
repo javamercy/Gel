@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -9,42 +11,30 @@ var (
 )
 
 var ConfigCmd = &cobra.Command{
-	Use:   "config [key] [value]",
-	Short: "Get or set repository or global options",
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:          "config [key] [value]",
+	Short:        "Get or set repository or global options",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if listFlag {
-			configMap, err := configService.List()
-			if err != nil {
-				cmd.PrintErrln("Error listing config:", err)
-				return
-			}
-			for key, value := range configMap {
-				cmd.Printf("%s=%s\n", key, value)
-			}
-			return
+			return configService.List(cmd.OutOrStdout())
 		}
 
 		if len(args) == 1 {
 			value, err := configService.Get(args[0])
 			if err != nil {
-				cmd.PrintErrln("Error getting config:", err)
-				return
+				return err
 			}
+
 			cmd.Println(value)
-			return
+			return nil
 		}
 
 		if len(args) == 2 {
-			err := configService.Set(args[0], args[1])
-			if err != nil {
-				cmd.PrintErrln("Error setting config:", err)
-				return
-			}
-			return
+			return configService.Set(args[0], args[1])
 		}
 
-		cmd.PrintErrln("Invalid usage. Use --help for more information.")
+		return fmt.Errorf("invalid usage: use 'gel config --list' or 'gel config <key>' or 'gel config <key> <value>'")
 	},
 }
 

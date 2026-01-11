@@ -3,6 +3,7 @@ package vcs
 import (
 	"Gel/core/encoding"
 	"Gel/domain"
+	"io"
 )
 
 type HashObjectService struct {
@@ -17,33 +18,44 @@ func NewHashObjectService(objectService *ObjectService, filesystemService *Files
 	}
 }
 
-// HashObject hashes the contents of the files at the given paths.
+// HashObjects hashes the contents of the files at the given paths.
 // If write is true, it writes the hashed objects to the object storage.
 // It returns a map of file paths to their corresponding hashes.
-func (hashObjectService *HashObjectService) HashObject(paths []string, write bool) (map[string]string, error) {
-
-	hashMap := make(map[string]string)
+func (hashObjectService *HashObjectService) HashObjects(writer io.Writer, paths []string, write bool) error {
 
 	for _, path := range paths {
-		data, err := hashObjectService.filesystemService.ReadFile(path)
+		hash, serializedData, err := hashObjectService.HashObject(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		blob, err := domain.NewBlob(data)
-		if err != nil {
-			return nil, err
-		}
-
-		content := blob.Serialize()
-		hash := encoding.ComputeSha256(content)
-		hashMap[path] = hash
 
 		if write {
-			if err := hashObjectService.objectService.Write(hash, content); err != nil {
-				return nil, err
+			if err := hashObjectService.objectService.Write(hash, serializedData); err != nil {
+				return err
 			}
 		}
+
+		if _, err := io.WriteString(writer, hash); err != nil {
+			return err
+		}
 	}
-	return hashMap, nil
+	return nil
+}
+
+func (hashObjectService *HashObjectService) HashObject(path string) (string, []byte, error) {
+
+	data, err := hashObjectService.filesystemService.ReadFile(path)
+	if err != nil {
+		return "", nil, err
+	}
+
+	blob, err := domain.NewBlob(data)
+	if err != nil {
+		return "", nil, err
+	}
+
+	serializedData := blob.Serialize()
+	hash := encoding.ComputeSha256(serializedData)
+
+	return hash, serializedData, nil
 }

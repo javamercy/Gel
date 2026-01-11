@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -12,18 +12,12 @@ var (
 var addCmd = &cobra.Command{
 	Use:   "add <pathspec>...",
 	Short: "Add file contents to the index",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			cmd.PrintErrln("Error: no paths specified")
-			return
+			return fmt.Errorf("at least one pathspec required")
 		}
 
-		output, err := addService.Add(args, dryRunFlag)
-		if err != nil {
-			cmd.PrintErrln(err)
-			os.Exit(1)
-		}
-		cmd.Println(output)
+		return addService.Add(cmd.OutOrStdout(), args, dryRunFlag)
 	},
 }
 

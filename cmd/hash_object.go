@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -10,24 +12,11 @@ var (
 var hashObjectCmd = &cobra.Command{
 	Use:   "hash-object <file>...",
 	Short: "Compute the hash of a file",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			cmd.PrintErrln("Error: no paths specified")
-			return
+			return fmt.Errorf("no paths specified")
 		}
-
-		write, _ := cmd.Flags().GetBool("write")
-
-		hashMap, err := hashObjectService.HashObject(args, write)
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
-		}
-
-		for _, path := range args {
-			hash := hashMap[path]
-			cmd.Println(hash)
-		}
+		return hashObjectService.HashObjects(cmd.OutOrStdout(), args, writeFlag)
 	},
 }
 

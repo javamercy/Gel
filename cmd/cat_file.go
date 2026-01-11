@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -15,16 +17,11 @@ var catFileCmd = &cobra.Command{
 	Short: "Display the content of a Git object",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
-			return cmd.Help()
+			return fmt.Errorf("hash argument required")
 		}
 
 		hash := args[0]
-
-		err := catFileService.CatFile(cmd.OutOrStdout(), hash, typeFlag, prettyFlag, sizeFlag, existsFlag)
-		if err != nil {
-			return err
-		}
-		return nil
+		return catFileService.CatFile(cmd.OutOrStdout(), hash, typeFlag, prettyFlag, sizeFlag, existsFlag)
 	},
 }
 

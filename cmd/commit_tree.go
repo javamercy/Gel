@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	messageFlag string
@@ -8,20 +12,19 @@ var (
 var commitTreeCmd = &cobra.Command{
 	Use:   "commit-tree <tree-hash>",
 	Short: "Create a new commit object from a tree object",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			cmd.PrintErrln("Error: no tree hash specified")
-			return
+			return fmt.Errorf("tree hash required")
 		}
 
 		treeHash := args[0]
-
 		commitHash, err := commitTreeService.CommitTree(treeHash, messageFlag)
 		if err != nil {
-			cmd.PrintErrln("Error creating commit:", err)
-			return
+			return err
 		}
+
 		cmd.Println(commitHash)
+		return nil
 	},
 }
 

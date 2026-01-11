@@ -5,14 +5,14 @@ import (
 	"Gel/domain"
 	"Gel/storage"
 	"errors"
+	"fmt"
+	"io"
 	"strings"
 )
 
 var (
-	ErrUserNameNotSet   = errors.New("user.name not configured. Use: gel config --global user.name \"Your Name\"")
-	ErrUserEmailNotSet  = errors.New("user.email not configured. Use: gel config --global user.email \"your@email.com\"")
 	ErrUnknownConfigKey = errors.New("unknown config key")
-	ErrInvalidKeyFormat = errors.New("invalid key format, use: section.key")
+	ErrInvalidKeyFormat = errors.New("invalid key format")
 )
 
 const (
@@ -120,15 +120,20 @@ func (configService *ConfigService) Set(key, value string) error {
 	return configService.configStorage.Write(data)
 }
 
-func (configService *ConfigService) List() (map[string]string, error) {
+func (configService *ConfigService) List(writer io.Writer) error {
 	config, err := configService.DecodeConfig()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	result := make(map[string]string)
-	result[ConfigSectionUserStr+"."+ConfigKeyNameStr] = config.User.Name
-	result[ConfigSectionUserStr+"."+ConfigKeyEmailStr] = config.User.Email
+	userName := fmt.Sprintf("%v.%v=%v", ConfigSectionUserStr, ConfigKeyNameStr, config.User.Name)
+	if _, err := io.WriteString(writer, userName); err != nil {
+		return err
+	}
 
-	return result, nil
+	userEmail := fmt.Sprintf("%v.%v=%v", ConfigSectionUserStr, ConfigKeyEmailStr, config.User.Email)
+	if _, err := io.WriteString(writer, userEmail); err != nil {
+		return err
+	}
+	return nil
 }
