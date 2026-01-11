@@ -3,9 +3,9 @@ package vcs
 import (
 	"Gel/core/constant"
 	"Gel/domain"
+	"io"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type LsFilesService struct {
@@ -22,50 +22,69 @@ func NewLsFilesService(indexService *IndexService, filesystemService *Filesystem
 	}
 }
 
-func (lsFilesService *LsFilesService) LsFiles(cached, stage, modified, deleted bool) (string, error) {
+func (lsFilesService *LsFilesService) LsFiles(w io.Writer, cached, stage, modified, deleted bool) error {
 	index, err := lsFilesService.indexService.Read()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	var builder strings.Builder
 	entries := index.Entries
 
 	if stage {
-		lsFilesService.LsFilesWithStage(&builder, entries)
+		return lsFilesService.LsFilesWithStage(w, entries)
 	} else if cached {
-		lsFilesService.LsFilesWithCache(&builder, entries)
+		return lsFilesService.LsFilesWithCache(w, entries)
 	} else if modified {
-		lsFilesService.LsFilesWithModified(&builder, entries)
+		return lsFilesService.LsFilesWithModified(w, entries)
 	} else if deleted {
-		lsFilesService.LsFilesWithDeleted(&builder, entries)
-	} else {
-		lsFilesService.LsFilesWithCache(&builder, entries)
+		return lsFilesService.LsFilesWithDeleted(w, entries)
 	}
-	return builder.String(), nil
+	return lsFilesService.LsFilesWithCache(w, entries)
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithStage(builder *strings.Builder, entries []*domain.IndexEntry) {
+func (lsFilesService *LsFilesService) LsFilesWithStage(w io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		builder.WriteString(domain.ParseFileMode(entry.Mode).String())
-		builder.WriteString(constant.SpaceStr)
-		builder.WriteString(entry.Hash)
-		builder.WriteString(constant.SpaceStr)
-		builder.WriteString(strconv.Itoa(int(entry.GetStage())))
-		builder.WriteString(constant.TabStr)
-		builder.WriteString(entry.Path)
-		builder.WriteString(constant.NewLineStr)
+		if _, err := io.WriteString(w, domain.ParseFileMode(entry.Mode).String()); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.SpaceStr); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, entry.Hash); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.SpaceStr); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, strconv.Itoa(int(entry.GetStage()))); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.TabStr); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, entry.Path); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithCache(builder *strings.Builder, entries []*domain.IndexEntry) {
+func (lsFilesService *LsFilesService) LsFilesWithCache(w io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		builder.WriteString(entry.Path)
-		builder.WriteString(constant.NewLineStr)
+		if _, err := io.WriteString(w, entry.Path); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithModified(builder *strings.Builder, entries []*domain.IndexEntry) {
+func (lsFilesService *LsFilesService) LsFilesWithModified(w io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		exists := lsFilesService.filesystemService.Exists(entry.Path)
 		if !exists {
@@ -76,19 +95,29 @@ func (lsFilesService *LsFilesService) LsFilesWithModified(builder *strings.Build
 		if !isModified {
 			continue
 		}
-		builder.WriteString(entry.Path)
-		builder.WriteString(constant.NewLineStr)
+		if _, err := io.WriteString(w, entry.Path); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithDeleted(builder *strings.Builder, entries []*domain.IndexEntry) {
+func (lsFilesService *LsFilesService) LsFilesWithDeleted(w io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		exists := lsFilesService.filesystemService.Exists(entry.Path)
 		if !exists {
-			builder.WriteString(entry.Path)
-			builder.WriteString(constant.NewLineStr)
+			if _, err := io.WriteString(w, entry.Path); err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (lsFilesService *LsFilesService) isModified(entry *domain.IndexEntry) bool {

@@ -13,19 +13,13 @@ var (
 var lsFilesCmd = &cobra.Command{
 	Use:   "ls-files",
 	Short: "List all files tracked by Gel in the current repository",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if !stageFlag && !modifiedFlag && !deletedFlag {
 			cachedFlag = true
 		}
 
-		output, err := lsFilesService.LsFiles(cachedFlag, stageFlag, modifiedFlag, deletedFlag)
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
-		}
-
-		cmd.Print(output)
+		return lsFilesService.LsFiles(cmd.OutOrStdout(), cachedFlag, stageFlag, modifiedFlag, deletedFlag)
 	},
 }
 
