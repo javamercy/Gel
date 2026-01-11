@@ -20,6 +20,8 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 
 func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 
+	// TODO: validate treeHash
+
 	var indexEntries []*domain.IndexEntry
 
 	processor := func(entry domain.TreeEntry, relativePath string) error {

@@ -21,6 +21,8 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 
 func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message string) (string, error) {
 
+	// TODO: validate treeHash
+
 	object, err := commitTreeService.objectService.Read(treeHash)
 	if err != nil {
 		return "", err
@@ -35,6 +37,7 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	if err != nil {
 		return "", err
 	}
+
 	now := time.Now()
 
 	author, err := domain.NewIdentity(

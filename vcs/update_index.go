@@ -43,7 +43,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 	for _, path := range paths {
 
 		fileStatInfo := util.GetFileStatFromPath(path)
-		hash, _, err := updateIndexService.hashObjectService.HashObject(path)
+		hash, _, err := updateIndexService.hashObjectService.HashObject(path, true)
 		if err != nil {
 			return err
 		}

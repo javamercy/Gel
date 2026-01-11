@@ -3,6 +3,7 @@ package vcs
 import (
 	"Gel/core/constant"
 	"Gel/domain"
+	"fmt"
 	"io"
 	"strconv"
 )
@@ -24,13 +25,13 @@ func (catFileService *CatFileService) CatFile(writer io.Writer, hash string, obj
 	}
 
 	if objectType {
-		if _, err := io.WriteString(writer, string(object.Type())); err != nil {
+		if _, err := io.WriteString(writer, fmt.Sprintf("%v\n", string(object.Type()))); err != nil {
 			return err
 		}
 	}
 
 	if size {
-		if _, err := io.WriteString(writer, strconv.Itoa(object.Size())); err != nil {
+		if _, err := io.WriteString(writer, fmt.Sprintf("%v\n", strconv.Itoa(object.Size()))); err != nil {
 			return err
 		}
 	}
