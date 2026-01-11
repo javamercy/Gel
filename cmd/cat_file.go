@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -15,21 +13,18 @@ var (
 var catFileCmd = &cobra.Command{
 	Use:   "cat-file <hash>",
 	Short: "Display the content of a Git object",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
-			cmd.PrintErrln("Error: object hash required")
-			_ = cmd.Help()
-			os.Exit(1)
+			return cmd.Help()
 		}
 
 		hash := args[0]
 
-		output, err := catFileService.CatFile(hash, typeFlag, prettyFlag, sizeFlag, existsFlag)
+		err := catFileService.CatFile(cmd.OutOrStdout(), hash, typeFlag, prettyFlag, sizeFlag, existsFlag)
 		if err != nil {
-			cmd.PrintErrln(err)
-			os.Exit(1)
+			return err
 		}
-		cmd.Println(output)
+		return nil
 	},
 }
 

@@ -22,7 +22,7 @@ func NewLsFilesService(indexService *IndexService, filesystemService *Filesystem
 	}
 }
 
-func (lsFilesService *LsFilesService) LsFiles(w io.Writer, cached, stage, modified, deleted bool) error {
+func (lsFilesService *LsFilesService) LsFiles(writer io.Writer, cached, stage, modified, deleted bool) error {
 	index, err := lsFilesService.indexService.Read()
 	if err != nil {
 		return err
@@ -31,60 +31,60 @@ func (lsFilesService *LsFilesService) LsFiles(w io.Writer, cached, stage, modifi
 	entries := index.Entries
 
 	if stage {
-		return lsFilesService.LsFilesWithStage(w, entries)
+		return lsFilesService.LsFilesWithStage(writer, entries)
 	} else if cached {
-		return lsFilesService.LsFilesWithCache(w, entries)
+		return lsFilesService.LsFilesWithCache(writer, entries)
 	} else if modified {
-		return lsFilesService.LsFilesWithModified(w, entries)
+		return lsFilesService.LsFilesWithModified(writer, entries)
 	} else if deleted {
-		return lsFilesService.LsFilesWithDeleted(w, entries)
+		return lsFilesService.LsFilesWithDeleted(writer, entries)
 	}
-	return lsFilesService.LsFilesWithCache(w, entries)
+	return lsFilesService.LsFilesWithCache(writer, entries)
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithStage(w io.Writer, entries []*domain.IndexEntry) error {
+func (lsFilesService *LsFilesService) LsFilesWithStage(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		if _, err := io.WriteString(w, domain.ParseFileMode(entry.Mode).String()); err != nil {
+		if _, err := io.WriteString(writer, domain.ParseFileMode(entry.Mode).String()); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.SpaceStr); err != nil {
+		if _, err := io.WriteString(writer, constant.SpaceStr); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, entry.Hash); err != nil {
+		if _, err := io.WriteString(writer, entry.Hash); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.SpaceStr); err != nil {
+		if _, err := io.WriteString(writer, constant.SpaceStr); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strconv.Itoa(int(entry.GetStage()))); err != nil {
+		if _, err := io.WriteString(writer, strconv.Itoa(int(entry.GetStage()))); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.TabStr); err != nil {
+		if _, err := io.WriteString(writer, constant.TabStr); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, entry.Path); err != nil {
+		if _, err := io.WriteString(writer, entry.Path); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+		if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithCache(w io.Writer, entries []*domain.IndexEntry) error {
+func (lsFilesService *LsFilesService) LsFilesWithCache(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		if _, err := io.WriteString(w, entry.Path); err != nil {
+		if _, err := io.WriteString(writer, entry.Path); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+		if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithModified(w io.Writer, entries []*domain.IndexEntry) error {
+func (lsFilesService *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		exists := lsFilesService.filesystemService.Exists(entry.Path)
 		if !exists {
@@ -95,24 +95,24 @@ func (lsFilesService *LsFilesService) LsFilesWithModified(w io.Writer, entries [
 		if !isModified {
 			continue
 		}
-		if _, err := io.WriteString(w, entry.Path); err != nil {
+		if _, err := io.WriteString(writer, entry.Path); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+		if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (lsFilesService *LsFilesService) LsFilesWithDeleted(w io.Writer, entries []*domain.IndexEntry) error {
+func (lsFilesService *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		exists := lsFilesService.filesystemService.Exists(entry.Path)
 		if !exists {
-			if _, err := io.WriteString(w, entry.Path); err != nil {
+			if _, err := io.WriteString(writer, entry.Path); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, constant.NewLineStr); err != nil {
+			if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
 				return err
 			}
 		}
