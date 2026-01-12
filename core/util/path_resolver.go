@@ -22,13 +22,32 @@ const (
 	NonExistent
 )
 
-type PathResolver struct {
-	repositoryDirectory string
+const (
+	globPatterns string = "*?[]"
+)
+
+type IPathResolver interface {
+	Resolve(pathspecs []string) ([]string, error)
 }
 
-func NewPathResolver(repositoryDir string) *PathResolver {
+var _ IPathResolver = (*PathResolver)(nil)
+
+type PathResolver struct {
+	repositoryDirectory string
+	ignoredPatterns     map[string]bool
+}
+
+func NewPathResolver(repositoryDirectory string, ignoredPatterns map[string]bool) *PathResolver {
+	if ignoredPatterns == nil {
+		ignoredPatterns = map[string]bool{
+			".gel":  true,
+			".git":  true,
+			".idea": true,
+		}
+	}
 	return &PathResolver{
-		repositoryDirectory: repositoryDir,
+		repositoryDirectory: repositoryDirectory,
+		ignoredPatterns:     ignoredPatterns,
 	}
 }
 
@@ -49,18 +68,12 @@ func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) 
 				return nil, err
 			}
 
-			// TODO: Bypass .gel, .git, and .idea directories for now. Implement .gelignore for later.
-			if strings.Contains(path, ".gel"+constant.SlashStr) ||
-				strings.Contains(path, ".git"+constant.SlashStr) ||
-				strings.Contains(path, ".idea"+constant.SlashStr) {
+			// TODO: implement gelignore.
+			if pathResolver.shouldIgnore(path) || normalizedPathMap[normalizedPath] {
 				continue
 			}
 
-			if normalizedPathMap[normalizedPath] {
-				continue
-			}
 			normalizedPathMap[normalizedPath] = true
-
 			normalizedPaths = append(normalizedPaths, normalizedPath)
 		}
 	}
@@ -97,6 +110,34 @@ func (pathResolver *PathResolver) normalizePath(path string) (string, error) {
 	return relPath, nil
 }
 
+func (pathResolver *PathResolver) shouldIgnore(path string) bool {
+	normalizedPath := filepath.ToSlash(path)
+	segments := strings.Split(normalizedPath, constant.SlashStr)
+
+	for _, segment := range segments {
+		if pathResolver.ignoredPatterns[segment] {
+			return true
+		}
+	}
+	return false
+}
+
+func classifyPathspec(pathspec string) PathspecType {
+	if strings.ContainsAny(pathspec, globPatterns) {
+		return GlobPattern
+	}
+
+	fileInfo, err := os.Stat(pathspec)
+	if os.IsNotExist(err) {
+		return NonExistent
+	}
+
+	if fileInfo.IsDir() {
+		return Directory
+	}
+	return File
+}
+
 func expandDirectory(path string) ([]string, error) {
 	var files []string
 
@@ -122,27 +163,27 @@ func expandDirectory(path string) ([]string, error) {
 	return files, nil
 }
 
-func classifyPathspec(pathspec string) PathspecType {
-	var globPatternsString = "*?[]"
-	if strings.ContainsAny(pathspec, globPatternsString) {
-		return GlobPattern
-	}
-
-	fileInfo, err := os.Stat(pathspec)
-	if os.IsNotExist(err) {
-		return NonExistent
-	}
-
-	if fileInfo.IsDir() {
-		return Directory
-	}
-	return File
-}
-
 func expandGlobPattern(pattern string) ([]string, error) {
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
-	return matches, nil
+
+	var result []string
+	for _, match := range matches {
+		info, err := os.Stat(match)
+		if err != nil {
+			continue
+		}
+		if info.IsDir() {
+			files, err := expandDirectory(match)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, files...)
+		} else {
+			result = append(result, match)
+		}
+	}
+	return result, nil
 }

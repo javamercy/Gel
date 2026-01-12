@@ -8,10 +8,10 @@ import (
 
 type AddService struct {
 	updateIndexService *UpdateIndexService
-	pathResolver       *util.PathResolver
+	pathResolver       util.IPathResolver
 }
 
-func NewAddService(updateIndexService *UpdateIndexService, pathResolver *util.PathResolver) *AddService {
+func NewAddService(updateIndexService *UpdateIndexService, pathResolver util.IPathResolver) *AddService {
 	return &AddService{
 		updateIndexService: updateIndexService,
 		pathResolver:       pathResolver,

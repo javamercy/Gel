@@ -87,7 +87,7 @@ func initializeServices() error {
 	hashObjectService = vcs.NewHashObjectService(objectService, filesystemService)
 	catFileService = vcs.NewCatFileService(objectService)
 
-	pathResolver := util.NewPathResolver(cwd)
+	pathResolver := util.NewPathResolver(cwd, nil)
 	updateIndexService = vcs.NewUpdateIndexService(indexService, hashObjectService, objectService)
 	addService = vcs.NewAddService(updateIndexService, pathResolver)
 	lsFilesService = vcs.NewLsFilesService(indexService, filesystemService, objectService)
