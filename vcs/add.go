@@ -1,8 +1,8 @@
 package vcs
 
 import (
-	"Gel/core/constant"
 	"Gel/core/util"
+	"fmt"
 	"io"
 )
 
@@ -27,13 +27,11 @@ func (addService *AddService) Add(writer io.Writer, pathspecs []string, dryRun b
 	// TODO: Git does not print the paths that are already staged
 	if dryRun {
 		for _, path := range normalizedPaths {
-			if _, err := io.WriteString(writer, path); err != nil {
-				return err
-			}
-			if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
+			if _, err := io.WriteString(writer, fmt.Sprintf("%s\n", path)); err != nil {
 				return err
 			}
 		}
+		return nil
 	}
 
 	return addService.updateIndexService.UpdateIndex(normalizedPaths, true, false)
