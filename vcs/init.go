@@ -16,10 +16,6 @@ func NewInitService(filesystemService *FilesystemService) *InitService {
 	}
 }
 
-// Init initializes a new Gel repository at the specified path.
-// It creates the necessary directory structure and configuration files.
-// If a repository already exists at the path, it reinitializes it.
-// It returns a message indicating the result of the operation.
 func (initService *InitService) Init(path string) (string, error) {
 
 	base := filepath.Join(path, constant.GelRepositoryName)

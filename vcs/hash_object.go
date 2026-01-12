@@ -19,9 +19,6 @@ func NewHashObjectService(objectService *ObjectService, filesystemService *Files
 	}
 }
 
-// HashObjects hashes the contents of the files at the given paths.
-// If write is true, it writes the hashed objects to the object storage.
-// It returns a map of file paths to their corresponding hashes.
 func (hashObjectService *HashObjectService) HashObjects(writer io.Writer, paths []string, write bool) error {
 
 	for _, path := range paths {
