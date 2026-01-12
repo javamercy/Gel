@@ -11,6 +11,8 @@ type IIndexStorage interface {
 	Write(index *domain.Index) error
 }
 
+var _ IIndexStorage = (*IndexStorage)(nil)
+
 type IndexStorage struct {
 	filesystemStorage  IFilesystemStorage
 	repositoryProvider repository.IRepositoryProvider

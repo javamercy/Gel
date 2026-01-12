@@ -15,6 +15,8 @@ type IFilesystemStorage interface {
 	Exists(path string) bool
 }
 
+var _ IFilesystemStorage = (*FilesystemStorage)(nil)
+
 type FilesystemStorage struct {
 }
 

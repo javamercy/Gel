@@ -22,6 +22,12 @@ type IObject interface {
 	Body() []byte
 }
 
+var (
+	_ IObject = (*Blob)(nil)
+	_ IObject = (*Tree)(nil)
+	_ IObject = (*Commit)(nil)
+)
+
 func DeserializeObject(data []byte) (IObject, error) {
 	nullIndex := util.FindNullByteIndex(data)
 	if nullIndex == -1 {

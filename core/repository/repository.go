@@ -2,19 +2,21 @@ package repository
 
 import (
 	"Gel/core/constant"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 var (
-	ErrNotAGelRepository = errors.New(fmt.Sprintf("not a Gel repository (%s not found)", constant.GelRepositoryName))
+	ErrNotAGelRepository = fmt.Errorf("not a Gel repository (%s not found)", constant.GelRepositoryName)
 )
 
 type IRepositoryProvider interface {
 	GetRepository() *Repository
 }
+
+// Compile-time interface check
+var _ IRepositoryProvider = (*RepositoryProvider)(nil)
 
 type RepositoryProvider struct {
 	repository *Repository

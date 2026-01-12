@@ -18,6 +18,8 @@ type ITomlHelper interface {
 	Encode(value any) ([]byte, error)
 }
 
+var _ ITomlHelper = (*BurntSushiTomlHelper)(nil)
+
 type BurntSushiTomlHelper struct {
 }
 

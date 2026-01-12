@@ -13,6 +13,8 @@ type IObjectStorage interface {
 	GetObjectPath(hash string) string
 }
 
+var _ IObjectStorage = (*ObjectStorage)(nil)
+
 type ObjectStorage struct {
 	filesystemStorage  IFilesystemStorage
 	repositoryProvider repository.IRepositoryProvider
