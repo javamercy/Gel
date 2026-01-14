@@ -1,8 +1,8 @@
 package vcs
 
 import (
-	"Gel/core/constant"
 	"Gel/domain"
+	"fmt"
 	"io"
 )
 
@@ -25,32 +25,14 @@ func (lsTreeService *LsTreeService) LsTree(writer io.Writer, treeHash string, re
 		if err != nil {
 			return err
 		}
-
-		if _, err := io.WriteString(writer, entry.Mode.String()); err != nil {
+		if _, err := fmt.Fprintf(writer,
+			"%s %s %s\t%s\n",
+			entry.Mode,
+			objectType,
+			entry.Hash,
+			relativePath); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(writer, constant.SpaceStr); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, string(objectType)); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, constant.SpaceStr); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, entry.Hash); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, constant.TabStr); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, relativePath); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(writer, constant.NewLineStr); err != nil {
-			return err
-		}
-
 		return nil
 	}
 

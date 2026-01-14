@@ -126,13 +126,11 @@ func (configService *ConfigService) List(writer io.Writer) error {
 		return err
 	}
 
-	userName := fmt.Sprintf("%v.%v=%v\n", ConfigSectionUserStr, ConfigKeyNameStr, config.User.Name)
-	if _, err := io.WriteString(writer, userName); err != nil {
-		return err
-	}
-
-	userEmail := fmt.Sprintf("%v.%v=%v\n", ConfigSectionUserStr, ConfigKeyEmailStr, config.User.Email)
-	if _, err := io.WriteString(writer, userEmail); err != nil {
+	if _, err := fmt.Fprintf(writer,
+		"%s.%s=%s\n"+
+			"%s.%s=%s\n",
+		ConfigSectionUserStr, ConfigKeyNameStr, config.User.Name,
+		ConfigSectionUserStr, ConfigKeyEmailStr, config.User.Email); err != nil {
 		return err
 	}
 	return nil

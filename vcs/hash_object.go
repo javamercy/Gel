@@ -26,7 +26,7 @@ func (hashObjectService *HashObjectService) HashObjects(writer io.Writer, paths 
 		if err != nil {
 			return err
 		}
-		if _, err := io.WriteString(writer, fmt.Sprintf("%v\n", hash)); err != nil {
+		if _, err := fmt.Fprintf(writer, "%s\n", hash); err != nil {
 			return err
 		}
 	}

@@ -27,7 +27,7 @@ func (addService *AddService) Add(writer io.Writer, pathspecs []string, dryRun b
 	// TODO: Git does not print the paths that are already staged
 	if dryRun {
 		for _, path := range normalizedPaths {
-			if _, err := io.WriteString(writer, fmt.Sprintf("%s\n", path)); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s\n", path); err != nil {
 				return err
 			}
 		}
