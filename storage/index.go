@@ -3,12 +3,11 @@ package storage
 import (
 	"Gel/core/constant"
 	"Gel/core/repository"
-	"Gel/domain"
 )
 
 type IIndexStorage interface {
-	Read() (*domain.Index, error)
-	Write(index *domain.Index) error
+	Read() ([]byte, error)
+	Write(index []byte) error
 }
 
 var _ IIndexStorage = (*IndexStorage)(nil)
@@ -25,22 +24,17 @@ func NewIndexStorage(filesystemStorage IFilesystemStorage, repositoryProvider re
 	}
 }
 
-func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
+func (indexStorage *IndexStorage) Read() ([]byte, error) {
 	repo := indexStorage.repositoryProvider.GetRepository()
 	data, err := indexStorage.filesystemStorage.ReadFile(repo.IndexPath)
 	if err != nil {
 		return nil, err
 	}
-
-	return domain.DeserializeIndex(data)
+	return data, nil
 }
 
-func (indexStorage *IndexStorage) Write(index *domain.Index) error {
+func (indexStorage *IndexStorage) Write(data []byte) error {
 	repo := indexStorage.repositoryProvider.GetRepository()
-	data, err := index.Serialize()
-	if err != nil {
-		return err
-	}
 	return indexStorage.filesystemStorage.WriteFile(
 		repo.IndexPath,
 		data, false,
