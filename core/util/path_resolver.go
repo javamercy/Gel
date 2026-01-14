@@ -69,7 +69,7 @@ func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) 
 			}
 
 			// TODO: implement gelignore.
-			if pathResolver.shouldIgnore(path) || normalizedPathMap[normalizedPath] {
+			if pathResolver.shouldIgnore(normalizedPath) || normalizedPathMap[normalizedPath] {
 				continue
 			}
 
@@ -102,17 +102,16 @@ func (pathResolver *PathResolver) normalizePath(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	relPath, err := filepath.Rel(pathResolver.repositoryDirectory, absPath)
 	if err != nil {
 		return "", err
 	}
-
-	return relPath, nil
+	return filepath.ToSlash(relPath), nil
 }
 
 func (pathResolver *PathResolver) shouldIgnore(path string) bool {
-	normalizedPath := filepath.ToSlash(path)
-	segments := strings.Split(normalizedPath, constant.SlashStr)
+	segments := strings.Split(path, constant.SlashStr)
 
 	for _, segment := range segments {
 		if pathResolver.ignoredPatterns[segment] {
@@ -141,23 +140,21 @@ func classifyPathspec(pathspec string) PathspecType {
 func expandDirectory(path string) ([]string, error) {
 	var files []string
 
-	walkDirErr := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if !d.IsDir() {
-			info, statErr := os.Stat(p)
-			if statErr == nil && info.IsDir() {
+			info, err := os.Stat(p)
+			if err == nil && info.IsDir() {
 				return nil
 			}
 			files = append(files, p)
 		}
 		return nil
 	})
-
-	if walkDirErr != nil {
-		return nil, walkDirErr
+	if err != nil {
+		return nil, err
 	}
 
 	return files, nil
