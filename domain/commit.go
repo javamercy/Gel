@@ -72,25 +72,25 @@ func SerializeBody(fields CommitFields) []byte {
 
 	var buffer bytes.Buffer
 	buffer.WriteString(CommitFieldTree)
-	buffer.WriteByte(constant.SpaceByte)
+	buffer.WriteString(" ")
 	buffer.WriteString(fields.TreeHash)
-	buffer.WriteByte(constant.NewLineByte)
+	buffer.WriteString("\n")
 
 	for _, parentHash := range fields.ParentHashes {
 		buffer.WriteString(CommitFieldParent)
-		buffer.WriteByte(constant.SpaceByte)
+		buffer.WriteString(" ")
 		buffer.WriteString(parentHash)
-		buffer.WriteByte(constant.NewLineByte)
+		buffer.WriteString("\n")
 	}
 	buffer.WriteString(CommitFieldAuthor)
-	buffer.WriteByte(constant.SpaceByte)
+	buffer.WriteString(" ")
 	buffer.Write(fields.Author.serialize())
-	buffer.WriteByte(constant.NewLineByte)
+	buffer.WriteString("\n")
 	buffer.WriteString(CommitFieldCommitter)
-	buffer.WriteByte(constant.SpaceByte)
+	buffer.WriteString(" ")
 	buffer.Write(fields.Committer.serialize())
-	buffer.WriteByte(constant.NewLineByte)
-	buffer.WriteByte(constant.NewLineByte)
+	buffer.WriteString("\n")
+	buffer.WriteString("\n")
 	buffer.WriteString(fields.Message)
 
 	return buffer.Bytes()
@@ -104,7 +104,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 	hasCommitter := false
 	hasMessage := false
 	for i < len(data) {
-		if data[i] == constant.NewLineByte {
+		if data[i] == '\n' {
 			i++
 			fields.Message = string(data[i:])
 			hasMessage = true
@@ -157,7 +157,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 
 func deserializeFieldStr(data []byte, start int) (string, int, error) {
 	i := start
-	for i < len(data) && data[i] != constant.SpaceByte {
+	for i < len(data) && data[i] != ' ' {
 		i++
 	}
 
@@ -174,7 +174,7 @@ func deserializeFieldStr(data []byte, start int) (string, int, error) {
 
 func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
 	i := start
-	for i < len(data) && data[i] != constant.NewLineByte {
+	for i < len(data) && data[i] != '\n' {
 		i++
 	}
 	if i >= len(data) {
@@ -198,7 +198,7 @@ func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
 func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 	i := start
 	lineEnd := i
-	for lineEnd < len(data) && data[lineEnd] != constant.NewLineByte {
+	for lineEnd < len(data) && data[lineEnd] != '\n' {
 		lineEnd++
 	}
 	if lineEnd >= len(data) {
@@ -206,7 +206,7 @@ func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 	}
 
 	emailStart := i
-	for emailStart < lineEnd && data[emailStart] != constant.LessThanByte {
+	for emailStart < lineEnd && data[emailStart] != '<' {
 		emailStart++
 	}
 	if emailStart >= lineEnd {
@@ -217,7 +217,7 @@ func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 	name := string(nameBytes)
 
 	emailEnd := emailStart + 1
-	for emailEnd < lineEnd && data[emailEnd] != constant.GreaterThanByte {
+	for emailEnd < lineEnd && data[emailEnd] != '>' {
 		emailEnd++
 	}
 	if emailEnd >= lineEnd {
@@ -227,12 +227,12 @@ func deserializeIdentity(data []byte, start int) (Identity, int, error) {
 	email := string(data[emailStart+1 : emailEnd])
 
 	i = emailEnd + 1
-	for i < lineEnd && data[i] == constant.SpaceByte {
+	for i < lineEnd && data[i] == ' ' {
 		i++
 	}
 
 	timestampStart := i
-	for i < lineEnd && data[i] != constant.SpaceByte {
+	for i < lineEnd && data[i] != ' ' {
 		i++
 	}
 	if i >= lineEnd {

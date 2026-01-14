@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
 	"Gel/core/validation"
 	"bytes"
 )
@@ -53,13 +52,13 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 func (identity Identity) serialize() []byte {
 	var buffer bytes.Buffer
 	buffer.WriteString(identity.User.Name)
-	buffer.WriteByte(constant.SpaceByte)
-	buffer.WriteByte(constant.LessThanByte)
+	buffer.WriteString(" ")
+	buffer.WriteString("<")
 	buffer.WriteString(identity.User.Email)
-	buffer.WriteByte(constant.GreaterThanByte)
-	buffer.WriteByte(constant.SpaceByte)
+	buffer.WriteString(">")
+	buffer.WriteString(" ")
 	buffer.WriteString(identity.Timestamp)
-	buffer.WriteByte(constant.SpaceByte)
+	buffer.WriteString(" ")
 	buffer.WriteString(identity.Timezone)
 
 	return buffer.Bytes()

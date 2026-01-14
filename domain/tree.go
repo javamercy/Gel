@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
 	"Gel/core/validation"
 	"encoding/hex"
 	"errors"
@@ -59,9 +58,9 @@ func NewTreeFromEntries(entries []TreeEntry) *Tree {
 		name := entry.Name
 		hashBytes, _ := hex.DecodeString(entry.Hash)
 		body = append(body, []byte(modeStr)...)
-		body = append(body, constant.SpaceByte)
+		body = append(body, ' ')
 		body = append(body, []byte(name)...)
-		body = append(body, constant.NullByte)
+		body = append(body, 0)
 		body = append(body, hashBytes...)
 	}
 	return &Tree{
@@ -88,7 +87,7 @@ func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 	i := 0
 	for i < len(body) {
 		modeStart := i
-		for i < len(body) && body[i] != constant.SpaceByte {
+		for i < len(body) && body[i] != ' ' {
 			i++
 		}
 		if i >= len(body) {
@@ -103,7 +102,7 @@ func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 		i++
 
 		nameStart := i
-		for i < len(body) && body[i] != constant.NullByte {
+		for i < len(body) && body[i] != 0 {
 			i++
 		}
 		if i >= len(body) {

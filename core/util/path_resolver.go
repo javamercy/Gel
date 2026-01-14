@@ -1,7 +1,6 @@
 package util
 
 import (
-	"Gel/core/constant"
 	"errors"
 	"os"
 	"path/filepath"
@@ -111,7 +110,7 @@ func (pathResolver *PathResolver) normalizePath(path string) (string, error) {
 }
 
 func (pathResolver *PathResolver) shouldIgnore(path string) bool {
-	segments := strings.Split(path, constant.SlashStr)
+	segments := strings.Split(path, "/")
 
 	for _, segment := range segments {
 		if pathResolver.ignoredPatterns[segment] {

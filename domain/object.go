@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
 	"Gel/core/util"
 	"errors"
 	"strconv"
@@ -62,7 +61,7 @@ func DeserializeObject(data []byte) (IObject, error) {
 func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	spaceIndex := -1
 	for i, b := range data {
-		if b == constant.SpaceByte {
+		if b == ' ' {
 			spaceIndex = i
 			break
 		}
@@ -87,7 +86,7 @@ func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 }
 
 func SerializeObject(objectType ObjectType, body []byte) []byte {
-	header := string(objectType) + constant.SpaceStr +
-		strconv.Itoa(len(body)) + constant.NullStr
+	header := string(objectType) + " " +
+		strconv.Itoa(len(body)) + "\x00"
 	return append([]byte(header), body...)
 }

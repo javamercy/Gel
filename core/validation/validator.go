@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"Gel/core/constant"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,7 +34,7 @@ func validateRelativePath(fieldLevel validator.FieldLevel) bool {
 	if path == "" {
 		return false
 	}
-	if path[0] == constant.SlashByte || strings.Contains(path, constant.DoubleDotStr) {
+	if path[0] == '/' || strings.Contains(path, "..") {
 		return false
 	}
 	return true

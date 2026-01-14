@@ -1,7 +1,6 @@
 package vcs
 
 import (
-	"Gel/core/constant"
 	"Gel/core/encoding"
 	"Gel/domain"
 	"bytes"
@@ -111,9 +110,9 @@ func buildTreeData(entries []domain.TreeEntry) ([]byte, error) {
 	var buffer bytes.Buffer
 	for _, entry := range entries {
 		buffer.WriteString(entry.Mode.String())
-		buffer.WriteString(constant.SpaceStr)
+		buffer.WriteString(" ")
 		buffer.WriteString(entry.Name)
-		buffer.WriteString(constant.NullStr)
+		buffer.WriteString("\x00")
 
 		hashBytes, err := hex.DecodeString(entry.Hash)
 		if err != nil {
@@ -131,10 +130,10 @@ func sortTreeEntries(entries []domain.TreeEntry) {
 		NameJ := entries[j].Name
 
 		if entries[i].Mode.IsDirectory() {
-			NameI += constant.SlashStr
+			NameI += "/"
 		}
 		if entries[j].Mode.IsDirectory() {
-			NameJ += constant.SlashStr
+			NameJ += "/"
 		}
 		return NameI < NameJ
 	})

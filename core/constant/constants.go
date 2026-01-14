@@ -11,25 +11,6 @@ const (
 	GelConfigFileName       = "config.toml"
 )
 
-// special character constants
-const (
-	NullStr         = "\x00"
-	NullByte        = '\x00'
-	SpaceStr        = " "
-	SpaceByte       = ' '
-	NewLineStr      = "\n"
-	NewLineByte     = '\n'
-	SlashStr        = "/"
-	SlashByte       = '/'
-	TabStr          = "\t"
-	LessThanStr     = "<"
-	LessThanByte    = '<'
-	GreaterThanStr  = ">"
-	GreaterThanByte = '>'
-	DoubleDotStr    = ".."
-	SingleDotStr    = "."
-)
-
 // permission constants
 const (
 	GelFilePermission      os.FileMode = 0o0644 // -rw-r--r----r--
