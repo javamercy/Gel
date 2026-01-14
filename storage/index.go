@@ -37,12 +37,12 @@ func (indexStorage *IndexStorage) Read() (*domain.Index, error) {
 
 func (indexStorage *IndexStorage) Write(index *domain.Index) error {
 	repo := indexStorage.repositoryProvider.GetRepository()
-	content, err := index.Serialize()
+	data, err := index.Serialize()
 	if err != nil {
 		return err
 	}
 	return indexStorage.filesystemStorage.WriteFile(
 		repo.IndexPath,
-		content, false,
+		data, false,
 		constant.GelFilePermission)
 }

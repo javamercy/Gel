@@ -225,12 +225,15 @@ func (index *Index) Serialize() ([]byte, error) {
 		return nil, err
 	}
 
-	content := append(serializedHeader, serializedEntries...)
-	checksum := encoding.ComputeSha256(content)
-	checksumBytes, _ := hex.DecodeString(checksum)
+	data := append(serializedHeader, serializedEntries...)
+	checksum := encoding.ComputeSha256(data)
+	checksumBytes, err := hex.DecodeString(checksum)
+	if err != nil {
+		return nil, err
+	}
 
-	result := make([]byte, 0, len(content)+len(checksumBytes))
-	result = append(result, content...)
+	result := make([]byte, 0, len(data)+len(checksumBytes))
+	result = append(result, data...)
 	result = append(result, checksumBytes...)
 
 	return result, nil

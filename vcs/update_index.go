@@ -30,13 +30,14 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 		return err
 	}
 
-	if add {
+	switch {
+	case add:
 		return updateIndexService.updateIndexWithAdd(index, paths)
-	} else if remove {
+	case remove:
 		return updateIndexService.updateIndexWithRemove(index, paths)
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
@@ -73,17 +74,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 		index.AddOrUpdateEntry(newEntry)
 	}
 
-	indexBytes, err := index.Serialize()
-	if err != nil {
-		return err
-	}
-	index.Checksum = encoding.ComputeSha256(indexBytes)
-
-	err = updateIndexService.indexService.Write(index)
-	if err != nil {
-		return err
-	}
-	return nil
+	return updateIndexService.indexService.Write(index)
 }
 
 func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string) error {

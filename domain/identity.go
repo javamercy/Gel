@@ -2,7 +2,7 @@ package domain
 
 import (
 	"Gel/core/validation"
-	"bytes"
+	"fmt"
 )
 
 type UserIdentity struct {
@@ -50,16 +50,10 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 }
 
 func (identity Identity) serialize() []byte {
-	var buffer bytes.Buffer
-	buffer.WriteString(identity.User.Name)
-	buffer.WriteString(" ")
-	buffer.WriteString("<")
-	buffer.WriteString(identity.User.Email)
-	buffer.WriteString(">")
-	buffer.WriteString(" ")
-	buffer.WriteString(identity.Timestamp)
-	buffer.WriteString(" ")
-	buffer.WriteString(identity.Timezone)
-
-	return buffer.Bytes()
+	return []byte(fmt.Sprintf(
+		"%s <%s> %s %s",
+		identity.User.Name,
+		identity.User.Email,
+		identity.Timestamp,
+		identity.Timezone))
 }

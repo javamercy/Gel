@@ -4,6 +4,7 @@ import (
 	"Gel/core/encoding"
 	"Gel/domain"
 	"Gel/storage"
+	"fmt"
 )
 
 type ObjectService struct {
@@ -69,7 +70,7 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 
 	tree, ok := object.(*domain.Tree)
 	if !ok {
-		return nil, err
+		return nil, fmt.Errorf("expected tree object, got %s", object.Type())
 	}
 
 	treeEntries, err := tree.Deserialize()
