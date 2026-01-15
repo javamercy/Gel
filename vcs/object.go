@@ -81,7 +81,7 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 	return treeEntries, nil
 }
 
-func (objectService *ObjectService) HashObject(path string) (string, error) {
+func (objectService *ObjectService) ComputeHash(path string) (string, error) {
 	data, err := objectService.filesystemService.ReadFile(path)
 	if err != nil {
 		return "", err

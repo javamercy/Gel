@@ -105,7 +105,7 @@ func (lsFilesService *LsFilesService) isModified(entry *domain.IndexEntry) bool 
 		return true
 	}
 	if !stat.ModTime().Equal(entry.UpdatedTime) {
-		currentHash, err := lsFilesService.objectService.HashObject(path)
+		currentHash, err := lsFilesService.objectService.ComputeHash(path)
 		if err != nil {
 			return false
 		}
