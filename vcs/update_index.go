@@ -1,7 +1,6 @@
 package vcs
 
 import (
-	"Gel/core/encoding"
 	"Gel/core/util"
 	"Gel/domain"
 	"errors"
@@ -22,7 +21,6 @@ func NewUpdateIndexService(indexService *IndexService, hashObjectService *HashOb
 }
 
 func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, remove bool) error {
-
 	index, err := updateIndexService.indexService.Read()
 	if errors.Is(err, ErrIndexNotFound) {
 		index = domain.NewEmptyIndex()
@@ -42,7 +40,6 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 
 func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
 	for _, path := range paths {
-
 		fileStatInfo := util.GetFileStatFromPath(path)
 		hash, _, err := updateIndexService.hashObjectService.HashObject(path, true)
 		if err != nil {
@@ -73,7 +70,6 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 
 		index.AddOrUpdateEntry(newEntry)
 	}
-
 	return updateIndexService.indexService.Write(index)
 }
 
@@ -82,13 +78,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domai
 		index.RemoveEntry(path)
 	}
 
-	indexBytes, err := index.Serialize()
-	if err != nil {
-		return err
-	}
-	index.Checksum = encoding.ComputeSha256(indexBytes)
-
-	err = updateIndexService.indexService.Write(index)
+	err := updateIndexService.indexService.Write(index)
 	if err != nil {
 		return err
 	}
