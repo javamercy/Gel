@@ -5,7 +5,8 @@ import (
 	"path"
 )
 
-type EntryProcessor = func(entry domain.TreeEntry, relativePath string) error
+type Processor = func(entry domain.TreeEntry, relPath string) error
+
 type WalkOptions struct {
 	Recursive    bool
 	IncludeTrees bool
@@ -15,51 +16,44 @@ type WalkOptions struct {
 type TreeWalker struct {
 	objectService *ObjectService
 	options       WalkOptions
-	processor     EntryProcessor
 }
 
-func NewTreeWalker(objectService *ObjectService, options WalkOptions, processor EntryProcessor) *TreeWalker {
+func NewTreeWalker(objectService *ObjectService, options WalkOptions) *TreeWalker {
 	return &TreeWalker{
 		objectService: objectService,
 		options:       options,
-		processor:     processor,
 	}
 }
 
-func (treeWalker *TreeWalker) Walk(hash, prefix string) error {
-	entries, err := treeWalker.objectService.ReadTreeAndDeserializeEntries(hash)
+func (w *TreeWalker) Walk(hash, prefix string, processor Processor) error {
+	entries, err := w.objectService.ReadTreeAndDeserializeEntries(hash)
 	if err != nil {
 		return err
 	}
 
 	for _, entry := range entries {
-		relativePath := path.Join(prefix, entry.Name)
-
+		relPath := path.Join(prefix, entry.Name)
 		isTree := entry.Mode.IsDirectory()
-		shouldProcess := treeWalker.shouldProcessEntry(isTree)
+		shouldProcess := w.shouldProcess(isTree)
 
 		if shouldProcess {
-			if err := treeWalker.processor(entry, relativePath); err != nil {
+			if err := processor(entry, relPath); err != nil {
 				return err
 			}
 		}
-
-		if isTree && treeWalker.options.Recursive {
-			if err := treeWalker.Walk(entry.Hash, relativePath); err != nil {
+		if isTree && w.options.Recursive {
+			if err := w.Walk(entry.Hash, relPath, processor); err != nil {
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 
-func (treeWalker *TreeWalker) shouldProcessEntry(isTree bool) bool {
-	if !isTree {
-		return true
+// shouldProcess determines if the given entry, based on its type, should be processed according to the walk options.
+func (w *TreeWalker) shouldProcess(isTree bool) bool {
+	if isTree {
+		return w.options.IncludeTrees || w.options.OnlyTrees
 	}
-	if treeWalker.options.OnlyTrees {
-		return isTree
-	}
-	return treeWalker.options.IncludeTrees || !treeWalker.options.Recursive
+	return !w.options.OnlyTrees
 }

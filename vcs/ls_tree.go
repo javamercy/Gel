@@ -2,6 +2,7 @@ package vcs
 
 import (
 	"Gel/domain"
+	"Gel/vcs/validate"
 	"fmt"
 	"io"
 )
@@ -16,9 +17,10 @@ func NewLsTreeService(objectService *ObjectService) *LsTreeService {
 	}
 }
 
-func (lsTreeService *LsTreeService) LsTree(writer io.Writer, treeHash string, recursive, showTrees bool) error {
-
-	// TODO: validate hash string
+func (lsTreeService *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTrees bool) error {
+	if err := validate.Hash(hash); err != nil {
+		return err
+	}
 
 	processor := func(entry domain.TreeEntry, relativePath string) error {
 		objectType, err := entry.Mode.ObjectType()
@@ -42,6 +44,6 @@ func (lsTreeService *LsTreeService) LsTree(writer io.Writer, treeHash string, re
 		OnlyTrees:    false,
 	}
 
-	treeWalker := NewTreeWalker(lsTreeService.objectService, options, processor)
-	return treeWalker.Walk(treeHash, "")
+	treeWalker := NewTreeWalker(lsTreeService.objectService, options)
+	return treeWalker.Walk(hash, "", processor)
 }

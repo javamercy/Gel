@@ -63,6 +63,19 @@ func (objectService *ObjectService) Read(hash string) (domain.IObject, error) {
 	return object, nil
 }
 
+func (objectService *ObjectService) ReadTree(hash string) (domain.IObject, error) {
+	object, err := objectService.Read(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, ok := object.(*domain.Tree)
+	if !ok {
+		return nil, domain.ErrInvalidObjectType
+	}
+	return tree, nil
+}
+
 func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain.TreeEntry, error) {
 	object, err := objectService.Read(treeHash)
 	if err != nil {

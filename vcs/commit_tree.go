@@ -21,53 +21,49 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 }
 
 func (commitTreeService *CommitTreeService) CommitTree(hash string, message string) (string, error) {
-
 	if err := validate.Hash(hash); err != nil {
 		return "", err
 	}
 
-	object, err := commitTreeService.objectService.Read(hash)
+	_, err := commitTreeService.objectService.ReadTree(hash)
 	if err != nil {
 		return "", err
 	}
 
-	_, ok := object.(*domain.Tree)
-	if !ok {
-		return "", domain.ErrInvalidObjectType
-	}
-
-	userIdentity, err := commitTreeService.configService.GetUserIdentity()
+	user, err := commitTreeService.configService.GetUserIdentity()
 	if err != nil {
 		return "", err
 	}
 
 	now := time.Now()
 
-	author, err := domain.NewIdentity(
-		userIdentity.Name,
-		userIdentity.Email,
+	identity, err := domain.NewIdentity(
+		user.Name,
+		user.Email,
 		util.FormatCommitTimestamp(now),
 		util.FormatCommitTimezone(now),
 	)
+	if err != nil {
+		return "", err
+	}
 
 	commitFields := domain.CommitFields{
 		TreeHash:     hash,
 		ParentHashes: nil,
-		Author:       author,
-		Committer:    author,
+		Author:       identity,
+		Committer:    identity,
 		Message:      message,
 	}
-
 	commit, err := domain.NewCommitFromFields(commitFields)
 	if err != nil {
 		return "", err
 	}
 
-	serializedCommit := commit.Serialize()
-	commitHash := encoding.ComputeSha256(serializedCommit)
-	err = commitTreeService.objectService.Write(commitHash, serializedCommit)
+	serializedData := commit.Serialize()
+	commitHash := encoding.ComputeSha256(serializedData)
+	err = commitTreeService.objectService.Write(commitHash, serializedData)
 	if err != nil {
 		return "", err
 	}
-	return hash, nil
+	return commitHash, nil
 }
