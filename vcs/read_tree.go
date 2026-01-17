@@ -2,8 +2,8 @@ package vcs
 
 import (
 	"Gel/core/util"
-	"Gel/core/validation"
 	"Gel/domain"
+	"Gel/vcs/validate"
 	"time"
 )
 
@@ -21,7 +21,7 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 
 func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 
-	if err := validation.ValidateHash(hash); err != nil {
+	if err := validate.Hash(hash); err != nil {
 		return err
 	}
 

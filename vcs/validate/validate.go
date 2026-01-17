@@ -1,4 +1,4 @@
-package validation
+package validate
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ var (
 
 var sha256HexRegex = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
-func ValidateHash(hash string) error {
+func Hash(hash string) error {
 	if !sha256HexRegex.MatchString(hash) {
 		return ErrInvalidHash
 	}

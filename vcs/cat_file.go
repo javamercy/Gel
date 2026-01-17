@@ -1,8 +1,8 @@
 package vcs
 
 import (
-	"Gel/core/validation"
 	"Gel/domain"
+	"Gel/vcs/validate"
 	"fmt"
 	"io"
 )
@@ -18,7 +18,7 @@ func NewCatFileService(objectService *ObjectService) *CatFileService {
 }
 
 func (catFileService *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
-	if err := validation.ValidateHash(hash); err != nil {
+	if err := validate.Hash(hash); err != nil {
 		return err
 	}
 

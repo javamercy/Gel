@@ -3,8 +3,8 @@ package vcs
 import (
 	"Gel/core/encoding"
 	"Gel/core/util"
-	"Gel/core/validation"
 	"Gel/domain"
+	"Gel/vcs/validate"
 	"time"
 )
 
@@ -22,7 +22,7 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 
 func (commitTreeService *CommitTreeService) CommitTree(hash string, message string) (string, error) {
 
-	if err := validation.ValidateHash(hash); err != nil {
+	if err := validate.Hash(hash); err != nil {
 		return "", err
 	}
 
