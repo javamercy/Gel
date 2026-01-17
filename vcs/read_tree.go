@@ -4,7 +4,6 @@ import (
 	"Gel/core/util"
 	"Gel/core/validation"
 	"Gel/domain"
-	"fmt"
 	"time"
 )
 
@@ -22,8 +21,8 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 
 func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 
-	if !validation.IsValidSha256Hex(hash) {
-		return fmt.Errorf("invalid hash")
+	if err := validation.ValidateHash(hash); err != nil {
+		return err
 	}
 
 	var indexEntries []*domain.IndexEntry

@@ -26,8 +26,8 @@ func NewTreeWalker(objectService *ObjectService, options WalkOptions, processor 
 	}
 }
 
-func (treeWalker *TreeWalker) Walk(treeHash, prefix string) error {
-	entries, err := treeWalker.objectService.ReadTreeAndDeserializeEntries(treeHash)
+func (treeWalker *TreeWalker) Walk(hash, prefix string) error {
+	entries, err := treeWalker.objectService.ReadTreeAndDeserializeEntries(hash)
 	if err != nil {
 		return err
 	}
@@ -55,13 +55,11 @@ func (treeWalker *TreeWalker) Walk(treeHash, prefix string) error {
 }
 
 func (treeWalker *TreeWalker) shouldProcessEntry(isTree bool) bool {
-	if treeWalker.options.OnlyTrees {
-		return isTree
-	}
-
 	if !isTree {
 		return true
 	}
-
+	if treeWalker.options.OnlyTrees {
+		return isTree
+	}
 	return treeWalker.options.IncludeTrees || !treeWalker.options.Recursive
 }

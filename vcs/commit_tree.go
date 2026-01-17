@@ -3,6 +3,7 @@ package vcs
 import (
 	"Gel/core/encoding"
 	"Gel/core/util"
+	"Gel/core/validation"
 	"Gel/domain"
 	"time"
 )
@@ -19,11 +20,13 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 	}
 }
 
-func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message string) (string, error) {
+func (commitTreeService *CommitTreeService) CommitTree(hash string, message string) (string, error) {
 
-	// TODO: validate treeHash
+	if err := validation.ValidateHash(hash); err != nil {
+		return "", err
+	}
 
-	object, err := commitTreeService.objectService.Read(treeHash)
+	object, err := commitTreeService.objectService.Read(hash)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +51,7 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	)
 
 	commitFields := domain.CommitFields{
-		TreeHash:     treeHash,
+		TreeHash:     hash,
 		ParentHashes: nil,
 		Author:       author,
 		Committer:    author,
@@ -61,11 +64,10 @@ func (commitTreeService *CommitTreeService) CommitTree(treeHash string, message 
 	}
 
 	serializedCommit := commit.Serialize()
-	hash := encoding.ComputeSha256(serializedCommit)
-	err = commitTreeService.objectService.Write(hash, serializedCommit)
+	commitHash := encoding.ComputeSha256(serializedCommit)
+	err = commitTreeService.objectService.Write(commitHash, serializedCommit)
 	if err != nil {
 		return "", err
 	}
-
 	return hash, nil
 }
