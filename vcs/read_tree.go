@@ -2,7 +2,9 @@ package vcs
 
 import (
 	"Gel/core/util"
+	"Gel/core/validation"
 	"Gel/domain"
+	"fmt"
 	"time"
 )
 
@@ -18,9 +20,11 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 	}
 }
 
-func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
+func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 
-	// TODO: validate treeHash
+	if !validation.IsValidSha256Hex(hash) {
+		return fmt.Errorf("invalid hash")
+	}
 
 	var indexEntries []*domain.IndexEntry
 
@@ -54,7 +58,7 @@ func (readTreeService *ReadTreeService) ReadTree(treeHash string) error {
 	}
 
 	treeWalker := NewTreeWalker(readTreeService.objectService, options, processor)
-	err := treeWalker.Walk(treeHash, "")
+	err := treeWalker.Walk(hash, "")
 
 	if err != nil {
 		return err
