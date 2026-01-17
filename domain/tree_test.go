@@ -34,7 +34,8 @@ func TestTree_Deserialize_MultipleEntries(t *testing.T) {
 	entry1, _ := NewTreeEntry(RegularFile, hash1, "file1.txt")
 	entry2, _ := NewTreeEntry(Directory, hash2, "dir1")
 
-	tree := NewTreeFromEntries([]TreeEntry{entry1, entry2})
+	tree, err := NewTreeFromEntries([]TreeEntry{entry1, entry2})
+	require.NoError(t, err)
 
 	serialized := tree.Serialize()
 	assert.Contains(t, string(serialized), "tree")

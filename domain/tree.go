@@ -2,8 +2,10 @@ package domain
 
 import (
 	"Gel/core/validation"
+	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 )
 
 type TreeEntry struct {
@@ -51,22 +53,22 @@ func NewTree(body []byte) (*Tree, error) {
 	return tree, nil
 }
 
-func NewTreeFromEntries(entries []TreeEntry) *Tree {
-	var body []byte
+func NewTreeFromEntries(entries []TreeEntry) (*Tree, error) {
+	var buffer bytes.Buffer
+
 	for _, entry := range entries {
-		modeStr := entry.Mode.String()
-		name := entry.Name
-		hashBytes, _ := hex.DecodeString(entry.Hash)
-		body = append(body, []byte(modeStr)...)
-		body = append(body, ' ')
-		body = append(body, []byte(name)...)
-		body = append(body, 0)
-		body = append(body, hashBytes...)
+		hashBytes, err := hex.DecodeString(entry.Hash)
+		if err != nil {
+			return nil, err
+		}
+
+		buffer.Write([]byte(fmt.Sprintf("%s %s\x00", entry.Mode, entry.Name)))
+		buffer.Write(hashBytes)
 	}
 	return &Tree{
-		body:    body,
+		body:    buffer.Bytes(),
 		entries: entries,
-	}
+	}, nil
 }
 
 func (tree *Tree) Type() ObjectType {

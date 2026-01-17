@@ -3,8 +3,6 @@ package vcs
 import (
 	"Gel/core/encoding"
 	"Gel/domain"
-	"bytes"
-	"encoding/hex"
 	"sort"
 	"strings"
 )
@@ -27,101 +25,89 @@ func (writeTreeService *WriteTreeService) WriteTree() (string, error) {
 		return "", err
 	}
 
-	root := buildTreeStructure(entries)
+	root := buildRootTree(entries)
 	rootHash, err := writeTreeService.buildTreeAndWrite(root)
-
 	if err != nil {
 		return "", err
 	}
 	return rootHash, nil
 }
 
-func (writeTreeService *WriteTreeService) buildTreeAndWrite(directory *DirectoryNode) (string, error) {
+func (writeTreeService *WriteTreeService) buildTreeAndWrite(root *directoryNode) (string, error) {
 	var entries []domain.TreeEntry
 
-	for _, childDirectory := range directory.Children {
-		subTreeHash, err := writeTreeService.buildTreeAndWrite(childDirectory)
+	for _, childDir := range root.children {
+		subTreeHash, err := writeTreeService.buildTreeAndWrite(childDir)
 		if err != nil {
 			return "", err
 		}
-		entry, err := domain.NewTreeEntry(domain.Directory, subTreeHash, childDirectory.Name)
+		entry, err := domain.NewTreeEntry(domain.Directory, subTreeHash, childDir.name)
 		if err != nil {
 			return "", err
 		}
 		entries = append(entries, entry)
 	}
 
-	for _, file := range directory.Files {
-		entry := domain.TreeEntry{
-			Mode: file.Mode,
-			Hash: file.Hash,
-			Name: file.Name,
+	for _, file := range root.files {
+		entry, err := domain.NewTreeEntry(file.mode, file.hash, file.name)
+		if err != nil {
+			return "", err
 		}
 		entries = append(entries, entry)
 	}
 
 	sortTreeEntries(entries)
 
-	treeData, buildTreeErr := buildTreeData(entries)
-	if buildTreeErr != nil {
-		return "", buildTreeErr
-	}
-
-	treeObject, err := domain.NewTree(treeData)
+	tree, err := domain.NewTreeFromEntries(entries)
 	if err != nil {
 		return "", err
 	}
-	content := treeObject.Serialize()
-	hash := encoding.ComputeSha256(content)
-	writeErr := writeTreeService.objectService.Write(hash, content)
-	if writeErr != nil {
-		return "", writeErr
+
+	data := tree.Serialize()
+	hash := encoding.ComputeSha256(data)
+	err = writeTreeService.objectService.Write(hash, data)
+	if err != nil {
+		return "", err
 	}
 	return hash, nil
 }
 
-func buildTreeStructure(entries []*domain.IndexEntry) *DirectoryNode {
-	root := NewDirectoryNode("", map[string]*DirectoryNode{}, []*FileNode{})
+func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
+	root := &directoryNode{
+		name:     "",
+		children: make(map[string]*directoryNode),
+		files:    make([]*fileNode, 0),
+	}
+
 	for _, entry := range entries {
+		currDir := root
 		names := strings.Split(entry.Path, "/")
 
-		currentDirectory := root
 		for i, name := range names {
 			if i == len(names)-1 {
-				fileNode := NewFileNode(domain.ParseFileMode(entry.Mode), entry.Hash, name)
-				currentDirectory.AddFile(fileNode)
-			} else {
-				var childDirectory *DirectoryNode
-				if existingChild, exists := currentDirectory.Children[name]; exists {
-					childDirectory = existingChild
-				} else {
-					childDirectory = NewDirectoryNode(name, map[string]*DirectoryNode{}, []*FileNode{})
-					currentDirectory.Children[name] = childDirectory
+				fileNode := &fileNode{
+					mode: domain.ParseFileMode(entry.Mode),
+					hash: entry.Hash,
+					name: name,
 				}
-
-				currentDirectory = childDirectory
+				currDir.files = append(currDir.files, fileNode)
+			} else {
+				var childDir *directoryNode
+				if existingChild, exists := currDir.children[name]; exists {
+					childDir = existingChild
+				} else {
+					childDir = &directoryNode{
+						name:     name,
+						children: make(map[string]*directoryNode),
+						files:    make([]*fileNode, 0),
+					}
+					currDir.children[name] = childDir
+				}
+				currDir = childDir
 			}
 		}
 	}
 	return root
-}
-
-func buildTreeData(entries []domain.TreeEntry) ([]byte, error) {
-	var buffer bytes.Buffer
-	for _, entry := range entries {
-		buffer.WriteString(entry.Mode.String())
-		buffer.WriteString(" ")
-		buffer.WriteString(entry.Name)
-		buffer.WriteString("\x00")
-
-		hashBytes, err := hex.DecodeString(entry.Hash)
-		if err != nil {
-			return nil, err
-		}
-		buffer.Write(hashBytes)
-	}
-
-	return buffer.Bytes(), nil
 }
 
 func sortTreeEntries(entries []domain.TreeEntry) {
@@ -139,40 +125,13 @@ func sortTreeEntries(entries []domain.TreeEntry) {
 	})
 }
 
-type FileNode struct {
-	Mode domain.FileMode
-	Hash string
-	Name string
+type fileNode struct {
+	mode domain.FileMode
+	hash string
+	name string
 }
-
-func NewFileNode(mode domain.FileMode, hash, name string) *FileNode {
-	{
-		return &FileNode{
-			Mode: mode,
-			Hash: hash,
-			Name: name,
-		}
-	}
-}
-
-type DirectoryNode struct {
-	Name     string
-	Children map[string]*DirectoryNode
-	Files    []*FileNode
-}
-
-func NewDirectoryNode(name string, children map[string]*DirectoryNode, files []*FileNode) *DirectoryNode {
-	return &DirectoryNode{
-		Name:     name,
-		Children: children,
-		Files:    files,
-	}
-}
-
-func (directoryNode *DirectoryNode) AddFile(file *FileNode) {
-	directoryNode.Files = append(directoryNode.Files, file)
-}
-
-func (directoryNode *DirectoryNode) AddChildDirectory(child *DirectoryNode) {
-	directoryNode.Children[child.Name] = child
+type directoryNode struct {
+	name     string
+	children map[string]*directoryNode
+	files    []*fileNode
 }

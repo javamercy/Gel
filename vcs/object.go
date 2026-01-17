@@ -20,42 +20,43 @@ func NewObjectService(objectStorage storage.IObjectStorage, filesystemService *F
 }
 
 func (objectService *ObjectService) GetObjectSize(hash string) (uint32, error) {
-	compressedContent, err := objectService.objectStorage.Read(hash)
+	compressedData, err := objectService.objectStorage.Read(hash)
 	if err != nil {
 		return 0, err
 	}
 
-	content, err := encoding.Decompress(compressedContent)
+	data, err := encoding.Decompress(compressedData)
 	if err != nil {
 		return 0, err
 	}
 
-	object, err := domain.DeserializeObject(content)
+	object, err := domain.DeserializeObject(data)
 	if err != nil {
 		return 0, err
 	}
 	return uint32(object.Size()), nil
 }
 
-func (objectService *ObjectService) Write(hash string, content []byte) error {
-	compressedContent, err := encoding.Compress(content)
+func (objectService *ObjectService) Write(hash string, data []byte) error {
+	compressedData, err := encoding.Compress(data)
 	if err != nil {
 		return err
 	}
-	return objectService.objectStorage.Write(hash, compressedContent)
+	return objectService.objectStorage.Write(hash, compressedData)
 }
 
 func (objectService *ObjectService) Read(hash string) (domain.IObject, error) {
-	compressedContent, err := objectService.objectStorage.Read(hash)
+	compressedData, err := objectService.objectStorage.Read(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	content, err := encoding.Decompress(compressedContent)
+	data, err := encoding.Decompress(compressedData)
 	if err != nil {
 		return nil, err
 	}
-	object, err := domain.DeserializeObject(content)
+
+	object, err := domain.DeserializeObject(data)
 	if err != nil {
 		return nil, err
 	}
@@ -77,19 +78,20 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 	if err != nil {
 		return nil, err
 	}
-
 	return treeEntries, nil
 }
 
 func (objectService *ObjectService) ComputeHash(path string) (string, error) {
-	data, err := objectService.filesystemService.ReadFile(path)
+	fileData, err := objectService.filesystemService.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	blob, err := domain.NewBlob(data)
+
+	blob, err := domain.NewBlob(fileData)
 	if err != nil {
 		return "", err
 	}
-	content := blob.Serialize()
-	return encoding.ComputeSha256(content), nil
+
+	serializedData := blob.Serialize()
+	return encoding.ComputeSha256(serializedData), nil
 }

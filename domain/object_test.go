@@ -22,7 +22,9 @@ func TestSerialize_Blob(t *testing.T) {
 func TestSerialize_Tree(t *testing.T) {
 	entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
 	require.NoError(t, err)
-	tree := NewTreeFromEntries([]TreeEntry{entry})
+	tree, err := NewTreeFromEntries([]TreeEntry{entry})
+
+	require.NoError(t, err)
 
 	serializedTree := tree.Serialize()
 
@@ -74,7 +76,8 @@ func TestDeserializeObject_ValidBlob(t *testing.T) {
 func TestDeserializeObject_ValidTree(t *testing.T) {
 	entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
 	require.NoError(t, err)
-	tree := NewTreeFromEntries([]TreeEntry{entry})
+	tree, err := NewTreeFromEntries([]TreeEntry{entry})
+	require.NoError(t, err)
 
 	serializedTree := tree.Serialize()
 
@@ -159,7 +162,8 @@ func TestSerializeDeserializeObject_RoundTrip(t *testing.T) {
 	t.Run("tree", func(t *testing.T) {
 		entry, err := NewTreeEntry(RegularFile, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt")
 		require.NoError(t, err)
-		tree := NewTreeFromEntries([]TreeEntry{entry})
+		tree, err := NewTreeFromEntries([]TreeEntry{entry})
+		require.NoError(t, err)
 
 		serializedObject := tree.Serialize()
 		deserializedObject, err := DeserializeObject(serializedObject)
