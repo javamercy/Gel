@@ -2,7 +2,7 @@ package domain
 
 import (
 	"Gel/core/constant"
-	"Gel/core/validation"
+	"Gel/domain/validation"
 	"bytes"
 	"errors"
 	"fmt"

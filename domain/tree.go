@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"Gel/core/validation"
+	"Gel/domain/validation"
 	"bytes"
 	"encoding/hex"
 	"errors"

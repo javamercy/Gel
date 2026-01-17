@@ -3,7 +3,7 @@ package domain
 import (
 	"Gel/core/constant"
 	"Gel/core/encoding"
-	"Gel/core/validation"
+	"Gel/domain/validation"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"

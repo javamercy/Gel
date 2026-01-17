@@ -1,6 +1,8 @@
 package domain
 
-import "Gel/core/validation"
+import (
+	"Gel/domain/validation"
+)
 
 type UserConfig struct {
 	Name  string `toml:"name,omitempty" validate:"required,min=1,max=256"`

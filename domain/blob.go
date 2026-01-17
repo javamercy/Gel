@@ -1,6 +1,8 @@
 package domain
 
-import "Gel/core/validation"
+import (
+	"Gel/domain/validation"
+)
 
 type Blob struct {
 	body []byte
