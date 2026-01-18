@@ -5,7 +5,7 @@ import "github.com/spf13/cobra"
 var updateRefCmd = &cobra.Command{
 	Use:   "update-ref",
 	Short: "Update a reference",
-	Args:  cobra.RangeArgs(1, 3),
+	Args:  cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		ref := args[0]
