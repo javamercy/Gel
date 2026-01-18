@@ -21,24 +21,23 @@ func (initService *InitService) Init(path string) (string, error) {
 	base := filepath.Join(path, constant.GelRepositoryName)
 
 	dirs := []string{
-		base,
-		filepath.Join(base, constant.GelObjectsDirectoryName),
-		filepath.Join(base, constant.GelRefsDirectoryName),
+		filepath.Join(base, constant.GelObjectsDirName),
+		filepath.Join(base, constant.GelRefsDirName, constant.GelHeadsDirName),
+		filepath.Join(base, constant.GelRefsDirName, constant.GelTagsDirName),
 	}
 
 	files := []string{
 		filepath.Join(base, constant.GelConfigFileName),
+		filepath.Join(base, constant.GelHeadSymlinkName),
 	}
 
-	exists := initService.filesystemService.Exists(base)
 	for _, dir := range dirs {
 		if err := initService.filesystemService.MakeDirectory(
 			dir,
-			constant.GelDirectoryPermission); err != nil {
+			constant.GelDirPermission); err != nil {
 			return "", err
 		}
 	}
-
 	for _, file := range files {
 		if err := initService.filesystemService.WriteFile(
 			file,
@@ -48,9 +47,9 @@ func (initService *InitService) Init(path string) (string, error) {
 		}
 	}
 
+	exists := initService.filesystemService.Exists(base)
 	if exists {
 		return "Reinitialized existing Gel repository", nil
 	}
-
 	return fmt.Sprintf("Initialized empty Gel repository in %v", base), nil
 }

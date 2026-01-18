@@ -37,30 +37,30 @@ func (repositoryProvider *RepositoryProvider) GetRepository() *Repository {
 }
 
 type Repository struct {
-	GelDirectory        string
-	ObjectsDirectory    string
-	RefsDirectory       string
-	IndexPath           string
-	RepositoryDirectory string
-	ConfigPath          string
+	GelDir        string
+	ObjectsDir    string
+	RefsDir       string
+	IndexPath     string
+	RepositoryDir string
+	ConfigPath    string
 }
 
 func NewRepositoryFromPath(path string) (*Repository, error) {
-	gelDirectory, err := findGelDirectory(path)
+	gelDir, err := findGelDir(path)
 	if err != nil {
 		return nil, err
 	}
 	return &Repository{
-		GelDirectory:        gelDirectory,
-		ObjectsDirectory:    filepath.Join(gelDirectory, constant.GelObjectsDirectoryName),
-		RefsDirectory:       filepath.Join(gelDirectory, constant.GelRefsDirectoryName),
-		IndexPath:           filepath.Join(gelDirectory, constant.GelIndexFileName),
-		RepositoryDirectory: filepath.Dir(gelDirectory),
-		ConfigPath:          filepath.Join(gelDirectory, constant.GelConfigFileName),
+		GelDir:        gelDir,
+		ObjectsDir:    filepath.Join(gelDir, constant.GelObjectsDirName),
+		RefsDir:       filepath.Join(gelDir, constant.GelRefsDirName),
+		IndexPath:     filepath.Join(gelDir, constant.GelIndexFileName),
+		RepositoryDir: filepath.Dir(gelDir),
+		ConfigPath:    filepath.Join(gelDir, constant.GelConfigFileName),
 	}, nil
 }
 
-func findGelDirectory(startPath string) (string, error) {
+func findGelDir(startPath string) (string, error) {
 	currentPath := startPath
 	for {
 		gelPath := filepath.Join(currentPath, constant.GelRepositoryName)

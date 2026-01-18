@@ -31,7 +31,7 @@ func (filesystemStorage *FilesystemStorage) MakeDir(path string, permission os.F
 func (filesystemStorage *FilesystemStorage) WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error {
 	if autoCreateDir {
 		dir := filepath.Dir(path)
-		if err := filesystemStorage.MakeDir(dir, constant.GelDirectoryPermission); err != nil {
+		if err := filesystemStorage.MakeDir(dir, constant.GelDirPermission); err != nil {
 			return err
 		}
 	}

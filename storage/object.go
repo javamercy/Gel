@@ -46,5 +46,5 @@ func (objectStorage *ObjectStorage) GetObjectPath(hash string) string {
 	repo := objectStorage.repositoryProvider.GetRepository()
 	dir := hash[:2]
 	file := hash[2:]
-	return filepath.Join(repo.ObjectsDirectory, dir, file)
+	return filepath.Join(repo.ObjectsDir, dir, file)
 }

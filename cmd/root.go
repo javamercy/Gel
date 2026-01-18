@@ -17,7 +17,6 @@ var (
 	indexService      *vcs.IndexService
 	configService     *vcs.ConfigService
 
-	initService        *vcs.InitService
 	addService         *vcs.AddService
 	hashObjectService  *vcs.HashObjectService
 	catFileService     *vcs.CatFileService
@@ -27,6 +26,7 @@ var (
 	readTreeService    *vcs.ReadTreeService
 	lsTreeService      *vcs.LsTreeService
 	commitTreeService  *vcs.CommitTreeService
+	symbolicRefService *vcs.SymbolicRefService
 
 	isServicesInitialized bool
 )
@@ -83,7 +83,6 @@ func initializeServices() error {
 	indexService = vcs.NewIndexService(indexStorage)
 	configService = vcs.NewConfigService(configStorage, encoding.NewBurntSushiTomlHelper())
 
-	initService = vcs.NewInitService(filesystemService)
 	hashObjectService = vcs.NewHashObjectService(objectService, filesystemService)
 	catFileService = vcs.NewCatFileService(objectService)
 
@@ -95,6 +94,7 @@ func initializeServices() error {
 	readTreeService = vcs.NewReadTreeService(indexService, objectService)
 	lsTreeService = vcs.NewLsTreeService(objectService)
 	commitTreeService = vcs.NewCommitTreeService(objectService, configService)
+	symbolicRefService = vcs.NewSymbolicRefService(filesystemStorage, repositoryProvider)
 
 	isServicesInitialized = true
 
