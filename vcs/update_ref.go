@@ -29,9 +29,10 @@ func (s *UpdateRefService) Update(ref string, hash string) error {
 	repo := s.repositoryProvider.GetRepository()
 	refPath := filepath.Join(repo.GelDir, ref)
 
+	dataToWrite := []byte(fmt.Sprintf("ref: %s\n", hash))
 	return s.filesystemStorage.WriteFile(
 		refPath,
-		[]byte(hash),
+		dataToWrite,
 		true,
 		constant.GelFilePermission)
 }
@@ -54,9 +55,10 @@ func (s *UpdateRefService) SafeUpdate(ref string, newHash, oldHash string) error
 		return fmt.Errorf("ref %s is not pointing to %s", ref, oldHash)
 	}
 
+	dataToWrite := []byte(fmt.Sprintf("ref: %s\n", newHash))
 	return s.filesystemStorage.WriteFile(
 		refPath,
-		[]byte(newHash),
+		dataToWrite,
 		true,
 		constant.GelFilePermission)
 }
