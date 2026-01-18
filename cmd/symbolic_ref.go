@@ -19,7 +19,7 @@ var symbolicRefCmd = &cobra.Command{
 			cmd.Println(ref)
 			return nil
 		}
-		return symbolicRefService.Update(name, args[1])
+		return symbolicRefService.Write(name, args[1])
 	},
 }
 

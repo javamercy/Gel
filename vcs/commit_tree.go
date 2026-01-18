@@ -20,7 +20,7 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 	}
 }
 
-func (commitTreeService *CommitTreeService) CommitTree(hash string, message string) (string, error) {
+func (commitTreeService *CommitTreeService) CommitTree(hash string, message string, parentHashes []string) (string, error) {
 	if err := validate.Hash(hash); err != nil {
 		return "", err
 	}
@@ -49,7 +49,7 @@ func (commitTreeService *CommitTreeService) CommitTree(hash string, message stri
 
 	commitFields := domain.CommitFields{
 		TreeHash:     hash,
-		ParentHashes: nil,
+		ParentHashes: parentHashes,
 		Author:       identity,
 		Committer:    identity,
 		Message:      message,

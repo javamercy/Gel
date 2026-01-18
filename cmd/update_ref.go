@@ -15,7 +15,7 @@ var updateRefCmd = &cobra.Command{
 		}
 
 		oldHash := args[2]
-		return updateRefService.SafeUpdate(ref, newHash, oldHash)
+		return updateRefService.UpdateSafe(ref, newHash, oldHash)
 	},
 }
 

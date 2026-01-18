@@ -18,7 +18,7 @@ var commitTreeCmd = &cobra.Command{
 		}
 
 		treeHash := args[0]
-		commitHash, err := commitTreeService.CommitTree(treeHash, messageFlag)
+		commitHash, err := commitTreeService.CommitTree(treeHash, messageFlag, nil)
 		if err != nil {
 			return err
 		}

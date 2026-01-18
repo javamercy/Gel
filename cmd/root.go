@@ -26,8 +26,10 @@ var (
 	readTreeService    *vcs.ReadTreeService
 	lsTreeService      *vcs.LsTreeService
 	commitTreeService  *vcs.CommitTreeService
+	refService         *vcs.RefService
 	symbolicRefService *vcs.SymbolicRefService
 	updateRefService   *vcs.UpdateRefService
+	commitService      *vcs.CommitService
 
 	isServicesInitialized bool
 )
@@ -95,8 +97,15 @@ func initializeServices() error {
 	readTreeService = vcs.NewReadTreeService(indexService, objectService)
 	lsTreeService = vcs.NewLsTreeService(objectService)
 	commitTreeService = vcs.NewCommitTreeService(objectService, configService)
-	symbolicRefService = vcs.NewSymbolicRefService(filesystemStorage, repositoryProvider)
-	updateRefService = vcs.NewUpdateRefService(filesystemStorage, repositoryProvider)
+	refService = vcs.NewRefService(repositoryProvider, filesystemStorage)
+	symbolicRefService = vcs.NewSymbolicRefService(refService)
+	updateRefService = vcs.NewUpdateRefService(refService)
+	commitService = vcs.NewCommitService(
+		writeTreeService,
+		commitTreeService,
+		refService,
+		filesystemStorage,
+		objectService)
 
 	isServicesInitialized = true
 

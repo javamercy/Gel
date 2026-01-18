@@ -2,17 +2,18 @@ package vcs
 
 import (
 	"Gel/core/constant"
+	"Gel/storage"
 	"fmt"
 	"path/filepath"
 )
 
 type InitService struct {
-	filesystemService *FilesystemService
+	filesystemStorage storage.IFilesystemStorage
 }
 
-func NewInitService(filesystemService *FilesystemService) *InitService {
+func NewInitService(filesystemStorage storage.IFilesystemStorage) *InitService {
 	return &InitService{
-		filesystemService: filesystemService,
+		filesystemStorage: filesystemStorage,
 	}
 }
 
@@ -31,23 +32,34 @@ func (initService *InitService) Init(path string) (string, error) {
 		filepath.Join(base, constant.GelHeadFileName),
 	}
 
+	exists := initService.filesystemStorage.Exists(base)
+
 	for _, dir := range dirs {
-		if err := initService.filesystemService.MakeDirectory(
+		if err := initService.filesystemStorage.MakeDir(
 			dir,
 			constant.GelDirPermission); err != nil {
 			return "", err
 		}
 	}
-	for _, file := range files {
-		if err := initService.filesystemService.WriteFile(
-			file,
-			[]byte{}, false,
-			constant.GelFilePermission); err != nil {
+	for i, file := range files {
+		var err error
+		if i == 1 {
+			headRefBytes := []byte("ref: refs/heads/main\n")
+			err = initService.filesystemStorage.WriteFile(
+				file,
+				headRefBytes, false,
+				constant.GelFilePermission)
+		} else {
+			err = initService.filesystemStorage.WriteFile(
+				file,
+				[]byte{}, false,
+				constant.GelFilePermission)
+		}
+		if err != nil {
 			return "", err
 		}
 	}
 
-	exists := initService.filesystemService.Exists(base)
 	if exists {
 		return "Reinitialized existing Gel repository", nil
 	}

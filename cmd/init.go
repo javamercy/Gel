@@ -36,8 +36,7 @@ var initCmd = &cobra.Command{
 
 func initializeInitService() *vcs.InitService {
 	filesystemStorage := storage.NewFilesystemStorage()
-	filesystemService := vcs.NewFilesystemService(filesystemStorage)
-	return vcs.NewInitService(filesystemService)
+	return vcs.NewInitService(filesystemStorage)
 }
 
 func init() {
