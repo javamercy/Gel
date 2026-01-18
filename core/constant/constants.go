@@ -4,14 +4,14 @@ import "os"
 
 // repository related constants
 const (
-	GelRepositoryName  = ".gel"
-	GelObjectsDirName  = "objects"
-	GelRefsDirName     = "refs"
-	GelHeadSymlinkName = "HEAD"
-	GelTagsDirName     = "tags"
-	GelHeadsDirName    = "heads"
-	GelIndexFileName   = "index"
-	GelConfigFileName  = "config.toml"
+	GelRepositoryName = ".gel"
+	GelObjectsDirName = "objects"
+	GelRefsDirName    = "refs"
+	GelHeadFileName   = "HEAD"
+	GelTagsDirName    = "tags"
+	GelHeadsDirName   = "heads"
+	GelIndexFileName  = "index"
+	GelConfigFileName = "config.toml"
 )
 
 // permission constants

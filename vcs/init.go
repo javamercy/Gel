@@ -28,7 +28,7 @@ func (initService *InitService) Init(path string) (string, error) {
 
 	files := []string{
 		filepath.Join(base, constant.GelConfigFileName),
-		filepath.Join(base, constant.GelHeadSymlinkName),
+		filepath.Join(base, constant.GelHeadFileName),
 	}
 
 	for _, dir := range dirs {
