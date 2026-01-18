@@ -30,6 +30,7 @@ var (
 	symbolicRefService *vcs.SymbolicRefService
 	updateRefService   *vcs.UpdateRefService
 	commitService      *vcs.CommitService
+	logService         *vcs.LogService
 
 	isServicesInitialized bool
 )
@@ -106,6 +107,7 @@ func initializeServices() error {
 		refService,
 		filesystemStorage,
 		objectService)
+	logService = vcs.NewLogService(refService, objectService)
 
 	isServicesInitialized = true
 
