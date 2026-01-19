@@ -9,18 +9,18 @@ import (
 
 type ObjectService struct {
 	objectStorage     storage.IObjectStorage
-	filesystemService *FilesystemService
+	filesystemStorage storage.IFilesystemStorage
 }
 
-func NewObjectService(objectStorage storage.IObjectStorage, filesystemService *FilesystemService) *ObjectService {
+func NewObjectService(objectStorage storage.IObjectStorage, filesystemStorage storage.IFilesystemStorage) *ObjectService {
 	return &ObjectService{
 		objectStorage:     objectStorage,
-		filesystemService: filesystemService,
+		filesystemStorage: filesystemStorage,
 	}
 }
 
-func (objectService *ObjectService) GetObjectSize(hash string) (uint32, error) {
-	compressedData, err := objectService.objectStorage.Read(hash)
+func (o *ObjectService) GetObjectSize(hash string) (uint32, error) {
+	compressedData, err := o.objectStorage.Read(hash)
 	if err != nil {
 		return 0, err
 	}
@@ -37,16 +37,16 @@ func (objectService *ObjectService) GetObjectSize(hash string) (uint32, error) {
 	return uint32(object.Size()), nil
 }
 
-func (objectService *ObjectService) Write(hash string, data []byte) error {
+func (o *ObjectService) Write(hash string, data []byte) error {
 	compressedData, err := encoding.Compress(data)
 	if err != nil {
 		return err
 	}
-	return objectService.objectStorage.Write(hash, compressedData)
+	return o.objectStorage.Write(hash, compressedData)
 }
 
-func (objectService *ObjectService) Read(hash string) (domain.IObject, error) {
-	compressedData, err := objectService.objectStorage.Read(hash)
+func (o *ObjectService) Read(hash string) (domain.IObject, error) {
+	compressedData, err := o.objectStorage.Read(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +63,8 @@ func (objectService *ObjectService) Read(hash string) (domain.IObject, error) {
 	return object, nil
 }
 
-func (objectService *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
-	object, err := objectService.Read(hash)
+func (o *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
+	object, err := o.Read(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func (objectService *ObjectService) ReadTree(hash string) (*domain.Tree, error) 
 	}
 	return tree, nil
 }
-func (objectService *ObjectService) ReadCommit(hash string) (*domain.Commit, error) {
-	object, err := objectService.Read(hash)
+func (o *ObjectService) ReadCommit(hash string) (*domain.Commit, error) {
+	object, err := o.Read(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +88,8 @@ func (objectService *ObjectService) ReadCommit(hash string) (*domain.Commit, err
 	return commit, nil
 }
 
-func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain.TreeEntry, error) {
-	object, err := objectService.Read(treeHash)
+func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain.TreeEntry, error) {
+	object, err := o.Read(treeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +106,8 @@ func (objectService *ObjectService) ReadTreeAndDeserializeEntries(treeHash strin
 	return treeEntries, nil
 }
 
-func (objectService *ObjectService) ComputeHash(path string) (string, error) {
-	fileData, err := objectService.filesystemService.ReadFile(path)
+func (o *ObjectService) ComputeHash(path string) (string, error) {
+	fileData, err := o.filesystemStorage.ReadFile(path)
 	if err != nil {
 		return "", err
 	}

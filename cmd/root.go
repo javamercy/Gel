@@ -12,10 +12,9 @@ import (
 )
 
 var (
-	filesystemService *vcs.FilesystemService
-	objectService     *vcs.ObjectService
-	indexService      *vcs.IndexService
-	configService     *vcs.ConfigService
+	objectService *vcs.ObjectService
+	indexService  *vcs.IndexService
+	configService *vcs.ConfigService
 
 	addService         *vcs.AddService
 	hashObjectService  *vcs.HashObjectService
@@ -82,18 +81,17 @@ func initializeServices() error {
 	indexStorage := storage.NewIndexStorage(filesystemStorage, repositoryProvider)
 	configStorage := storage.NewConfigStorage(filesystemStorage, repositoryProvider)
 
-	filesystemService = vcs.NewFilesystemService(filesystemStorage)
-	objectService = vcs.NewObjectService(objectStorage, filesystemService)
+	objectService = vcs.NewObjectService(objectStorage, filesystemStorage)
 	indexService = vcs.NewIndexService(indexStorage)
 	configService = vcs.NewConfigService(configStorage, encoding.NewBurntSushiTomlHelper())
 
-	hashObjectService = vcs.NewHashObjectService(objectService, filesystemService)
+	hashObjectService = vcs.NewHashObjectService(objectService, filesystemStorage)
 	catFileService = vcs.NewCatFileService(objectService)
 
 	pathResolver := util.NewPathResolver(cwd, nil)
 	updateIndexService = vcs.NewUpdateIndexService(indexService, hashObjectService, objectService)
 	addService = vcs.NewAddService(updateIndexService, pathResolver)
-	lsFilesService = vcs.NewLsFilesService(indexService, filesystemService, objectService)
+	lsFilesService = vcs.NewLsFilesService(indexService, filesystemStorage, objectService)
 	writeTreeService = vcs.NewWriteTreeService(indexService, objectService)
 	readTreeService = vcs.NewReadTreeService(indexService, objectService)
 	lsTreeService = vcs.NewLsTreeService(objectService)

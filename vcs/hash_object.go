@@ -3,26 +3,27 @@ package vcs
 import (
 	"Gel/core/encoding"
 	"Gel/domain"
+	"Gel/storage"
 	"fmt"
 	"io"
 )
 
 type HashObjectService struct {
 	objectService     *ObjectService
-	filesystemService *FilesystemService
+	filesystemStorage storage.IFilesystemStorage
 }
 
-func NewHashObjectService(objectService *ObjectService, filesystemService *FilesystemService) *HashObjectService {
+func NewHashObjectService(objectService *ObjectService, filesystemStorage storage.IFilesystemStorage) *HashObjectService {
 	return &HashObjectService{
 		objectService:     objectService,
-		filesystemService: filesystemService,
+		filesystemStorage: filesystemStorage,
 	}
 }
 
-func (hashObjectService *HashObjectService) HashObjects(writer io.Writer, paths []string, write bool) error {
+func (h *HashObjectService) HashObjects(writer io.Writer, paths []string, write bool) error {
 
 	for _, path := range paths {
-		hash, _, err := hashObjectService.HashObject(path, write)
+		hash, _, err := h.HashObject(path, write)
 		if err != nil {
 			return err
 		}
@@ -33,9 +34,9 @@ func (hashObjectService *HashObjectService) HashObjects(writer io.Writer, paths 
 	return nil
 }
 
-func (hashObjectService *HashObjectService) HashObject(path string, write bool) (string, []byte, error) {
+func (h *HashObjectService) HashObject(path string, write bool) (string, []byte, error) {
 
-	data, err := hashObjectService.filesystemService.ReadFile(path)
+	data, err := h.filesystemStorage.ReadFile(path)
 	if err != nil {
 		return "", nil, err
 	}
@@ -49,7 +50,7 @@ func (hashObjectService *HashObjectService) HashObject(path string, write bool) 
 	hash := encoding.ComputeSha256(serializedData)
 
 	if write {
-		if err := hashObjectService.objectService.Write(hash, serializedData); err != nil {
+		if err := h.objectService.Write(hash, serializedData); err != nil {
 			return "", nil, err
 		}
 	}
