@@ -22,10 +22,10 @@ func NewRefService(repositoryProvider *repository.Provider, filesystemStorage *s
 	}
 }
 
-func (s *RefService) ReadSymbolic(name string) (string, error) {
-	repo := s.repositoryProvider.GetRepository()
+func (r *RefService) ReadSymbolic(name string) (string, error) {
+	repo := r.repositoryProvider.GetRepository()
 	refPath := filepath.Join(repo.GelDir, name)
-	contentBytes, err := s.filesystemStorage.ReadFile(refPath)
+	contentBytes, err := r.filesystemStorage.ReadFile(refPath)
 	if err != nil {
 		return "", err
 	}
@@ -37,7 +37,7 @@ func (s *RefService) ReadSymbolic(name string) (string, error) {
 	return strings.TrimPrefix(contentStr, "ref: "), nil
 }
 
-func (s *RefService) WriteSymbolic(name, ref string) error {
+func (r *RefService) WriteSymbolic(name, ref string) error {
 	if name == "" || ref == "" {
 		return fmt.Errorf("symbolic-ref: name and ref are required")
 	}
@@ -46,19 +46,19 @@ func (s *RefService) WriteSymbolic(name, ref string) error {
 		return fmt.Errorf("symbolic-ref: ref must start with refs/")
 	}
 
-	repo := s.repositoryProvider.GetRepository()
+	repo := r.repositoryProvider.GetRepository()
 	path := filepath.Join(repo.GelDir, name)
 	contentStr := fmt.Sprintf("ref: %s\n", ref)
-	return s.filesystemStorage.WriteFile(path, []byte(contentStr), false, constant.GelFilePermission)
+	return r.filesystemStorage.WriteFile(path, []byte(contentStr), false, constant.GelFilePermission)
 }
 
-func (s *RefService) Read(ref string) (string, error) {
+func (r *RefService) Read(ref string) (string, error) {
 	if !strings.HasPrefix(ref, "refs/") {
 		return "", fmt.Errorf("ref must start with refs/")
 	}
-	repo := s.repositoryProvider.GetRepository()
+	repo := r.repositoryProvider.GetRepository()
 	absPath := filepath.Join(repo.GelDir, ref)
-	contentBytes, err := s.filesystemStorage.ReadFile(absPath)
+	contentBytes, err := r.filesystemStorage.ReadFile(absPath)
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +69,7 @@ func (s *RefService) Read(ref string) (string, error) {
 	}
 	return hash, nil
 }
-func (s *RefService) Write(ref, hash string) error {
+func (r *RefService) Write(ref, hash string) error {
 	if !strings.HasPrefix(ref, "refs/") {
 		return fmt.Errorf("ref must start with refs/")
 	}
@@ -78,15 +78,31 @@ func (s *RefService) Write(ref, hash string) error {
 	}
 
 	contentStr := fmt.Sprintf("%s\n", hash)
-	repo := s.repositoryProvider.GetRepository()
+	repo := r.repositoryProvider.GetRepository()
 	absPath := filepath.Join(repo.GelDir, ref)
-	return s.filesystemStorage.WriteFile(absPath, []byte(contentStr), false, constant.GelFilePermission)
+	return r.filesystemStorage.WriteFile(absPath, []byte(contentStr), true, constant.GelFilePermission)
 }
 
-func (s *RefService) Resolve(name string) (string, error) {
-	ref, err := s.ReadSymbolic(name)
+func (r *RefService) Delete(ref string) error {
+	if !strings.HasPrefix(ref, "refs/") {
+		return fmt.Errorf("ref must start with refs/")
+	}
+
+	repo := r.repositoryProvider.GetRepository()
+	path := filepath.Join(repo.GelDir, ref)
+	return r.filesystemStorage.RemoveAll(path)
+}
+
+func (r *RefService) Exists(ref string) bool {
+	repo := r.repositoryProvider.GetRepository()
+	path := filepath.Join(repo.GelDir, ref)
+	return r.filesystemStorage.Exists(path)
+}
+
+func (r *RefService) Resolve(name string) (string, error) {
+	ref, err := r.ReadSymbolic(name)
 	if err != nil {
 		return "", err
 	}
-	return s.Read(ref)
+	return r.Read(ref)
 }

@@ -2,8 +2,6 @@ package storage
 
 import (
 	"Gel/core/constant"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -31,9 +29,13 @@ func (filesystemStorage *FilesystemStorage) WriteFile(path string, data []byte, 
 
 func (filesystemStorage *FilesystemStorage) Exists(path string) bool {
 	_, err := os.Stat(path)
-	return err == nil || !errors.Is(err, fs.ErrNotExist)
+	return err == nil
 }
 
 func (filesystemStorage *FilesystemStorage) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
+}
+
+func (filesystemStorage *FilesystemStorage) RemoveAll(path string) error {
+	return os.RemoveAll(path)
 }
