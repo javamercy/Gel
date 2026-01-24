@@ -6,21 +6,12 @@ import (
 	"path/filepath"
 )
 
-type IObjectStorage interface {
-	Write(hash string, data []byte) error
-	Read(hash string) ([]byte, error)
-	Exists(hash string) bool
-	GetObjectPath(hash string) string
-}
-
-var _ IObjectStorage = (*ObjectStorage)(nil)
-
 type ObjectStorage struct {
-	filesystemStorage  IFilesystemStorage
-	repositoryProvider repository.IRepositoryProvider
+	filesystemStorage  *FilesystemStorage
+	repositoryProvider *repository.Provider
 }
 
-func NewObjectStorage(filesystemStorage IFilesystemStorage, repositoryProvider repository.IRepositoryProvider) *ObjectStorage {
+func NewObjectStorage(filesystemStorage *FilesystemStorage, repositoryProvider *repository.Provider) *ObjectStorage {
 	return &ObjectStorage{
 		filesystemStorage:  filesystemStorage,
 		repositoryProvider: repositoryProvider,

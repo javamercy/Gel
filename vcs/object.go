@@ -8,11 +8,11 @@ import (
 )
 
 type ObjectService struct {
-	objectStorage     storage.IObjectStorage
-	filesystemStorage storage.IFilesystemStorage
+	objectStorage     *storage.ObjectStorage
+	filesystemStorage *storage.FilesystemStorage
 }
 
-func NewObjectService(objectStorage storage.IObjectStorage, filesystemStorage storage.IFilesystemStorage) *ObjectService {
+func NewObjectService(objectStorage *storage.ObjectStorage, filesystemStorage *storage.FilesystemStorage) *ObjectService {
 	return &ObjectService{
 		objectStorage:     objectStorage,
 		filesystemStorage: filesystemStorage,

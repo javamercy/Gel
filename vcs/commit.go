@@ -11,14 +11,14 @@ type CommitService struct {
 	writeTreeService  *WriteTreeService
 	commitTreeService *CommitTreeService
 	refService        *RefService
-	filesystemStorage storage.IFilesystemStorage
+	filesystemStorage *storage.FilesystemStorage
 	objectService     *ObjectService
 }
 
 func NewCommitService(writeTreeService *WriteTreeService,
 	commitTreeService *CommitTreeService,
 	refService *RefService,
-	filesystemStorage storage.IFilesystemStorage,
+	filesystemStorage *storage.FilesystemStorage,
 	objectService *ObjectService) *CommitService {
 	return &CommitService{
 		writeTreeService:  writeTreeService,

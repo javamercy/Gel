@@ -8,15 +8,6 @@ import (
 	"path/filepath"
 )
 
-type IFilesystemStorage interface {
-	MakeDir(path string, permission os.FileMode) error
-	WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error
-	ReadFile(path string) ([]byte, error)
-	Exists(path string) bool
-}
-
-var _ IFilesystemStorage = (*FilesystemStorage)(nil)
-
 type FilesystemStorage struct {
 }
 

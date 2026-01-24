@@ -11,11 +11,11 @@ import (
 )
 
 type RefService struct {
-	repositoryProvider repository.IRepositoryProvider
-	filesystemStorage  storage.IFilesystemStorage
+	repositoryProvider *repository.Provider
+	filesystemStorage  *storage.FilesystemStorage
 }
 
-func NewRefService(repositoryProvider repository.IRepositoryProvider, filesystemStorage storage.IFilesystemStorage) *RefService {
+func NewRefService(repositoryProvider *repository.Provider, filesystemStorage *storage.FilesystemStorage) *RefService {
 	return &RefService{
 		repositoryProvider: repositoryProvider,
 		filesystemStorage:  filesystemStorage,

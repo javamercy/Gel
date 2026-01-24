@@ -11,29 +11,22 @@ var (
 	ErrNotAGelRepository = fmt.Errorf("not a Gel repository (%s not found)", constant.GelRepositoryName)
 )
 
-type IRepositoryProvider interface {
-	GetRepository() *Repository
-}
-
-// Compile-time interface check
-var _ IRepositoryProvider = (*RepositoryProvider)(nil)
-
-type RepositoryProvider struct {
+type Provider struct {
 	repository *Repository
 }
 
-func NewRepositoryProvider(path string) (*RepositoryProvider, error) {
+func NewProvider(path string) (*Provider, error) {
 	repository, err := NewRepositoryFromPath(path)
 	if err != nil {
 		return nil, err
 	}
-	return &RepositoryProvider{
+	return &Provider{
 		repository: repository,
 	}, nil
 }
 
-func (repositoryProvider *RepositoryProvider) GetRepository() *Repository {
-	return repositoryProvider.repository
+func (provider *Provider) GetRepository() *Repository {
+	return provider.repository
 }
 
 type Repository struct {

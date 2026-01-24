@@ -10,10 +10,10 @@ import (
 
 type HashObjectService struct {
 	objectService     *ObjectService
-	filesystemStorage storage.IFilesystemStorage
+	filesystemStorage *storage.FilesystemStorage
 }
 
-func NewHashObjectService(objectService *ObjectService, filesystemStorage storage.IFilesystemStorage) *HashObjectService {
+func NewHashObjectService(objectService *ObjectService, filesystemStorage *storage.FilesystemStorage) *HashObjectService {
 	return &HashObjectService{
 		objectService:     objectService,
 		filesystemStorage: filesystemStorage,

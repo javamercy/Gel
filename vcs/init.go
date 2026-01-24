@@ -8,10 +8,10 @@ import (
 )
 
 type InitService struct {
-	filesystemStorage storage.IFilesystemStorage
+	filesystemStorage *storage.FilesystemStorage
 }
 
-func NewInitService(filesystemStorage storage.IFilesystemStorage) *InitService {
+func NewInitService(filesystemStorage *storage.FilesystemStorage) *InitService {
 	return &InitService{
 		filesystemStorage: filesystemStorage,
 	}

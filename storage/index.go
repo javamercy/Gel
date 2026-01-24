@@ -5,19 +5,12 @@ import (
 	"Gel/core/repository"
 )
 
-type IIndexStorage interface {
-	Read() ([]byte, error)
-	Write(index []byte) error
-}
-
-var _ IIndexStorage = (*IndexStorage)(nil)
-
 type IndexStorage struct {
-	filesystemStorage  IFilesystemStorage
-	repositoryProvider repository.IRepositoryProvider
+	filesystemStorage  *FilesystemStorage
+	repositoryProvider *repository.Provider
 }
 
-func NewIndexStorage(filesystemStorage IFilesystemStorage, repositoryProvider repository.IRepositoryProvider) *IndexStorage {
+func NewIndexStorage(filesystemStorage *FilesystemStorage, repositoryProvider *repository.Provider) *IndexStorage {
 	return &IndexStorage{
 		filesystemStorage:  filesystemStorage,
 		repositoryProvider: repositoryProvider,

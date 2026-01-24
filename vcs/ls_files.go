@@ -10,11 +10,11 @@ import (
 
 type LsFilesService struct {
 	indexService      *IndexService
-	filesystemStorage storage.IFilesystemStorage
+	filesystemStorage *storage.FilesystemStorage
 	objectService     *ObjectService
 }
 
-func NewLsFilesService(indexService *IndexService, filesystemStorage storage.IFilesystemStorage, objectService *ObjectService) *LsFilesService {
+func NewLsFilesService(indexService *IndexService, filesystemStorage *storage.FilesystemStorage, objectService *ObjectService) *LsFilesService {
 	return &LsFilesService{
 		indexService:      indexService,
 		filesystemStorage: filesystemStorage,

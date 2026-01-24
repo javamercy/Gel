@@ -12,10 +12,10 @@ var (
 )
 
 type IndexService struct {
-	indexStorage storage.IIndexStorage
+	indexStorage *storage.IndexStorage
 }
 
-func NewIndexService(indexStorage storage.IIndexStorage) *IndexService {
+func NewIndexService(indexStorage *storage.IndexStorage) *IndexService {
 	return &IndexService{
 		indexStorage: indexStorage,
 	}

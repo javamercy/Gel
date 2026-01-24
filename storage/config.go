@@ -6,11 +6,11 @@ import (
 )
 
 type ConfigStorage struct {
-	filesystemStorage  IFilesystemStorage
-	repositoryProvider repository.IRepositoryProvider
+	filesystemStorage  *FilesystemStorage
+	repositoryProvider *repository.Provider
 }
 
-func NewConfigStorage(filesystemStorage IFilesystemStorage, repositoryProvider repository.IRepositoryProvider) *ConfigStorage {
+func NewConfigStorage(filesystemStorage *FilesystemStorage, repositoryProvider *repository.Provider) *ConfigStorage {
 	return &ConfigStorage{
 		filesystemStorage:  filesystemStorage,
 		repositoryProvider: repositoryProvider,

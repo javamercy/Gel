@@ -71,7 +71,7 @@ func initializeServices() error {
 		return err
 	}
 
-	repositoryProvider, err := repository.NewRepositoryProvider(cwd)
+	repositoryProvider, err := repository.NewProvider(cwd)
 	if err != nil {
 		return err
 	}
