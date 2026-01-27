@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"sort"
 	"time"
 )
 
@@ -197,13 +198,12 @@ func (idx *Index) AddEntry(entry *IndexEntry) {
 }
 
 func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
-	for i := range idx.Entries {
-		if idx.Entries[i].Path == entry.Path {
-			idx.Entries[i] = entry
-			return true
-		}
+	prevEntry, i := idx.FindEntry(entry.Path)
+	if prevEntry == nil {
+		return false
 	}
-	return false
+	idx.Entries[i] = entry
+	return true
 }
 
 func (idx *Index) SetEntry(entry *IndexEntry) {
@@ -213,35 +213,33 @@ func (idx *Index) SetEntry(entry *IndexEntry) {
 }
 
 func (idx *Index) RemoveEntry(path string) {
-	for i, entry := range idx.Entries {
-		if entry.Path == path {
-			idx.Entries = append(idx.Entries[:i], idx.Entries[i+1:]...)
-			idx.Header.NumEntries = uint32(len(idx.Entries))
-			return
-		}
+	if entry, i := idx.FindEntry(path); entry != nil {
+		idx.Entries = append(idx.Entries[:i], idx.Entries[i+1:]...)
+		idx.Header.NumEntries = uint32(len(idx.Entries))
 	}
 }
 
-func (idx *Index) FindEntry(path string) *IndexEntry {
-	for _, entry := range idx.Entries {
-		if entry.Path == path {
-			return entry
-		}
+func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
+	i := sort.Search(len(idx.Entries), func(i int) bool {
+		return idx.Entries[i].Path >= path
+	})
+	if i < len(idx.Entries) && idx.Entries[i].Path == path {
+		return idx.Entries[i], i
 	}
-	return nil
+	return nil, 0
 }
 
 func (idx *Index) HasEntry(path string) bool {
-	for _, entry := range idx.Entries {
-		if entry.Path == path {
-			return true
-		}
-	}
-	return false
+	entry, _ := idx.FindEntry(path)
+	return entry != nil
 }
 
 func (idx *Index) Serialize() ([]byte, error) {
 	serializedHeader := idx.serializeHeader()
+
+	sort.Slice(idx.Entries, func(i, j int) bool {
+		return idx.Entries[i].Path < idx.Entries[j].Path
+	})
 	serializedEntries, err := idx.serializeEntries()
 	if err != nil {
 		return nil, err
