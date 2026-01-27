@@ -48,7 +48,7 @@ func TestAddOrUpdateEntry_NewPath(t *testing.T) {
 	index := NewEmptyIndex()
 	entry := createTestEntry("new.txt", "hash1")
 
-	index.AddOrUpdateEntry(entry)
+	index.SetEntry(entry)
 
 	assert.Equal(t, 1, len(index.Entries))
 	assert.Equal(t, "new.txt", index.Entries[0].Path)
@@ -60,7 +60,7 @@ func TestAddOrUpdateEntry_ExistingPath(t *testing.T) {
 	index.AddEntry(entry1)
 
 	entry2 := createTestEntry("a.txt", "hash2")
-	index.AddOrUpdateEntry(entry2)
+	index.SetEntry(entry2)
 
 	assert.Equal(t, 1, len(index.Entries))
 	assert.Equal(t, entry2.Hash, index.Entries[0].Hash)

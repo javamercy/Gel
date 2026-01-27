@@ -21,24 +21,24 @@ func NewIndexService(indexStorage *storage.IndexStorage) *IndexService {
 	}
 }
 
-func (indexService *IndexService) Read() (*domain.Index, error) {
-	data, err := indexService.indexStorage.Read()
+func (i *IndexService) Read() (*domain.Index, error) {
+	data, err := i.indexStorage.Read()
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, ErrIndexNotFound
 	}
 	return domain.DeserializeIndex(data)
 }
 
-func (indexService *IndexService) Write(index *domain.Index) error {
+func (i *IndexService) Write(index *domain.Index) error {
 	serializedData, err := index.Serialize()
 	if err != nil {
 		return err
 	}
-	return indexService.indexStorage.Write(serializedData)
+	return i.indexStorage.Write(serializedData)
 }
 
-func (indexService *IndexService) GetEntries() ([]*domain.IndexEntry, error) {
-	index, err := indexService.Read()
+func (i *IndexService) GetEntries() ([]*domain.IndexEntry, error) {
+	index, err := i.Read()
 	if err != nil {
 		return nil, err
 	}

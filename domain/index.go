@@ -83,6 +83,22 @@ type IndexEntry struct {
 	UpdatedTime time.Time `validate:"required"`
 }
 
+func NewEmptyIndexEntry(path, hash string, mode uint32) *IndexEntry {
+	return &IndexEntry{
+		Path:        path,
+		Hash:        hash,
+		Size:        0,
+		Mode:        mode,
+		Device:      0,
+		Inode:       0,
+		UserId:      0,
+		GroupId:     0,
+		Flags:       0,
+		CreatedTime: time.Time{},
+		UpdatedTime: time.Time{},
+	}
+}
+
 func NewIndexEntry(
 	path string,
 	hash string,
@@ -175,33 +191,39 @@ func NewEmptyIndex() *Index {
 	return NewIndex(header, []*IndexEntry{}, "")
 }
 
-func (index *Index) AddEntry(entry *IndexEntry) {
-	index.Entries = append(index.Entries, entry)
-	index.Header.NumEntries = uint32(len(index.Entries))
+func (idx *Index) AddEntry(entry *IndexEntry) {
+	idx.Entries = append(idx.Entries, entry)
+	idx.Header.NumEntries = uint32(len(idx.Entries))
 }
 
-func (index *Index) AddOrUpdateEntry(entry *IndexEntry) {
-	for i := range index.Entries {
-		if index.Entries[i].Path == entry.Path {
-			index.Entries[i] = entry
-			return
+func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
+	for i := range idx.Entries {
+		if idx.Entries[i].Path == entry.Path {
+			idx.Entries[i] = entry
+			return true
 		}
 	}
-	index.AddEntry(entry)
+	return false
 }
 
-func (index *Index) RemoveEntry(path string) {
-	for i, entry := range index.Entries {
+func (idx *Index) SetEntry(entry *IndexEntry) {
+	if !idx.UpdateEntry(entry) {
+		idx.AddEntry(entry)
+	}
+}
+
+func (idx *Index) RemoveEntry(path string) {
+	for i, entry := range idx.Entries {
 		if entry.Path == path {
-			index.Entries = append(index.Entries[:i], index.Entries[i+1:]...)
-			index.Header.NumEntries = uint32(len(index.Entries))
+			idx.Entries = append(idx.Entries[:i], idx.Entries[i+1:]...)
+			idx.Header.NumEntries = uint32(len(idx.Entries))
 			return
 		}
 	}
 }
 
-func (index *Index) FindEntry(path string) *IndexEntry {
-	for _, entry := range index.Entries {
+func (idx *Index) FindEntry(path string) *IndexEntry {
+	for _, entry := range idx.Entries {
 		if entry.Path == path {
 			return entry
 		}
@@ -209,8 +231,8 @@ func (index *Index) FindEntry(path string) *IndexEntry {
 	return nil
 }
 
-func (index *Index) HasEntry(path string) bool {
-	for _, entry := range index.Entries {
+func (idx *Index) HasEntry(path string) bool {
+	for _, entry := range idx.Entries {
 		if entry.Path == path {
 			return true
 		}
@@ -218,9 +240,9 @@ func (index *Index) HasEntry(path string) bool {
 	return false
 }
 
-func (index *Index) Serialize() ([]byte, error) {
-	serializedHeader := index.serializeHeader()
-	serializedEntries, err := index.serializeEntries()
+func (idx *Index) Serialize() ([]byte, error) {
+	serializedHeader := idx.serializeHeader()
+	serializedEntries, err := idx.serializeEntries()
 	if err != nil {
 		return nil, err
 	}
@@ -239,9 +261,9 @@ func (index *Index) Serialize() ([]byte, error) {
 	return result, nil
 }
 
-func (index *Index) serializeHeader() []byte {
+func (idx *Index) serializeHeader() []byte {
 	serializedHeader := make([]byte, IndexHeaderSize)
-	header := index.Header
+	header := idx.Header
 
 	copy(serializedHeader[0:IndexHeaderSignatureSize], header.Signature[:])
 	binary.BigEndian.PutUint32(serializedHeader[IndexHeaderSignatureSize:IndexHeaderSignatureSize+IndexHeaderVersionSize], header.Version)
@@ -250,9 +272,9 @@ func (index *Index) serializeHeader() []byte {
 	return serializedHeader
 }
 
-func (index *Index) serializeEntries() ([]byte, error) {
+func (idx *Index) serializeEntries() ([]byte, error) {
 	var serializedEntries []byte
-	for _, entry := range index.Entries {
+	for _, entry := range idx.Entries {
 		serializedEntry, err := entry.serialize()
 		if err != nil {
 			return nil, err
@@ -315,6 +337,12 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	return &index, nil
 }
 
+func ComputeIndexFlags(path string, stage uint16) uint16 {
+	pathLength := min(len(path), MaxPathLength)
+	flags := uint16(pathLength) | (stage << StageShift)
+	return flags
+}
+
 func deserializeHeader(data []byte) (IndexHeader, error) {
 	var header IndexHeader
 
@@ -369,12 +397,6 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 	totalSize := offset + padding
 
 	return &entry, totalSize, nil
-}
-
-func ComputeIndexFlags(path string, stage uint16) uint16 {
-	pathLength := min(len(path), MaxPathLength)
-	flags := uint16(pathLength) | (stage << StageShift)
-	return flags
 }
 
 func writeIndexEntryFields(buffer *bytes.Buffer, entry *IndexEntry) error {

@@ -68,7 +68,7 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 			return err
 		}
 
-		index.AddOrUpdateEntry(newEntry)
+		index.SetEntry(newEntry)
 	}
 	return updateIndexService.indexService.Write(index)
 }

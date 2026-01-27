@@ -63,6 +63,18 @@ func (o *ObjectService) Read(hash string) (domain.IObject, error) {
 	return object, nil
 }
 
+func (o *ObjectService) ReadBlob(hash string) (*domain.Blob, error) {
+	object, err := o.Read(hash)
+	if err != nil {
+		return nil, err
+	}
+	blob, ok := object.(*domain.Blob)
+	if !ok {
+		return nil, domain.ErrInvalidObjectType
+	}
+	return blob, nil
+}
+
 func (o *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
 	object, err := o.Read(hash)
 	if err != nil {
