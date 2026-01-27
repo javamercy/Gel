@@ -31,6 +31,7 @@ var (
 	commitService      *vcs.CommitService
 	logService         *vcs.LogService
 	branchService      *vcs.BranchService
+	restoreService     *vcs.RestoreService
 
 	isServicesInitialized bool
 )
@@ -108,6 +109,7 @@ func initializeServices() error {
 		objectService)
 	logService = vcs.NewLogService(refService, objectService)
 	branchService = vcs.NewBranchService(refService, repositoryProvider)
+	restoreService = vcs.NewRestoreService(indexService, objectService, filesystemStorage, refService)
 
 	isServicesInitialized = true
 
