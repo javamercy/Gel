@@ -6,6 +6,7 @@ import (
 	"Gel/storage"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 )
 
@@ -34,6 +35,7 @@ func NewRestoreService(
 }
 
 func (r *RestoreService) Restore(paths []string, source string, staged bool) error {
+	// TODO: handle source
 	if staged {
 		return r.restoreWithStaged(paths)
 	}
@@ -100,7 +102,7 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 		for _, entry := range indexEntries {
 			if entry.Path == path {
 				currHash, err := r.objectService.ComputeHash(path)
-				if err != nil {
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
 					return err
 				}
 				if currHash != entry.Hash {
@@ -112,7 +114,7 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 					if err := r.filesystemStorage.WriteFile(
 						path,
 						blob.Body(),
-						false,
+						true,
 						constant.GelFilePermission); err != nil {
 						return err
 					}
