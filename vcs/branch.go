@@ -88,6 +88,17 @@ func (b *BranchService) Delete(name string) error {
 	return b.refService.Delete(refToDelete)
 }
 
+func (b *BranchService) Exists(name string) error {
+	if err := validateBranchName(name); err != nil {
+		return err
+	}
+	ref := filepath.Join(constant.GelRefsDirName, constant.GelHeadsDirName, name)
+	if exists := b.refService.Exists(ref); exists {
+		return nil
+	}
+	return errors.New("branch does not exist")
+}
+
 func validateBranchName(name string) error {
 	if strings.HasPrefix(name, "-") {
 		return errors.New("branch name cannot start with '-'")
