@@ -8,7 +8,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -227,6 +229,26 @@ func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
 		return idx.Entries[i], i
 	}
 	return nil, 0
+}
+
+func (idx *Index) FindEntriesByPathPrefix(prefix string) []*IndexEntry {
+	var result []*IndexEntry
+	for _, entry := range idx.Entries {
+		if strings.HasPrefix(entry.Path, prefix) {
+			result = append(result, entry)
+		}
+	}
+	return result
+}
+
+func (idx *Index) FindEntriesByPathPattern(pattern string) []*IndexEntry {
+	var result []*IndexEntry
+	for _, entry := range idx.Entries {
+		if match, _ := filepath.Match(pattern, entry.Path); match {
+			result = append(result, entry)
+		}
+	}
+	return result
 }
 
 func (idx *Index) HasEntry(path string) bool {
