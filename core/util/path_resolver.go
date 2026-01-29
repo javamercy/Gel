@@ -7,13 +7,6 @@ import (
 	"strings"
 )
 
-type PathspecType int
-
-var (
-	ErrPathspecDidNotMatchAny = errors.New("pathspec did not match any file, directory, or glob pattern")
-	ErrUnknownPathspecType    = errors.New("unknown pathspec type")
-)
-
 const (
 	File PathspecType = iota
 	Directory
@@ -25,18 +18,38 @@ const (
 	globPatterns string = "*?[]"
 )
 
-type IPathResolver interface {
-	Resolve(pathspecs []string) ([]string, error)
+type PathspecType int
+
+func (t PathspecType) String() string {
+	switch t {
+	case File:
+		return "file"
+	case Directory:
+		return "directory"
+	case GlobPattern:
+		return "glob pattern"
+	case NonExistent:
+		return "non-existent"
+	}
+	return "unknown"
 }
 
-var _ IPathResolver = (*PathResolver)(nil)
+var (
+	ErrUnknownPathspecType = errors.New("unknown pathspec type")
+)
+
+type ResolvedPath struct {
+	Type            PathspecType
+	NormalizedScope string
+	NormalizedPaths map[string]bool
+}
 
 type PathResolver struct {
-	repositoryDirectory string
-	ignoredPatterns     map[string]bool
+	repositoryDir   string
+	ignoredPatterns map[string]bool
 }
 
-func NewPathResolver(repositoryDirectory string, ignoredPatterns map[string]bool) *PathResolver {
+func NewPathResolver(repositoryDir string, ignoredPatterns map[string]bool) *PathResolver {
 	if ignoredPatterns == nil {
 		ignoredPatterns = map[string]bool{
 			".gel":  true,
@@ -45,75 +58,85 @@ func NewPathResolver(repositoryDirectory string, ignoredPatterns map[string]bool
 		}
 	}
 	return &PathResolver{
-		repositoryDirectory: repositoryDirectory,
-		ignoredPatterns:     ignoredPatterns,
+		repositoryDir:   repositoryDir,
+		ignoredPatterns: ignoredPatterns,
 	}
 }
 
-func (pathResolver *PathResolver) Resolve(pathspecs []string) ([]string, error) {
-	normalizedPathMap := make(map[string]bool)
-	var normalizedPaths []string
+func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
+	resolvedPaths := make([]ResolvedPath, 0)
 
 	for _, pathspec := range pathspecs {
-		paths, err := pathResolver.resolvePathspec(pathspec)
+		var paths []string
+		var err error
+
+		pathspecType := classifyPathspec(pathspec)
+		normalizedScope, err := p.normalizePath(pathspec)
+		if normalizedScope == "." {
+			normalizedScope = ""
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		for _, path := range paths {
+		switch pathspecType {
+		case File:
+			paths = []string{pathspec}
+		case Directory:
+			paths, err = expandDirectory(pathspec)
+		case GlobPattern:
+			paths, err = expandGlobPattern(pathspec)
+		case NonExistent:
+			paths = []string{}
+		default:
+			return nil, ErrUnknownPathspecType
+		}
 
-			normalizedPath, err := pathResolver.normalizePath(path)
+		if err != nil {
+			return nil, err
+		}
+
+		normalizedPaths := make(map[string]bool)
+		for _, path := range paths {
+			normalizedPath, err := p.normalizePath(path)
 			if err != nil {
 				return nil, err
 			}
-
 			// TODO: implement gelignore.
-			if pathResolver.shouldIgnore(normalizedPath) || normalizedPathMap[normalizedPath] {
+			if p.shouldIgnore(normalizedPath) || normalizedPaths[normalizedPath] {
 				continue
 			}
-
-			normalizedPathMap[normalizedPath] = true
-			normalizedPaths = append(normalizedPaths, normalizedPath)
+			normalizedPaths[normalizedPath] = true
 		}
+
+		resolvedPaths = append(resolvedPaths, ResolvedPath{
+			Type:            pathspecType,
+			NormalizedScope: normalizedScope,
+			NormalizedPaths: normalizedPaths,
+		})
 	}
 
-	return normalizedPaths, nil
+	return resolvedPaths, nil
 }
 
-func (pathResolver *PathResolver) resolvePathspec(pathspec string) ([]string, error) {
-
-	switch classifyPathspec(pathspec) {
-	case File:
-		return []string{pathspec}, nil
-	case Directory:
-		return expandDirectory(pathspec)
-	case GlobPattern:
-		return expandGlobPattern(pathspec)
-	case NonExistent:
-		return nil, ErrPathspecDidNotMatchAny
-	default:
-		return nil, ErrUnknownPathspecType
-	}
-}
-
-func (pathResolver *PathResolver) normalizePath(path string) (string, error) {
+func (p *PathResolver) normalizePath(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
 
-	relPath, err := filepath.Rel(pathResolver.repositoryDirectory, absPath)
+	relPath, err := filepath.Rel(p.repositoryDir, absPath)
 	if err != nil {
 		return "", err
 	}
 	return filepath.ToSlash(relPath), nil
 }
 
-func (pathResolver *PathResolver) shouldIgnore(path string) bool {
+func (p *PathResolver) shouldIgnore(path string) bool {
 	segments := strings.Split(path, "/")
 
 	for _, segment := range segments {
-		if pathResolver.ignoredPatterns[segment] {
+		if p.ignoredPatterns[segment] {
 			return true
 		}
 	}
@@ -129,7 +152,6 @@ func classifyPathspec(pathspec string) PathspecType {
 	if os.IsNotExist(err) {
 		return NonExistent
 	}
-
 	if fileInfo.IsDir() {
 		return Directory
 	}

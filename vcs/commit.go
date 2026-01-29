@@ -30,18 +30,17 @@ func NewCommitService(writeTreeService *WriteTreeService,
 }
 
 func (s *CommitService) Commit(message string) error {
-	headRef, err := s.refService.ReadSymbolic(constant.GelHeadFileName)
-	if err != nil {
-		return err
-	}
-
 	treeHash, err := s.writeTreeService.WriteTree()
 	if err != nil {
 		return err
 	}
 
-	parentHash, err := s.refService.Read(headRef)
 	var parentHashes []string
+	headRef, err := s.refService.ReadSymbolic(constant.GelHeadFileName)
+	if err != nil {
+		return err
+	}
+	parentHash, err := s.refService.Read(headRef)
 	if errors.Is(err, fs.ErrNotExist) {
 		parentHashes = nil
 	} else if err != nil {
