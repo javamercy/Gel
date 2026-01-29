@@ -32,6 +32,7 @@ var (
 	logService         *vcs.LogService
 	branchService      *vcs.BranchService
 	restoreService     *vcs.RestoreService
+	switchService      *vcs.SwitchService
 
 	isServicesInitialized bool
 )
@@ -92,7 +93,7 @@ func initializeServices() error {
 
 	pathResolver := util.NewPathResolver(cwd, nil)
 	updateIndexService = vcs.NewUpdateIndexService(indexService, hashObjectService, objectService)
-	addService = vcs.NewAddService(updateIndexService, pathResolver)
+	addService = vcs.NewAddService(indexService, updateIndexService, pathResolver)
 	lsFilesService = vcs.NewLsFilesService(indexService, filesystemStorage, objectService)
 	writeTreeService = vcs.NewWriteTreeService(indexService, objectService)
 	readTreeService = vcs.NewReadTreeService(indexService, objectService)
@@ -110,6 +111,7 @@ func initializeServices() error {
 	logService = vcs.NewLogService(refService, objectService)
 	branchService = vcs.NewBranchService(refService, repositoryProvider)
 	restoreService = vcs.NewRestoreService(indexService, objectService, filesystemStorage, refService)
+	switchService = vcs.NewSwitchService(refService, objectService, filesystemStorage, readTreeService, repositoryProvider)
 
 	isServicesInitialized = true
 
