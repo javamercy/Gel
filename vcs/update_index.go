@@ -20,8 +20,8 @@ func NewUpdateIndexService(indexService *IndexService, hashObjectService *HashOb
 	}
 }
 
-func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, remove bool) error {
-	index, err := updateIndexService.indexService.Read()
+func (u *UpdateIndexService) UpdateIndex(paths []string, add, remove bool) error {
+	index, err := u.indexService.Read()
 	if errors.Is(err, ErrIndexNotFound) {
 		index = domain.NewEmptyIndex()
 	} else if err != nil {
@@ -30,23 +30,23 @@ func (updateIndexService *UpdateIndexService) UpdateIndex(paths []string, add, r
 
 	switch {
 	case add:
-		return updateIndexService.updateIndexWithAdd(index, paths)
+		return u.updateIndexWithAdd(index, paths)
 	case remove:
-		return updateIndexService.updateIndexWithRemove(index, paths)
+		return u.updateIndexWithRemove(index, paths)
 	default:
 		return nil
 	}
 }
 
-func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
+func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
 	for _, path := range paths {
 		fileStatInfo := util.GetFileStatFromPath(path)
-		hash, _, err := updateIndexService.hashObjectService.HashObject(path, true)
+		hash, _, err := u.hashObjectService.HashObject(path, true)
 		if err != nil {
 			return err
 		}
 
-		size, err := updateIndexService.objectService.GetObjectSize(hash)
+		size, err := u.objectService.GetObjectSize(hash)
 		if err != nil {
 			return err
 		}
@@ -70,15 +70,15 @@ func (updateIndexService *UpdateIndexService) updateIndexWithAdd(index *domain.I
 
 		index.SetEntry(newEntry)
 	}
-	return updateIndexService.indexService.Write(index)
+	return u.indexService.Write(index)
 }
 
-func (updateIndexService *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string) error {
+func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string) error {
 	for _, path := range paths {
 		index.RemoveEntry(path)
 	}
 
-	err := updateIndexService.indexService.Write(index)
+	err := u.indexService.Write(index)
 	if err != nil {
 		return err
 	}
