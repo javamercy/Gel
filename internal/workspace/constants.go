@@ -17,3 +17,8 @@ const (
 	FilePermission os.FileMode = 0o644 // -rw-r--r--
 	DirPermission  os.FileMode = 0o755 // drwxr-xr-x
 )
+
+const (
+	DefaultBranch  = "main"
+	DefaultHeadRef = "ref: refs/heads/main\n"
+)

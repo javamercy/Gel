@@ -22,28 +22,24 @@ func (i *InitService) Init(path string) (string, error) {
 		filepath.Join(base, workspace.RefsDirName, workspace.TagsDirName),
 	}
 
-	exists := fileExists(base)
-
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 			return "", err
 		}
 	}
 
-	// Create config file (empty)
 	configPath := filepath.Join(base, workspace.ConfigFileName)
 	if err := os.WriteFile(configPath, []byte{}, workspace.FilePermission); err != nil {
 		return "", err
 	}
 
-	// Create HEAD file pointing to main branch
 	headPath := filepath.Join(base, workspace.HeadFileName)
-	headContent := []byte("ref: refs/heads/main\n")
+	headContent := []byte(workspace.DefaultHeadRef)
 	if err := os.WriteFile(headPath, headContent, workspace.FilePermission); err != nil {
 		return "", err
 	}
 
-	if exists {
+	if fileExists(base) {
 		return "Reinitialized existing Gel repository", nil
 	}
 	return fmt.Sprintf("Initialized empty Gel repository in %v", base), nil
