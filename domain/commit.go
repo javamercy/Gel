@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
 	"Gel/domain/validation"
 	"bytes"
 	"errors"
@@ -183,8 +182,8 @@ func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
 	hexHash := string(data[start:i])
 
 	// TODO: refactor here to use a common validator
-	if len(hexHash) != constant.SHA256HexLength {
-		return "", i, fmt.Errorf("invalid hash length: got %d, expected %d", len(hexHash), constant.SHA256HexLength)
+	if len(hexHash) != SHA256HexLength {
+		return "", i, fmt.Errorf("invalid hash length: got %d, expected %d", len(hexHash), SHA256HexLength)
 	}
 	for _, c := range hexHash {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/util"
 	"errors"
 	"strconv"
 )
@@ -28,7 +27,7 @@ var (
 )
 
 func DeserializeObject(data []byte) (IObject, error) {
-	nullIndex := util.FindNullByteIndex(data)
+	nullIndex := FindNullByteIndex(data)
 	if nullIndex == -1 {
 		return nil, ErrNoNullByteFound
 	}

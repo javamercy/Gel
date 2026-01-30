@@ -1,25 +1,24 @@
 package storage
 
 import (
-	"Gel/core/constant"
-	"Gel/core/repository"
+	"Gel/internal/workspace"
 )
 
 type ConfigStorage struct {
-	filesystemStorage  *FilesystemStorage
-	repositoryProvider *repository.Provider
+	filesystemStorage *FilesystemStorage
+	workspaceProvider *workspace.Provider
 }
 
-func NewConfigStorage(filesystemStorage *FilesystemStorage, repositoryProvider *repository.Provider) *ConfigStorage {
+func NewConfigStorage(filesystemStorage *FilesystemStorage, workspaceProvider *workspace.Provider) *ConfigStorage {
 	return &ConfigStorage{
-		filesystemStorage:  filesystemStorage,
-		repositoryProvider: repositoryProvider,
+		filesystemStorage: filesystemStorage,
+		workspaceProvider: workspaceProvider,
 	}
 }
 
 func (configStorage *ConfigStorage) Read() ([]byte, error) {
-	repo := configStorage.repositoryProvider.GetRepository()
-	data, err := configStorage.filesystemStorage.ReadFile(repo.ConfigPath)
+	ws := configStorage.workspaceProvider.GetWorkspace()
+	data, err := configStorage.filesystemStorage.ReadFile(ws.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -28,10 +27,10 @@ func (configStorage *ConfigStorage) Read() ([]byte, error) {
 }
 
 func (configStorage *ConfigStorage) Write(data []byte) error {
-	repo := configStorage.repositoryProvider.GetRepository()
+	ws := configStorage.workspaceProvider.GetWorkspace()
 	return configStorage.filesystemStorage.WriteFile(
-		repo.ConfigPath,
+		ws.ConfigPath,
 		data,
 		true,
-		constant.GelFilePermission)
+		workspace.FilePermission)
 }

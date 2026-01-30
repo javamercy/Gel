@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
-	"Gel/core/encoding"
 	"Gel/domain/validation"
 	"bytes"
 	"encoding/binary"
@@ -44,7 +42,7 @@ const (
 	IndexEntryUserIdSize            = 4
 	IndexEntryGroupIdSize           = 4
 	IndexEntrySizeFieldSize         = 4
-	IndexEntryHashSize              = constant.Sha256ByteLength
+	IndexEntryHashSize              = SHA256ByteLength
 	IndexEntryFlagsSize             = 2
 	IndexEntryPathNullTerminateSize = 1
 	IndexEntryHashOffset            = 4*IndexEntryTimeSize + IndexEntryDeviceSize + IndexEntryInodeSize + IndexEntryModeSize + IndexEntryUserIdSize + IndexEntryGroupIdSize + IndexEntrySizeFieldSize
@@ -189,8 +187,8 @@ func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index
 }
 
 func NewEmptyIndex() *Index {
-	signatureBytes := [4]byte([]byte(constant.GelIndexSignature))
-	header := NewIndexHeader(signatureBytes, constant.GelIndexVersion, 0)
+	signatureBytes := [4]byte([]byte(IndexSignature))
+	header := NewIndexHeader(signatureBytes, IndexVersion, 0)
 	return NewIndex(header, []*IndexEntry{}, "")
 }
 
@@ -268,7 +266,7 @@ func (idx *Index) Serialize() ([]byte, error) {
 	}
 
 	data := append(serializedHeader, serializedEntries...)
-	checksum := encoding.ComputeSha256(data)
+	checksum := ComputeSHA256(data)
 	checksumBytes, err := hex.DecodeString(checksum)
 	if err != nil {
 		return nil, err
@@ -343,7 +341,7 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	}
 
 	expectedChecksumBytes := data[len(data)-IndexChecksumSize:]
-	actualChecksum := encoding.ComputeSha256(data[:len(data)-IndexChecksumSize])
+	actualChecksum := ComputeSHA256(data[:len(data)-IndexChecksumSize])
 	actualChecksumBytes, err := hex.DecodeString(actualChecksum)
 	if err != nil {
 		return nil, err
@@ -367,7 +365,7 @@ func deserializeHeader(data []byte) (IndexHeader, error) {
 	var header IndexHeader
 
 	copy(header.Signature[:], data[0:IndexHeaderSignatureSize])
-	if !bytes.Equal(header.Signature[:], []byte(constant.GelIndexSignature)) {
+	if !bytes.Equal(header.Signature[:], []byte(IndexSignature)) {
 		return header, ErrInvalidIndexSignature
 	}
 

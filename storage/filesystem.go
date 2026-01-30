@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"Gel/core/constant"
+	"Gel/internal/workspace"
 	"os"
 	"path/filepath"
 )
@@ -20,7 +20,7 @@ func (filesystemStorage *FilesystemStorage) MakeDir(path string, permission os.F
 func (filesystemStorage *FilesystemStorage) WriteFile(path string, data []byte, autoCreateDir bool, permission os.FileMode) error {
 	if autoCreateDir {
 		dir := filepath.Dir(path)
-		if err := filesystemStorage.MakeDir(dir, constant.GelDirPermission); err != nil {
+		if err := filesystemStorage.MakeDir(dir, workspace.DirPermission); err != nil {
 			return err
 		}
 	}

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/core/constant"
 	"fmt"
 	"testing"
 	"time"
@@ -13,8 +12,8 @@ import (
 func TestNewEmptyIndex(t *testing.T) {
 	index := NewEmptyIndex()
 
-	assert.Equal(t, constant.GelIndexSignature, string(index.Header.Signature[:]))
-	assert.Equal(t, uint32(constant.GelIndexVersion), index.Header.Version)
+	assert.Equal(t, IndexSignature, string(index.Header.Signature[:]))
+	assert.Equal(t, uint32(IndexVersion), index.Header.Version)
 	assert.Equal(t, uint32(0), index.Header.NumEntries)
 	assert.Empty(t, index.Entries)
 }
@@ -96,7 +95,7 @@ func TestFindEntry_Exists(t *testing.T) {
 	index.AddEntry(createTestEntry("b.txt", "hash2"))
 	index.AddEntry(createTestEntry("c.txt", "hash3"))
 
-	entry := index.FindEntry("b.txt")
+	entry, _ := index.FindEntry("b.txt")
 
 	require.NotNil(t, entry)
 	assert.Equal(t, "b.txt", entry.Path)
@@ -106,7 +105,7 @@ func TestFindEntry_NotExists(t *testing.T) {
 	index := NewEmptyIndex()
 	index.AddEntry(createTestEntry("a.txt", "hash1"))
 
-	entry := index.FindEntry("nonexistent.txt")
+	entry, _ := index.FindEntry("nonexistent.txt")
 
 	assert.Nil(t, entry)
 }

@@ -1,25 +1,24 @@
 package storage
 
 import (
-	"Gel/core/constant"
-	"Gel/core/repository"
+	"Gel/internal/workspace"
 )
 
 type IndexStorage struct {
-	filesystemStorage  *FilesystemStorage
-	repositoryProvider *repository.Provider
+	filesystemStorage *FilesystemStorage
+	workspaceProvider *workspace.Provider
 }
 
-func NewIndexStorage(filesystemStorage *FilesystemStorage, repositoryProvider *repository.Provider) *IndexStorage {
+func NewIndexStorage(filesystemStorage *FilesystemStorage, workspaceProvider *workspace.Provider) *IndexStorage {
 	return &IndexStorage{
-		filesystemStorage:  filesystemStorage,
-		repositoryProvider: repositoryProvider,
+		filesystemStorage: filesystemStorage,
+		workspaceProvider: workspaceProvider,
 	}
 }
 
 func (indexStorage *IndexStorage) Read() ([]byte, error) {
-	repo := indexStorage.repositoryProvider.GetRepository()
-	data, err := indexStorage.filesystemStorage.ReadFile(repo.IndexPath)
+	ws := indexStorage.workspaceProvider.GetWorkspace()
+	data, err := indexStorage.filesystemStorage.ReadFile(ws.IndexPath)
 	if err != nil {
 		return nil, err
 	}
@@ -27,9 +26,9 @@ func (indexStorage *IndexStorage) Read() ([]byte, error) {
 }
 
 func (indexStorage *IndexStorage) Write(data []byte) error {
-	repo := indexStorage.repositoryProvider.GetRepository()
+	ws := indexStorage.workspaceProvider.GetWorkspace()
 	return indexStorage.filesystemStorage.WriteFile(
-		repo.IndexPath,
+		ws.IndexPath,
 		data, false,
-		constant.GelFilePermission)
+		workspace.FilePermission)
 }
