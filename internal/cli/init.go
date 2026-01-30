@@ -2,7 +2,6 @@ package cli
 
 import (
 	"Gel/internal/gel"
-	"Gel/storage"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +22,7 @@ var initCmd = &cobra.Command{
 			path = cwd
 		}
 
-		initService := initializeInitService()
+		initService := gel.NewInitService()
 		message, err := initService.Init(path)
 		if err != nil {
 			return err
@@ -32,11 +31,6 @@ var initCmd = &cobra.Command{
 		cmd.Println(message)
 		return nil
 	},
-}
-
-func initializeInitService() *gel.InitService {
-	filesystemStorage := storage.NewFilesystemStorage()
-	return gel.NewInitService(filesystemStorage)
 }
 
 func init() {

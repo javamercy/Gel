@@ -3,28 +3,26 @@ package gel
 import (
 	"Gel/internal/gel/validate"
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
 type RefService struct {
 	workspaceProvider *workspace.Provider
-	filesystemStorage *storage.FilesystemStorage
 }
 
-func NewRefService(workspaceProvider *workspace.Provider, filesystemStorage *storage.FilesystemStorage) *RefService {
+func NewRefService(workspaceProvider *workspace.Provider) *RefService {
 	return &RefService{
 		workspaceProvider: workspaceProvider,
-		filesystemStorage: filesystemStorage,
 	}
 }
 
 func (r *RefService) ReadSymbolic(name string) (string, error) {
 	ws := r.workspaceProvider.GetWorkspace()
 	refPath := filepath.Join(ws.GelDir, name)
-	contentBytes, err := r.filesystemStorage.ReadFile(refPath)
+	contentBytes, err := os.ReadFile(refPath)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +46,7 @@ func (r *RefService) WriteSymbolic(name, ref string) error {
 	ws := r.workspaceProvider.GetWorkspace()
 	path := filepath.Join(ws.GelDir, name)
 	contentStr := fmt.Sprintf("ref: %s\n", ref)
-	return r.filesystemStorage.WriteFile(path, []byte(contentStr), false, workspace.FilePermission)
+	return os.WriteFile(path, []byte(contentStr), workspace.FilePermission)
 }
 
 func (r *RefService) Read(ref string) (string, error) {
@@ -57,7 +55,7 @@ func (r *RefService) Read(ref string) (string, error) {
 	}
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
-	contentBytes, err := r.filesystemStorage.ReadFile(absPath)
+	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
 		return "", err
 	}
@@ -68,6 +66,7 @@ func (r *RefService) Read(ref string) (string, error) {
 	}
 	return hash, nil
 }
+
 func (r *RefService) Write(ref, hash string) error {
 	if !strings.HasPrefix(ref, "refs/") {
 		return fmt.Errorf("ref must start with refs/")
@@ -76,10 +75,17 @@ func (r *RefService) Write(ref, hash string) error {
 		return err
 	}
 
-	contentStr := fmt.Sprintf("%s\n", hash)
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
-	return r.filesystemStorage.WriteFile(absPath, []byte(contentStr), true, workspace.FilePermission)
+
+	// Create parent directory if needed
+	dir := filepath.Dir(absPath)
+	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+		return err
+	}
+
+	contentStr := fmt.Sprintf("%s\n", hash)
+	return os.WriteFile(absPath, []byte(contentStr), workspace.FilePermission)
 }
 
 func (r *RefService) Delete(ref string) error {
@@ -89,13 +95,14 @@ func (r *RefService) Delete(ref string) error {
 
 	ws := r.workspaceProvider.GetWorkspace()
 	path := filepath.Join(ws.GelDir, ref)
-	return r.filesystemStorage.RemoveAll(path)
+	return os.RemoveAll(path)
 }
 
 func (r *RefService) Exists(ref string) bool {
 	ws := r.workspaceProvider.GetWorkspace()
 	path := filepath.Join(ws.GelDir, ref)
-	return r.filesystemStorage.Exists(path)
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func (r *RefService) Resolve(name string) (string, error) {

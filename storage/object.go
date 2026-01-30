@@ -2,38 +2,42 @@ package storage
 
 import (
 	"Gel/internal/workspace"
+	"os"
 	"path/filepath"
 )
 
 type ObjectStorage struct {
-	filesystemStorage *FilesystemStorage
 	workspaceProvider *workspace.Provider
 }
 
-func NewObjectStorage(filesystemStorage *FilesystemStorage, workspaceProvider *workspace.Provider) *ObjectStorage {
+func NewObjectStorage(workspaceProvider *workspace.Provider) *ObjectStorage {
 	return &ObjectStorage{
-		filesystemStorage: filesystemStorage,
 		workspaceProvider: workspaceProvider,
 	}
 }
 
-func (objectStorage *ObjectStorage) Write(hash string, data []byte) error {
-	objectPath := objectStorage.GetObjectPath(hash)
-	return objectStorage.filesystemStorage.WriteFile(objectPath, data, true, workspace.FilePermission)
+func (o *ObjectStorage) Write(hash string, data []byte) error {
+	objectPath := o.GetObjectPath(hash)
+	dir := filepath.Dir(objectPath)
+	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+		return err
+	}
+	return os.WriteFile(objectPath, data, workspace.FilePermission)
 }
 
-func (objectStorage *ObjectStorage) Read(hash string) ([]byte, error) {
-	objectPath := objectStorage.GetObjectPath(hash)
-	return objectStorage.filesystemStorage.ReadFile(objectPath)
+func (o *ObjectStorage) Read(hash string) ([]byte, error) {
+	objectPath := o.GetObjectPath(hash)
+	return os.ReadFile(objectPath)
 }
 
-func (objectStorage *ObjectStorage) Exists(hash string) bool {
-	objectPath := objectStorage.GetObjectPath(hash)
-	return objectStorage.filesystemStorage.Exists(objectPath)
+func (o *ObjectStorage) Exists(hash string) bool {
+	objectPath := o.GetObjectPath(hash)
+	_, err := os.Stat(objectPath)
+	return err == nil
 }
 
-func (objectStorage *ObjectStorage) GetObjectPath(hash string) string {
-	ws := objectStorage.workspaceProvider.GetWorkspace()
+func (o *ObjectStorage) GetObjectPath(hash string) string {
+	ws := o.workspaceProvider.GetWorkspace()
 	dir := hash[:2]
 	file := hash[2:]
 	return filepath.Join(ws.ObjectsDir, dir, file)

@@ -3,17 +3,16 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/storage"
+	"os"
 )
 
 type ObjectService struct {
-	objectStorage     *storage.ObjectStorage
-	filesystemStorage *storage.FilesystemStorage
+	objectStorage *storage.ObjectStorage
 }
 
-func NewObjectService(objectStorage *storage.ObjectStorage, filesystemStorage *storage.FilesystemStorage) *ObjectService {
+func NewObjectService(objectStorage *storage.ObjectStorage) *ObjectService {
 	return &ObjectService{
-		objectStorage:     objectStorage,
-		filesystemStorage: filesystemStorage,
+		objectStorage: objectStorage,
 	}
 }
 
@@ -85,6 +84,7 @@ func (o *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
 	}
 	return tree, nil
 }
+
 func (o *ObjectService) ReadCommit(hash string) (*domain.Commit, error) {
 	object, err := o.Read(hash)
 	if err != nil {
@@ -112,7 +112,7 @@ func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain
 }
 
 func (o *ObjectService) ComputeHash(path string) (string, error) {
-	fileData, err := o.filesystemStorage.ReadFile(path)
+	fileData, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}

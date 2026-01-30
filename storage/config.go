@@ -2,35 +2,30 @@ package storage
 
 import (
 	"Gel/internal/workspace"
+	"os"
+	"path/filepath"
 )
 
 type ConfigStorage struct {
-	filesystemStorage *FilesystemStorage
 	workspaceProvider *workspace.Provider
 }
 
-func NewConfigStorage(filesystemStorage *FilesystemStorage, workspaceProvider *workspace.Provider) *ConfigStorage {
+func NewConfigStorage(workspaceProvider *workspace.Provider) *ConfigStorage {
 	return &ConfigStorage{
-		filesystemStorage: filesystemStorage,
 		workspaceProvider: workspaceProvider,
 	}
 }
 
-func (configStorage *ConfigStorage) Read() ([]byte, error) {
-	ws := configStorage.workspaceProvider.GetWorkspace()
-	data, err := configStorage.filesystemStorage.ReadFile(ws.ConfigPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
+func (c *ConfigStorage) Read() ([]byte, error) {
+	ws := c.workspaceProvider.GetWorkspace()
+	return os.ReadFile(ws.ConfigPath)
 }
 
-func (configStorage *ConfigStorage) Write(data []byte) error {
-	ws := configStorage.workspaceProvider.GetWorkspace()
-	return configStorage.filesystemStorage.WriteFile(
-		ws.ConfigPath,
-		data,
-		true,
-		workspace.FilePermission)
+func (c *ConfigStorage) Write(data []byte) error {
+	ws := c.workspaceProvider.GetWorkspace()
+	dir := filepath.Dir(ws.ConfigPath)
+	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+		return err
+	}
+	return os.WriteFile(ws.ConfigPath, data, workspace.FilePermission)
 }

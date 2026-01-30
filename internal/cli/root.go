@@ -78,34 +78,33 @@ func initializeServices() error {
 		return err
 	}
 
-	filesystemStorage := storage.NewFilesystemStorage()
-	objectStorage := storage.NewObjectStorage(filesystemStorage, workspaceProvider)
-	indexStorage := storage.NewIndexStorage(filesystemStorage, workspaceProvider)
-	configStorage := storage.NewConfigStorage(filesystemStorage, workspaceProvider)
+	objectStorage := storage.NewObjectStorage(workspaceProvider)
+	indexStorage := storage.NewIndexStorage(workspaceProvider)
+	configStorage := storage.NewConfigStorage(workspaceProvider)
 
-	objectService = gel.NewObjectService(objectStorage, filesystemStorage)
+	objectService = gel.NewObjectService(objectStorage)
 	indexService = gel.NewIndexService(indexStorage)
 	configService = gel.NewConfigService(configStorage)
 
-	hashObjectService = gel.NewHashObjectService(objectService, filesystemStorage)
+	hashObjectService = gel.NewHashObjectService(objectService)
 	catFileService = gel.NewCatFileService(objectService)
 
 	pathResolver := pathspec.NewPathResolver(cwd, nil)
 	updateIndexService = gel.NewUpdateIndexService(indexService, hashObjectService, objectService)
 	addService = gel.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = gel.NewLsFilesService(indexService, filesystemStorage, objectService)
+	lsFilesService = gel.NewLsFilesService(indexService, objectService)
 	writeTreeService = gel.NewWriteTreeService(indexService, objectService)
 	readTreeService = gel.NewReadTreeService(indexService, objectService)
 	lsTreeService = gel.NewLsTreeService(objectService)
 	commitTreeService = gel.NewCommitTreeService(objectService, configService)
-	refService = gel.NewRefService(workspaceProvider, filesystemStorage)
+	refService = gel.NewRefService(workspaceProvider)
 	symbolicRefService = gel.NewSymbolicRefService(refService)
 	updateRefService = gel.NewUpdateRefService(refService)
-	commitService = gel.NewCommitService(writeTreeService, commitTreeService, refService, filesystemStorage, objectService)
+	commitService = gel.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
 	logService = gel.NewLogService(refService, objectService)
 	branchService = gel.NewBranchService(refService, workspaceProvider)
-	restoreService = gel.NewRestoreService(indexService, objectService, filesystemStorage, refService)
-	switchService = gel.NewSwitchService(refService, objectService, filesystemStorage, readTreeService, workspaceProvider)
+	restoreService = gel.NewRestoreService(indexService, objectService, refService)
+	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
 
 	isServicesInitialized = true
 

@@ -2,23 +2,20 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/storage"
 	"fmt"
 	"io"
 	"os"
 )
 
 type LsFilesService struct {
-	indexService      *IndexService
-	filesystemStorage *storage.FilesystemStorage
-	objectService     *ObjectService
+	indexService  *IndexService
+	objectService *ObjectService
 }
 
-func NewLsFilesService(indexService *IndexService, filesystemStorage *storage.FilesystemStorage, objectService *ObjectService) *LsFilesService {
+func NewLsFilesService(indexService *IndexService, objectService *ObjectService) *LsFilesService {
 	return &LsFilesService{
-		indexService:      indexService,
-		filesystemStorage: filesystemStorage,
-		objectService:     objectService,
+		indexService:  indexService,
+		objectService: objectService,
 	}
 }
 
@@ -67,9 +64,9 @@ func (l *LsFilesService) LsFilesWithCache(writer io.Writer, entries []*domain.In
 
 func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		exists := l.filesystemStorage.Exists(entry.Path)
-		if !exists {
-			continue
+		_, err := os.Stat(entry.Path)
+		if err != nil {
+			continue // file doesn't exist
 		}
 
 		isModified := l.isModified(entry)
@@ -85,8 +82,8 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 
 func (l *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		exists := l.filesystemStorage.Exists(entry.Path)
-		if !exists {
+		_, err := os.Stat(entry.Path)
+		if err != nil { // file doesn't exist
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
 				return err
 			}

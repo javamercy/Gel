@@ -2,25 +2,22 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/storage"
 	"fmt"
 	"io"
+	"os"
 )
 
 type HashObjectService struct {
-	objectService     *ObjectService
-	filesystemStorage *storage.FilesystemStorage
+	objectService *ObjectService
 }
 
-func NewHashObjectService(objectService *ObjectService, filesystemStorage *storage.FilesystemStorage) *HashObjectService {
+func NewHashObjectService(objectService *ObjectService) *HashObjectService {
 	return &HashObjectService{
-		objectService:     objectService,
-		filesystemStorage: filesystemStorage,
+		objectService: objectService,
 	}
 }
 
 func (h *HashObjectService) HashObjects(writer io.Writer, paths []string, write bool) error {
-
 	for _, path := range paths {
 		hash, _, err := h.HashObject(path, write)
 		if err != nil {
@@ -34,8 +31,7 @@ func (h *HashObjectService) HashObjects(writer io.Writer, paths []string, write 
 }
 
 func (h *HashObjectService) HashObject(path string, write bool) (string, []byte, error) {
-
-	data, err := h.filesystemStorage.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", nil, err
 	}

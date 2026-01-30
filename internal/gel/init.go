@@ -2,23 +2,18 @@ package gel
 
 import (
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"fmt"
+	"os"
 	"path/filepath"
 )
 
-type InitService struct {
-	filesystemStorage *storage.FilesystemStorage
+type InitService struct{}
+
+func NewInitService() *InitService {
+	return &InitService{}
 }
 
-func NewInitService(filesystemStorage *storage.FilesystemStorage) *InitService {
-	return &InitService{
-		filesystemStorage: filesystemStorage,
-	}
-}
-
-func (initService *InitService) Init(path string) (string, error) {
-
+func (i *InitService) Init(path string) (string, error) {
 	base := filepath.Join(path, workspace.GelDirName)
 
 	dirs := []string{
@@ -27,41 +22,34 @@ func (initService *InitService) Init(path string) (string, error) {
 		filepath.Join(base, workspace.RefsDirName, workspace.TagsDirName),
 	}
 
-	files := []string{
-		filepath.Join(base, workspace.ConfigFileName),
-		filepath.Join(base, workspace.HeadFileName),
-	}
-
-	exists := initService.filesystemStorage.Exists(base)
+	exists := fileExists(base)
 
 	for _, dir := range dirs {
-		if err := initService.filesystemStorage.MakeDir(
-			dir,
-			workspace.DirPermission); err != nil {
+		if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 			return "", err
 		}
 	}
-	for i, file := range files {
-		var err error
-		if i == 1 {
-			headRefBytes := []byte("ref: refs/heads/main\n")
-			err = initService.filesystemStorage.WriteFile(
-				file,
-				headRefBytes, false,
-				workspace.FilePermission)
-		} else {
-			err = initService.filesystemStorage.WriteFile(
-				file,
-				[]byte{}, false,
-				workspace.FilePermission)
-		}
-		if err != nil {
-			return "", err
-		}
+
+	// Create config file (empty)
+	configPath := filepath.Join(base, workspace.ConfigFileName)
+	if err := os.WriteFile(configPath, []byte{}, workspace.FilePermission); err != nil {
+		return "", err
+	}
+
+	// Create HEAD file pointing to main branch
+	headPath := filepath.Join(base, workspace.HeadFileName)
+	headContent := []byte("ref: refs/heads/main\n")
+	if err := os.WriteFile(headPath, headContent, workspace.FilePermission); err != nil {
+		return "", err
 	}
 
 	if exists {
 		return "Reinitialized existing Gel repository", nil
 	}
 	return fmt.Sprintf("Initialized empty Gel repository in %v", base), nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

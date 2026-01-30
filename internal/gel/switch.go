@@ -3,15 +3,14 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"fmt"
+	"os"
 	"path/filepath"
 )
 
 type SwitchService struct {
 	refService        *RefService
 	objectService     *ObjectService
-	filesystemStorage *storage.FilesystemStorage
 	readTreeService   *ReadTreeService
 	workspaceProvider *workspace.Provider
 }
@@ -19,13 +18,11 @@ type SwitchService struct {
 func NewSwitchService(
 	refService *RefService,
 	objectService *ObjectService,
-	filesystemStorage *storage.FilesystemStorage,
 	readTreeService *ReadTreeService,
 	workspaceProvider *workspace.Provider) *SwitchService {
 	return &SwitchService{
 		refService:        refService,
 		objectService:     objectService,
-		filesystemStorage: filesystemStorage,
 		readTreeService:   readTreeService,
 		workspaceProvider: workspaceProvider,
 	}
@@ -121,11 +118,12 @@ func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string)
 			if err != nil {
 				return err
 			}
-			if err := s.filesystemStorage.WriteFile(
-				targetPath,
-				blob.Body(),
-				true,
-				workspace.FilePermission); err != nil {
+			// Create parent directory if needed
+			dir := filepath.Dir(targetPath)
+			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+				return err
+			}
+			if err := os.WriteFile(targetPath, blob.Body(), workspace.FilePermission); err != nil {
 				return err
 			}
 		}
@@ -133,7 +131,7 @@ func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string)
 
 	for currentPath := range currentPathMap {
 		if _, existsInTarget := targetPathMap[currentPath]; !existsInTarget {
-			if err := s.filesystemStorage.RemoveAll(currentPath); err != nil {
+			if err := os.RemoveAll(currentPath); err != nil {
 				return err
 			}
 		}

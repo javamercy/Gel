@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"errors"
 	"io/fs"
 )
@@ -11,20 +10,17 @@ type CommitService struct {
 	writeTreeService  *WriteTreeService
 	commitTreeService *CommitTreeService
 	refService        *RefService
-	filesystemStorage *storage.FilesystemStorage
 	objectService     *ObjectService
 }
 
 func NewCommitService(writeTreeService *WriteTreeService,
 	commitTreeService *CommitTreeService,
 	refService *RefService,
-	filesystemStorage *storage.FilesystemStorage,
 	objectService *ObjectService) *CommitService {
 	return &CommitService{
 		writeTreeService:  writeTreeService,
 		commitTreeService: commitTreeService,
 		refService:        refService,
-		filesystemStorage: filesystemStorage,
 		objectService:     objectService,
 	}
 }

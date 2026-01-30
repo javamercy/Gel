@@ -3,10 +3,10 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"errors"
-	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,22 +15,19 @@ var (
 )
 
 type RestoreService struct {
-	indexService      *IndexService
-	objectService     *ObjectService
-	filesystemStorage *storage.FilesystemStorage
-	refService        *RefService
+	indexService  *IndexService
+	objectService *ObjectService
+	refService    *RefService
 }
 
 func NewRestoreService(
 	indexService *IndexService,
 	objectService *ObjectService,
-	filesystemStorage *storage.FilesystemStorage,
 	refService *RefService) *RestoreService {
 	return &RestoreService{
-		indexService:      indexService,
-		objectService:     objectService,
-		filesystemStorage: filesystemStorage,
-		refService:        refService,
+		indexService:  indexService,
+		objectService: objectService,
+		refService:    refService,
 	}
 }
 
@@ -69,7 +66,7 @@ func (r *RestoreService) restoreWithStaged(paths []string) error {
 			existsInHead = true
 		}
 		if !existsInIndex && !existsInHead {
-			return fmt.Errorf("pathspec %s not not match any files", path)
+			return errors.New("pathspec " + path + " not not match any files")
 		}
 		if existsInHead {
 			newIndexEntry := domain.NewEmptyIndexEntry(path, treeEntry.Hash, treeEntry.Mode.Uint32())
@@ -101,11 +98,12 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 			if err != nil {
 				return err
 			}
-			if err := r.filesystemStorage.WriteFile(
-				path,
-				blob.Body(),
-				true,
-				workspace.FilePermission); err != nil {
+			// Create parent directory if needed
+			dir := filepath.Dir(path)
+			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+				return err
+			}
+			if err := os.WriteFile(path, blob.Body(), workspace.FilePermission); err != nil {
 				return err
 			}
 		}
