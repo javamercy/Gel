@@ -125,3 +125,7 @@ func (o *ObjectService) ComputeHash(path string) (string, error) {
 	serializedData := blob.Serialize()
 	return ComputeSHA256(serializedData), nil
 }
+
+func (o *ObjectService) Exists(hash string) bool {
+	return o.objectStorage.Exists(hash)
+}

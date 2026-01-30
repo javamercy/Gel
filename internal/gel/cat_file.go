@@ -17,18 +17,23 @@ func NewCatFileService(objectService *ObjectService) *CatFileService {
 	}
 }
 
-func (catFileService *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
+func (c *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
 	if err := validate.Hash(hash); err != nil {
 		return err
 	}
 
-	object, err := catFileService.objectService.Read(hash)
+	if exists {
+		if !c.objectService.Exists(hash) {
+			return fmt.Errorf("object %s does not exist", hash)
+		}
+		return nil
+	}
+
+	object, err := c.objectService.Read(hash)
 	if err != nil {
 		return err
 	}
-	if exists {
-		return nil
-	}
+
 	if objectType {
 		if _, err := fmt.Fprintf(writer, "%s\n", object.Type()); err != nil {
 			return err
@@ -40,6 +45,7 @@ func (catFileService *CatFileService) CatFile(writer io.Writer, hash string, obj
 		}
 	}
 	if pretty {
+
 		return catFileWithPretty(writer, object)
 	}
 	return nil
@@ -58,10 +64,14 @@ func catFileWithPretty(writer io.Writer, object domain.IObject) error {
 			return err
 		}
 		for _, entry := range treeEntries {
+			objectType, err := entry.Mode.ObjectType()
+			if err != nil {
+				return err
+			}
 			if _, err := fmt.Fprintf(writer,
 				"%s %s %s\t%s\n",
 				entry.Mode,
-				tree.Type(),
+				objectType,
 				entry.Hash,
 				entry.Name); err != nil {
 				return err

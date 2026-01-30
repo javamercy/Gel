@@ -17,7 +17,7 @@ func NewObjectStorage(workspaceProvider *workspace.Provider) *ObjectStorage {
 }
 
 func (o *ObjectStorage) Write(hash string, data []byte) error {
-	objectPath := o.GetObjectPath(hash)
+	objectPath := o.objectPath(hash)
 	dir := filepath.Dir(objectPath)
 	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 		return err
@@ -26,19 +26,19 @@ func (o *ObjectStorage) Write(hash string, data []byte) error {
 }
 
 func (o *ObjectStorage) Read(hash string) ([]byte, error) {
-	objectPath := o.GetObjectPath(hash)
+	objectPath := o.objectPath(hash)
 	return os.ReadFile(objectPath)
 }
 
 func (o *ObjectStorage) Exists(hash string) bool {
-	objectPath := o.GetObjectPath(hash)
+	objectPath := o.objectPath(hash)
 	_, err := os.Stat(objectPath)
 	return err == nil
 }
 
-func (o *ObjectStorage) GetObjectPath(hash string) string {
-	ws := o.workspaceProvider.GetWorkspace()
+func (o *ObjectStorage) objectPath(hash string) string {
+	w := o.workspaceProvider.GetWorkspace()
 	dir := hash[:2]
 	file := hash[2:]
-	return filepath.Join(ws.ObjectsDir, dir, file)
+	return filepath.Join(w.ObjectsDir, dir, file)
 }
