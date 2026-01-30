@@ -49,6 +49,5 @@ func (h *HashObjectService) HashObject(path string, write bool) (string, []byte,
 			return "", nil, err
 		}
 	}
-
 	return hash, serializedData, nil
 }

@@ -10,6 +10,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init [path]",
 	Short: "Initialize a new Gel repository",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var path string
 		if len(args) > 0 {
