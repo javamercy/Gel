@@ -42,7 +42,7 @@ func (o *ObjectService) Write(hash string, data []byte) error {
 	return o.objectStorage.Write(hash, compressedData)
 }
 
-func (o *ObjectService) Read(hash string) (domain.IObject, error) {
+func (o *ObjectService) Read(hash string) (domain.Object, error) {
 	compressedData, err := o.objectStorage.Read(hash)
 	if err != nil {
 		return nil, err

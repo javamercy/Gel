@@ -45,13 +45,12 @@ func (c *CatFileService) CatFile(writer io.Writer, hash string, objectType, pret
 		}
 	}
 	if pretty {
-
 		return catFileWithPretty(writer, object)
 	}
 	return nil
 }
 
-func catFileWithPretty(writer io.Writer, object domain.IObject) error {
+func catFileWithPretty(writer io.Writer, object domain.Object) error {
 	switch object.Type() {
 	case domain.ObjectTypeTree:
 		tree, ok := object.(*domain.Tree)

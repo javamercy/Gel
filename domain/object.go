@@ -13,20 +13,14 @@ var (
 	ErrInvalidSizeFormat  = errors.New("invalid object header: size must be a valid integer")
 )
 
-type IObject interface {
+type Object interface {
 	Type() ObjectType
 	Size() int
 	Serialize() []byte
 	Body() []byte
 }
 
-var (
-	_ IObject = (*Blob)(nil)
-	_ IObject = (*Tree)(nil)
-	_ IObject = (*Commit)(nil)
-)
-
-func DeserializeObject(data []byte) (IObject, error) {
+func DeserializeObject(data []byte) (Object, error) {
 	nullIndex := FindNullByteIndex(data)
 	if nullIndex == -1 {
 		return nil, ErrNoNullByteFound
