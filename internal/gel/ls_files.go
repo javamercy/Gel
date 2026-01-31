@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+)
+
+const (
+	globPatterns string = "*?[]"
 )
 
 type LsFilesService struct {
@@ -19,13 +24,24 @@ func NewLsFilesService(indexService *IndexService, objectService *ObjectService)
 	}
 }
 
-func (l *LsFilesService) LsFiles(writer io.Writer, cached, stage, modified, deleted bool) error {
+func (l *LsFilesService) LsFiles(
+	writer io.Writer, pathspec string, cached, stage, modified, deleted bool,
+) error {
 	index, err := l.indexService.Read()
 	if err != nil {
 		return err
 	}
 
-	entries := index.Entries
+	var entries []*domain.IndexEntry
+	if pathspec != "" {
+		if strings.ContainsAny(pathspec, globPatterns) {
+			entries = index.FindEntriesByPathPattern(pathspec)
+		} else {
+			entries = index.FindEntriesByPathPrefix(pathspec)
+		}
+	} else {
+		entries = index.Entries
+	}
 
 	if stage {
 		return l.LsFilesWithStage(writer, entries)
@@ -41,12 +57,14 @@ func (l *LsFilesService) LsFiles(writer io.Writer, cached, stage, modified, dele
 
 func (l *LsFilesService) LsFilesWithStage(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		if _, err := fmt.Fprintf(writer,
+		if _, err := fmt.Fprintf(
+			writer,
 			"%s %s %d\t%s\n",
 			domain.ParseFileMode(entry.Mode),
 			entry.Hash,
 			entry.GetStage(),
-			entry.Path); err != nil {
+			entry.Path,
+		); err != nil {
 			return err
 		}
 	}
@@ -64,17 +82,26 @@ func (l *LsFilesService) LsFilesWithCache(writer io.Writer, entries []*domain.In
 
 func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		_, err := os.Stat(entry.Path)
+		fileInfo, err := os.Stat(entry.Path)
 		if err != nil {
-			continue // file doesn't exist
-		}
-
-		isModified := l.isModified(entry)
-		if !isModified {
 			continue
 		}
-		if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-			return err
+		if uint32(fileInfo.Size()) != entry.Size {
+			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
+				return err
+			}
+			return nil
+		}
+		if !fileInfo.ModTime().Equal(entry.UpdatedTime) {
+			currentHash, err := l.objectService.ComputeHash(entry.Path)
+			if err != nil {
+				return err
+			}
+			if currentHash != entry.Hash {
+				if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -83,31 +110,11 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 func (l *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		_, err := os.Stat(entry.Path)
-		if err != nil { // file doesn't exist
+		if err != nil {
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-func (l *LsFilesService) isModified(entry *domain.IndexEntry) bool {
-	path := entry.Path
-	stat, err := os.Stat(path)
-
-	if err != nil {
-		return false
-	}
-	if uint32(stat.Size()) != entry.Size {
-		return true
-	}
-	if !stat.ModTime().Equal(entry.UpdatedTime) {
-		currentHash, err := l.objectService.ComputeHash(path)
-		if err != nil {
-			return false
-		}
-		return currentHash != entry.Hash
-	}
-	return false
 }
