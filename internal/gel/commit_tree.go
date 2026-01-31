@@ -28,23 +28,19 @@ func (commitTreeService *CommitTreeService) CommitTree(hash string, message stri
 		return "", err
 	}
 
-	user, err := commitTreeService.configService.GetUserIdentity()
+	name, email, err := commitTreeService.configService.GetUserInfo()
 	if err != nil {
 		return "", err
 	}
 
 	now := time.Now()
 
-	identity, err := domain.NewIdentity(
-		user.Name,
-		user.Email,
+	identity := domain.NewIdentity(
+		name,
+		email,
 		domain.FormatCommitTimestamp(now),
 		domain.FormatCommitTimezone(now),
 	)
-	if err != nil {
-		return "", err
-	}
-
 	commitFields := domain.CommitFields{
 		TreeHash:     hash,
 		ParentHashes: parentHashes,

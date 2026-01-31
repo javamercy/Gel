@@ -1,40 +1,29 @@
 package domain
 
-import (
-	"Gel/domain/validation"
-)
-
-type UserConfig struct {
-	Name  string `toml:"name,omitempty" validate:"required,min=1,max=256"`
-	Email string `toml:"email,omitempty" validate:"required,email"`
-}
-
-func NewUserConfig(name, email string) (UserConfig, error) {
-	userConfig := UserConfig{
-		Name:  name,
-		Email: email,
-	}
-
-	validator := validation.GetValidator()
-	if err := validator.Struct(userConfig); err != nil {
-		return UserConfig{}, err
-	}
-	return userConfig, nil
-}
+type Section map[string]string
 
 type Config struct {
-	User UserConfig `toml:"user" validate:"required"`
+	Sections map[string]Section
 }
 
-func NewConfig(user UserConfig) (*Config, error) {
-	config := &Config{
-		User: user,
+func NewConfigFromMap(sections map[string]Section) *Config {
+	return &Config{
+		Sections: sections,
 	}
+}
 
-	validator := validation.GetValidator()
-	if err := validator.Struct(config); err != nil {
-		return nil, err
+func (c *Config) Get(section, key string) (string, bool) {
+	sec, ok := c.Sections[section]
+	if !ok {
+		return "", false
 	}
+	value, ok := sec[key]
+	return value, ok
+}
 
-	return config, nil
+func (c *Config) Set(section, key, value string) {
+	if _, ok := c.Sections[section]; !ok {
+		c.Sections[section] = make(Section)
+	}
+	c.Sections[section][key] = value
 }

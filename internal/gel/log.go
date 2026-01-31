@@ -75,7 +75,7 @@ func (s *LogService) printCommit(w io.Writer, hash string, commit *domain.Commit
 		commitPrefix,
 		hash,
 		commitSuffix,
-		commit.Author.User.Name, commit.Author.User.Email,
+		commit.Author.Name, commit.Author.Email,
 		t,
 		commit.Message); err != nil {
 		return err
