@@ -17,7 +17,8 @@ type AddService struct {
 func NewAddService(
 	indexService *IndexService,
 	updateIndexService *UpdateIndexService,
-	pathResolver *pathspec.PathResolver) *AddService {
+	pathResolver *pathspec.PathResolver,
+) *AddService {
 	return &AddService{
 		indexService:       indexService,
 		updateIndexService: updateIndexService,
@@ -25,7 +26,7 @@ func NewAddService(
 	}
 }
 
-func (a *AddService) Add(w io.Writer, pathspecs []string, dryRun bool) error {
+func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose bool) error {
 	index, err := a.indexService.Read()
 	if errors.Is(err, ErrIndexNotFound) {
 		index = domain.NewEmptyIndex()
@@ -44,7 +45,7 @@ func (a *AddService) Add(w io.Writer, pathspecs []string, dryRun bool) error {
 	}
 
 	if dryRun {
-		return addWithDryRun(w, pathsToAdd, pathsToRemove)
+		return addWithDryRun(writer, pathsToAdd, pathsToRemove)
 	}
 
 	if err := a.updateIndexService.UpdateIndex(pathsToAdd, true, false); err != nil {
@@ -53,10 +54,16 @@ func (a *AddService) Add(w io.Writer, pathspecs []string, dryRun bool) error {
 	if err := a.updateIndexService.UpdateIndex(pathsToRemove, false, true); err != nil {
 		return err
 	}
+
+	if verbose {
+		return addWithDryRun(writer, pathsToAdd, pathsToRemove)
+	}
 	return nil
 }
 
-func collectPaths(index *domain.Index, resolvedPaths []pathspec.ResolvedPath) ([]string, []string, error) {
+func collectPaths(index *domain.Index, resolvedPaths []pathspec.ResolvedPath) (
+	[]string, []string, error,
+) {
 	var pathsToAdd []string
 	var pathsToRemove []string
 
@@ -89,21 +96,23 @@ func collectPaths(index *domain.Index, resolvedPaths []pathspec.ResolvedPath) ([
 		}
 
 		if len(resolved.NormalizedPaths) == 0 && len(indexEntries) == 0 {
-			return nil, nil, fmt.Errorf("pathspec '%s' did not match any files", resolved.NormalizedScope)
+			return nil, nil, fmt.Errorf(
+				"pathspec '%s' did not match any files", resolved.NormalizedScope,
+			)
 		}
 
 	}
 	return pathsToAdd, pathsToRemove, nil
 }
 
-func addWithDryRun(w io.Writer, pathsToAdd, pathsToRemove []string) error {
+func addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []string) error {
 	for _, path := range pathsToAdd {
-		if _, err := w.Write([]byte(fmt.Sprintf("A  %s\n", path))); err != nil {
+		if _, err := writer.Write([]byte(fmt.Sprintf("add '%s'\n", path))); err != nil {
 			return err
 		}
 	}
 	for _, path := range pathsToRemove {
-		if _, err := w.Write([]byte(fmt.Sprintf("D  %s\n", path))); err != nil {
+		if _, err := writer.Write([]byte(fmt.Sprintf("remove '%s'\n", path))); err != nil {
 			return err
 		}
 	}
