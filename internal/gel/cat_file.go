@@ -67,12 +67,14 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 			if err != nil {
 				return err
 			}
-			if _, err := fmt.Fprintf(writer,
+			if _, err := fmt.Fprintf(
+				writer,
 				"%s %s %s\t%s\n",
 				entry.Mode,
 				objectType,
 				entry.Hash,
-				entry.Name); err != nil {
+				entry.Name,
+			); err != nil {
 				return err
 			}
 		}
@@ -81,29 +83,34 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 		if !ok {
 			return domain.ErrInvalidObjectType
 		}
-
-		_, err := io.WriteString(writer, string(blob.Body()))
-		return err
+		if _, err := writer.Write(blob.Body()); err != nil {
+			return err
+		}
 	case domain.ObjectTypeCommit:
 		commit, ok := object.(*domain.Commit)
 		if !ok {
 			return domain.ErrInvalidObjectType
 		}
-		if _, err := fmt.Fprintf(writer,
+		if _, err := fmt.Fprintf(
+			writer,
 			"%s %s\n",
 			domain.CommitFieldTree,
-			commit.TreeHash); err != nil {
+			commit.TreeHash,
+		); err != nil {
 			return err
 		}
 		for _, parentHash := range commit.ParentHashes {
-			if _, err := fmt.Fprintf(writer,
+			if _, err := fmt.Fprintf(
+				writer,
 				"%s %s\n",
 				domain.CommitFieldParent,
-				parentHash); err != nil {
+				parentHash,
+			); err != nil {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintf(writer,
+		if _, err := fmt.Fprintf(
+			writer,
 			"%s %s <%s> %s %s\n"+
 				"%s %s <%s> %s %s\n"+
 				"\n%s\n",
