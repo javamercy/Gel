@@ -18,17 +18,17 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 	}
 }
 
-func (commitTreeService *CommitTreeService) CommitTree(hash string, message string, parentHashes []string) (string, error) {
+func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes []string) (string, error) {
 	if err := validate.Hash(hash); err != nil {
 		return "", err
 	}
 
-	_, err := commitTreeService.objectService.ReadTree(hash)
+	_, err := c.objectService.ReadTree(hash)
 	if err != nil {
 		return "", err
 	}
 
-	name, email, err := commitTreeService.configService.GetUserInfo()
+	name, email, err := c.configService.GetUserInfo()
 	if err != nil {
 		return "", err
 	}
@@ -55,7 +55,7 @@ func (commitTreeService *CommitTreeService) CommitTree(hash string, message stri
 
 	serializedData := commit.Serialize()
 	commitHash := ComputeSHA256(serializedData)
-	err = commitTreeService.objectService.Write(commitHash, serializedData)
+	err = c.objectService.Write(commitHash, serializedData)
 	if err != nil {
 		return "", err
 	}

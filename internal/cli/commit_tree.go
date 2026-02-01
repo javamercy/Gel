@@ -1,24 +1,19 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
 var (
-	messageFlag string
+	commitTreeMessageFlag string
+	commitTreeParentsFlag []string
 )
 var commitTreeCmd = &cobra.Command{
 	Use:   "commit-tree <tree-hash>",
 	Short: "Create a new commit object from a tree object",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return fmt.Errorf("tree hash required")
-		}
-
-		treeHash := args[0]
-		commitHash, err := commitTreeService.CommitTree(treeHash, messageFlag, nil)
+		commitHash, err := commitTreeService.CommitTree(args[0], commitTreeMessageFlag, commitTreeParentsFlag)
 		if err != nil {
 			return err
 		}
@@ -29,6 +24,7 @@ var commitTreeCmd = &cobra.Command{
 }
 
 func init() {
-	commitTreeCmd.Flags().StringVarP(&messageFlag, "message", "m", "", "Commit message")
+	commitTreeCmd.Flags().StringVarP(&commitTreeMessageFlag, "message", "m", "", "Commit message")
+	commitTreeCmd.Flags().StringSliceVarP(&commitTreeParentsFlag, "parent", "p", nil, "Parent commit(s)")
 	rootCmd.AddCommand(commitTreeCmd)
 }
