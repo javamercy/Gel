@@ -24,7 +24,6 @@ func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 	}
 
 	var indexEntries []*domain.IndexEntry
-
 	processor := func(entry domain.TreeEntry, relPath string) error {
 		indexEntry, err := domain.NewIndexEntry(
 			relPath,
@@ -36,8 +35,9 @@ func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 			0,
 			0,
 			domain.ComputeIndexFlags(relPath, 0),
-			time.Now(),
-			time.Now())
+			time.Time{},
+			time.Time{},
+		)
 
 		if err != nil {
 			return err
