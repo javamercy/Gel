@@ -4,6 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	symbolicRefShortFlag bool
+)
+
 var symbolicRefCmd = &cobra.Command{
 	Use:   "symbolic-ref",
 	Short: "Create, delete or list symbolic references",
@@ -12,7 +16,7 @@ var symbolicRefCmd = &cobra.Command{
 		name := args[0]
 
 		if len(args) == 1 {
-			ref, err := symbolicRefService.Read(name)
+			ref, err := symbolicRefService.Read(name, symbolicRefShortFlag)
 			if err != nil {
 				return err
 			}
@@ -24,5 +28,6 @@ var symbolicRefCmd = &cobra.Command{
 }
 
 func init() {
+	symbolicRefCmd.Flags().BoolVarP(&symbolicRefShortFlag, "short", "s", false, "Print the short name of the reference")
 	rootCmd.AddCommand(symbolicRefCmd)
 }
