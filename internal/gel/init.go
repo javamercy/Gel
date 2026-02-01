@@ -22,6 +22,8 @@ func (i *InitService) Init(path string) (string, error) {
 		filepath.Join(base, workspace.RefsDirName, workspace.TagsDirName),
 	}
 
+	exists := fileExists(base)
+
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 			return "", err
@@ -39,7 +41,7 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", err
 	}
 
-	if fileExists(base) {
+	if exists {
 		return "Reinitialized existing Gel repository", nil
 	}
 	return fmt.Sprintf("Initialized empty Gel repository in %v", base), nil
