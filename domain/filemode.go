@@ -18,7 +18,7 @@ const (
 const (
 	RegularFileStr    = "100644"
 	ExecutableFileStr = "100755"
-	DirectoryStr      = "040000"
+	DirectoryStr      = "40000"
 	SymlinkStr        = "120000"
 	SubmoduleStr      = "160000"
 )

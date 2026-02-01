@@ -21,9 +21,11 @@ func TestParseFileMode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run("uint32", func(t *testing.T) {
-			assert.Equal(t, tt.expected, ParseFileMode(tt.input))
-		})
+		t.Run(
+			"uint32", func(t *testing.T) {
+				assert.Equal(t, tt.expected, ParseFileMode(tt.input))
+			},
+		)
 	}
 }
 
@@ -34,7 +36,7 @@ func TestParseFileModeFromString(t *testing.T) {
 	}{
 		{"100644", RegularFile},
 		{"100755", ExecutableFile},
-		{"040000", Directory},
+		{"40000", Directory},
 		{"120000", Symlink},
 		{"160000", Submodule},
 		{"invalid", InvalidMode},
@@ -42,9 +44,11 @@ func TestParseFileModeFromString(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			assert.Equal(t, tt.expected, ParseFileModeFromString(tt.input))
-		})
+		t.Run(
+			tt.input, func(t *testing.T) {
+				assert.Equal(t, tt.expected, ParseFileModeFromString(tt.input))
+			},
+		)
 	}
 }
 
@@ -55,16 +59,18 @@ func TestFileMode_String(t *testing.T) {
 	}{
 		{RegularFile, "100644"},
 		{ExecutableFile, "100755"},
-		{Directory, "040000"},
+		{Directory, "40000"},
 		{Symlink, "120000"},
 		{Submodule, "160000"},
 		{InvalidMode, ""},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.expected, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.mode.String())
-		})
+		t.Run(
+			tt.expected, func(t *testing.T) {
+				assert.Equal(t, tt.expected, tt.mode.String())
+			},
+		)
 	}
 }
 
@@ -103,14 +109,16 @@ func TestFileMode_ObjectType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.mode.String(), func(t *testing.T) {
-			objType, err := tt.mode.ObjectType()
-			if tt.expectErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedType, objType)
-			}
-		})
+		t.Run(
+			tt.mode.String(), func(t *testing.T) {
+				objType, err := tt.mode.ObjectType()
+				if tt.expectErr {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+					assert.Equal(t, tt.expectedType, objType)
+				}
+			},
+		)
 	}
 }
