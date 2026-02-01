@@ -6,33 +6,46 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewUserConfig_Valid(t *testing.T) {
-	config, err := NewUserConfig("Emre Kurşun", "emre@gmail.com")
-	assert.NoError(t, err)
-	assert.Equal(t, "Emre Kurşun", config.Name)
-	assert.Equal(t, "emre@gmail.com", config.Email)
-}
-
-func TestNewUserConfig_InvalidName(t *testing.T) {
-	_, err := NewUserConfig("", "emre@gmail.com")
-	assert.Error(t, err)
-}
-
-func TestNewUserConfig_InvalidEmail(t *testing.T) {
-	_, err := NewUserConfig("Emre Kurşun", "invalid-email")
-	assert.Error(t, err)
-}
-
-func TestNewConfig_Valid(t *testing.T) {
-	userConfig, _ := NewUserConfig("Emre Kurşun", "emre@gmail.com")
-	config, err := NewConfig(userConfig)
-	assert.NoError(t, err)
+func TestNewConfigFromMap_Valid(t *testing.T) {
+	sections := map[string]Section{
+		"user": {
+			"name":  "Emre Kurşun",
+			"email": "emre@gmail.com",
+		},
+	}
+	config := NewConfigFromMap(sections)
 	assert.NotNil(t, config)
-	assert.Equal(t, userConfig, config.User)
+
+	val, ok := config.Get("user", "name")
+	assert.True(t, ok)
+	assert.Equal(t, "Emre Kurşun", val)
+
+	val, ok = config.Get("user", "email")
+	assert.True(t, ok)
+	assert.Equal(t, "emre@gmail.com", val)
 }
 
-func TestNewConfig_Invalid(t *testing.T) {
-	config, err := NewConfig(UserConfig{})
-	assert.Error(t, err)
-	assert.Nil(t, config)
+func TestConfig_Set(t *testing.T) {
+	config := NewConfigFromMap(make(map[string]Section))
+
+	config.Set("core", "editor", "vim")
+
+	val, ok := config.Get("core", "editor")
+	assert.True(t, ok)
+	assert.Equal(t, "vim", val)
+}
+
+func TestConfig_Set_ExistingSection(t *testing.T) {
+	sections := map[string]Section{
+		"user": {
+			"name": "Old Name",
+		},
+	}
+	config := NewConfigFromMap(sections)
+
+	config.Set("user", "name", "New Name")
+
+	val, ok := config.Get("user", "name")
+	assert.True(t, ok)
+	assert.Equal(t, "New Name", val)
 }

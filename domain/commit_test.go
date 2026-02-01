@@ -8,8 +8,8 @@ import (
 )
 
 func TestNewCommitFromFields_Valid(t *testing.T) {
-	author, _ := NewIdentity("Author", "author@example.com", "1234567890", "+0000")
-	committer, _ := NewIdentity("Committer", "committer@example.com", "1234567890", "+0000")
+	author := NewIdentity("Author", "author@example.com", "1234567890", "+0000")
+	committer := NewIdentity("Committer", "committer@example.com", "1234567890", "+0000")
 	fields := CommitFields{
 		TreeHash:     "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
 		ParentHashes: []string{},
@@ -25,8 +25,8 @@ func TestNewCommitFromFields_Valid(t *testing.T) {
 }
 
 func TestNewCommitFromFields_Invalid(t *testing.T) {
-	author, _ := NewIdentity("Author", "author@example.com", "1234567890", "+0000")
-	committer, _ := NewIdentity("Committer", "committer@example.com", "1234567890", "+0000")
+	author := NewIdentity("Author", "author@example.com", "1234567890", "+0000")
+	committer := NewIdentity("Committer", "committer@example.com", "1234567890", "+0000")
 
 	fields := CommitFields{
 		TreeHash:  "",
@@ -58,8 +58,8 @@ func TestDeserializeCommit_Malformed(t *testing.T) {
 }
 
 func TestSerializeBody_Content(t *testing.T) {
-	author, _ := NewIdentity("Author", "author@example.com", "123", "+0000")
-	committer, _ := NewIdentity("Committer", "committer@example.com", "123", "+0000")
+	author := NewIdentity("Author", "author@example.com", "123", "+0000")
+	committer := NewIdentity("Committer", "committer@example.com", "123", "+0000")
 	fields := CommitFields{
 		TreeHash:     "hash",
 		ParentHashes: []string{"parent1", "parent2"},
@@ -94,6 +94,6 @@ func TestDeserializeCommit_Complex(t *testing.T) {
 	assert.Equal(t, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", commit.TreeHash)
 	assert.Len(t, commit.ParentHashes, 2)
 	assert.Equal(t, "b1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", commit.ParentHashes[0])
-	assert.Equal(t, "A", commit.Author.User.Name)
+	assert.Equal(t, "A", commit.Author.Name)
 	assert.Equal(t, "Multi-line\nMessage", commit.Message)
 }

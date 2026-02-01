@@ -22,3 +22,5 @@ func TestNewBlob_NilBody(t *testing.T) {
 	assert.NotNil(t, blob)
 	assert.Equal(t, 0, blob.Size())
 }
+
+// test
