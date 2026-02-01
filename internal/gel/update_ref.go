@@ -1,7 +1,6 @@
 package gel
 
 import (
-	"Gel/internal/gel/validate"
 	"fmt"
 )
 
@@ -15,24 +14,38 @@ func NewUpdateRefService(refService *RefService) *UpdateRefService {
 	}
 }
 
-func (s *UpdateRefService) Update(ref string, hash string) error {
-	return s.refService.Write(ref, hash)
+func (u *UpdateRefService) Update(ref string, newHash, oldHash string) error {
+	if oldHash == "" {
+		return u.refService.Write(ref, newHash)
+	}
+	return u.updateSafe(ref, newHash, oldHash)
 }
 
-func (s *UpdateRefService) UpdateSafe(ref string, newHash, oldHash string) error {
-	if err := validate.Hash(newHash); err != nil {
-		return err
-	}
-	if err := validate.Hash(oldHash); err != nil {
-		return err
-	}
-
-	currHash, err := s.refService.Read(ref)
+func (u *UpdateRefService) updateSafe(ref string, newHash, oldHash string) error {
+	currentHash, err := u.refService.Read(ref)
 	if err != nil {
 		return err
 	}
-	if currHash != oldHash {
+	if currentHash != oldHash {
 		return fmt.Errorf("cannot update ref '%s' because it is not pointing to '%s'", ref, oldHash)
 	}
-	return s.Update(ref, newHash)
+	return u.refService.Write(ref, newHash)
+}
+
+func (u *UpdateRefService) Delete(ref string, oldHash string) error {
+	if oldHash == "" {
+		return u.refService.Delete(ref)
+	}
+	return u.deleteSafe(ref, oldHash)
+}
+
+func (u *UpdateRefService) deleteSafe(ref, oldHash string) error {
+	currentHash, err := u.refService.Read(ref)
+	if err != nil {
+		return err
+	}
+	if currentHash != oldHash {
+		return fmt.Errorf("cannot update ref '%s' because it is not pointing to '%s'", ref, oldHash)
+	}
+	return u.refService.Delete(ref)
 }
