@@ -23,6 +23,7 @@ var logCmd = &cobra.Command{
 			name = args[0]
 		}
 
+		// TODO: implement paper printing
 		// TODO: handle since and until flags
 		return logService.Log(cmd.OutOrStdout(), name, logLimitFlag, logOnelineFlag)
 	},

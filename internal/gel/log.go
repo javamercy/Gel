@@ -26,8 +26,8 @@ func NewLogService(refService *RefService, objectService *ObjectService) *LogSer
 	}
 }
 
-func (s *LogService) Log(w io.Writer, name string, limit int, oneline bool) error {
-	hash, err := s.refService.Resolve(name)
+func (l *LogService) Log(writer io.Writer, name string, limit int, oneline bool) error {
+	hash, err := l.refService.Resolve(name)
 	if errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("current branch '%s' does not have any commits", name)
 	}
@@ -38,16 +38,16 @@ func (s *LogService) Log(w io.Writer, name string, limit int, oneline bool) erro
 			break
 		}
 		count++
-		commit, err := s.objectService.ReadCommit(hash)
+		commit, err := l.objectService.ReadCommit(hash)
 		if err != nil {
 			return err
 		}
 		if oneline {
-			if err := s.printCommitOneline(w, hash, commit); err != nil {
+			if err := l.printCommitOneline(writer, hash, commit); err != nil {
 				return err
 			}
 		} else {
-			if err := s.printCommit(w, hash, commit); err != nil {
+			if err := l.printCommit(writer, hash, commit); err != nil {
 				return err
 			}
 		}
@@ -55,19 +55,21 @@ func (s *LogService) Log(w io.Writer, name string, limit int, oneline bool) erro
 		if len(commit.ParentHashes) == 0 {
 			break
 		}
+		// TODO: use a priority queue/heap to interleave commits from all parents by date
 		hash = commit.ParentHashes[0]
 	}
 	return nil
 }
 
-func (s *LogService) printCommit(w io.Writer, hash string, commit *domain.Commit) error {
+func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.Commit) error {
 	t, err := domain.FormatCommitDate(commit.Author.Timestamp, commit.Author.Timezone)
 	if err != nil {
 		return err
 	}
 	commitPrefix := colorGreen
 	commitSuffix := colorReset
-	if _, err := fmt.Fprintf(w,
+	if _, err := fmt.Fprintf(
+		writer,
 		"%scommit %s%s\n"+
 			"Author: %s <%s>\n"+
 			"Date:   %v\n"+
@@ -77,18 +79,19 @@ func (s *LogService) printCommit(w io.Writer, hash string, commit *domain.Commit
 		commitSuffix,
 		commit.Author.Name, commit.Author.Email,
 		t,
-		commit.Message); err != nil {
+		commit.Message,
+	); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *LogService) printCommitOneline(w io.Writer, hash string, commit *domain.Commit) error {
+func (l *LogService) printCommitOneline(writer io.Writer, hash string, commit *domain.Commit) error {
 	shortHash := hash[:7]
 	commitPrefix := colorGreen
 	commitSuffix := colorReset
 	firstLine := strings.Split(commit.Message, "\n")[0]
-	if _, err := fmt.Fprintf(w, "%s%s%s %s\n", commitPrefix, shortHash, commitSuffix, firstLine); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s%s%s %s\n", commitPrefix, shortHash, commitSuffix, firstLine); err != nil {
 		return err
 	}
 	return nil
