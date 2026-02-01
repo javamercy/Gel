@@ -17,23 +17,31 @@ func NewLsTreeService(objectService *ObjectService) *LsTreeService {
 	}
 }
 
-func (lsTreeService *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTrees bool) error {
+func (l *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTrees, nameOnly bool) error {
 	if err := validate.Hash(hash); err != nil {
 		return err
 	}
 
-	processor := func(entry domain.TreeEntry, relativePath string) error {
+	processor := func(entry domain.TreeEntry, relPath string) error {
 		objectType, err := entry.Mode.ObjectType()
 		if err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(writer,
-			"%s %s %s\t%s\n",
-			entry.Mode,
-			objectType,
-			entry.Hash,
-			relativePath); err != nil {
-			return err
+		if nameOnly {
+			if _, err := fmt.Fprintln(writer, entry.Name); err != nil {
+				return err
+			}
+		} else {
+			if _, err := fmt.Fprintf(
+				writer,
+				"%s %s %s\t%s\n",
+				entry.Mode,
+				objectType,
+				entry.Hash,
+				relPath,
+			); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -43,7 +51,6 @@ func (lsTreeService *LsTreeService) LsTree(writer io.Writer, hash string, recurs
 		IncludeTrees: showTrees,
 		OnlyTrees:    false,
 	}
-
-	treeWalker := NewTreeWalker(lsTreeService.objectService, options)
+	treeWalker := NewTreeWalker(l.objectService, options)
 	return treeWalker.Walk(hash, "", processor)
 }
