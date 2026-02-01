@@ -23,12 +23,15 @@ var updateIndexCmd = &cobra.Command{
 			return fmt.Errorf("must specify either --add or --remove")
 		}
 
-		return updateIndexService.UpdateIndex(args, updateIndexAddFlag, updateIndexRemoveFlag)
+		_, err := updateIndexService.UpdateIndex(args, updateIndexAddFlag, updateIndexRemoveFlag, true)
+		return err
 	},
 }
 
 func init() {
 	updateIndexCmd.Flags().BoolVarP(&updateIndexAddFlag, "add", "a", false, "Add specified files to the index")
-	updateIndexCmd.Flags().BoolVarP(&updateIndexRemoveFlag, "remove", "r", false, "Remove specified files from the index")
+	updateIndexCmd.Flags().BoolVarP(
+		&updateIndexRemoveFlag, "remove", "r", false, "Remove specified files from the index",
+	)
 	rootCmd.AddCommand(updateIndexCmd)
 }

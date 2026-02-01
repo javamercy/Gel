@@ -11,7 +11,9 @@ type UpdateIndexService struct {
 	objectService     *ObjectService
 }
 
-func NewUpdateIndexService(indexService *IndexService, hashObjectService *HashObjectService, objectService *ObjectService) *UpdateIndexService {
+func NewUpdateIndexService(
+	indexService *IndexService, hashObjectService *HashObjectService, objectService *ObjectService,
+) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,
 		hashObjectService: hashObjectService,
@@ -19,35 +21,51 @@ func NewUpdateIndexService(indexService *IndexService, hashObjectService *HashOb
 	}
 }
 
-func (u *UpdateIndexService) UpdateIndex(paths []string, add, remove bool) error {
+func (u *UpdateIndexService) UpdateIndex(paths []string, add, remove, write bool) (
+	[]string, error,
+) {
 	index, err := u.indexService.Read()
 	if errors.Is(err, ErrIndexNotFound) {
 		index = domain.NewEmptyIndex()
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch {
 	case add:
-		return u.updateIndexWithAdd(index, paths)
+		return u.updateIndexWithAdd(index, paths, write)
 	case remove:
-		return u.updateIndexWithRemove(index, paths)
+		return u.updateIndexWithRemove(index, paths, write)
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string) error {
+func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string, write bool) (
+	[]string, error,
+) {
+	var addedPaths []string
 	for _, path := range paths {
 		fileStatInfo := domain.GetFileStatFromPath(path)
-		hash, _, err := u.hashObjectService.HashObject(path, true)
+
+		if entry, _ := index.FindEntry(path); entry != nil {
+			if entry.UpdatedTime.Equal(fileStatInfo.UpdatedTime) && entry.Size == fileStatInfo.Size {
+				continue
+			}
+		}
+		if !write {
+			addedPaths = append(addedPaths, path)
+			continue
+		}
+
+		hash, _, err := u.hashObjectService.HashObject(path, write)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		size, err := u.objectService.GetObjectSize(hash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		newEntry, err := domain.NewIndexEntry(
@@ -61,26 +79,35 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 			fileStatInfo.GroupId,
 			domain.ComputeIndexFlags(path, 0),
 			fileStatInfo.CreatedTime,
-			fileStatInfo.UpdatedTime)
-
+			fileStatInfo.UpdatedTime,
+		)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
+		addedPaths = append(addedPaths, path)
 		index.SetEntry(newEntry)
 	}
-	return u.indexService.Write(index)
+	if !write {
+		return addedPaths, nil
+	}
+	return addedPaths, u.indexService.Write(index)
 }
 
-func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string) error {
+func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string, write bool) (
+	[]string, error,
+) {
+	var removedPaths []string
 	for _, path := range paths {
+		if index.HasEntry(path) {
+			removedPaths = append(removedPaths, path)
+		}
 		index.RemoveEntry(path)
 	}
-
-	err := u.indexService.Write(index)
-	if err != nil {
-		return err
+	if !write {
+		return removedPaths, nil
 	}
-
-	return nil
+	if err := u.indexService.Write(index); err != nil {
+		return nil, err
+	}
+	return removedPaths, nil
 }

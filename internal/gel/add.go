@@ -44,19 +44,17 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose b
 		return err
 	}
 
-	if dryRun {
-		return addWithDryRun(writer, pathsToAdd, pathsToRemove)
-	}
-
-	if err := a.updateIndexService.UpdateIndex(pathsToAdd, true, false); err != nil {
+	addedFiles, err := a.updateIndexService.UpdateIndex(pathsToAdd, true, false, !dryRun)
+	if err != nil {
 		return err
 	}
-	if err := a.updateIndexService.UpdateIndex(pathsToRemove, false, true); err != nil {
+	removedFiles, err := a.updateIndexService.UpdateIndex(pathsToRemove, false, true, !dryRun)
+	if err != nil {
 		return err
 	}
 
-	if verbose {
-		return addWithDryRun(writer, pathsToAdd, pathsToRemove)
+	if verbose || dryRun {
+		return addWithDryRun(writer, addedFiles, removedFiles)
 	}
 	return nil
 }
