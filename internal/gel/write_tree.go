@@ -18,25 +18,25 @@ func NewWriteTreeService(indexService *IndexService, objectService *ObjectServic
 	}
 }
 
-func (writeTreeService *WriteTreeService) WriteTree() (string, error) {
-	entries, err := writeTreeService.indexService.GetEntries()
+func (w *WriteTreeService) WriteTree() (string, error) {
+	entries, err := w.indexService.GetEntries()
 	if err != nil {
 		return "", err
 	}
 
 	root := buildRootTree(entries)
-	rootHash, err := writeTreeService.buildTreeAndWrite(root)
+	rootHash, err := w.writeTreeRecursive(root)
 	if err != nil {
 		return "", err
 	}
 	return rootHash, nil
 }
 
-func (writeTreeService *WriteTreeService) buildTreeAndWrite(root *directoryNode) (string, error) {
+func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, error) {
 	var entries []domain.TreeEntry
 
 	for _, childDir := range root.children {
-		subTreeHash, err := writeTreeService.buildTreeAndWrite(childDir)
+		subTreeHash, err := w.writeTreeRecursive(childDir)
 		if err != nil {
 			return "", err
 		}
@@ -64,7 +64,11 @@ func (writeTreeService *WriteTreeService) buildTreeAndWrite(root *directoryNode)
 
 	data := tree.Serialize()
 	hash := ComputeSHA256(data)
-	err = writeTreeService.objectService.Write(hash, data)
+	if w.objectService.Exists(hash) {
+		return hash, nil
+	}
+
+	err = w.objectService.Write(hash, data)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +83,7 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 	}
 
 	for _, entry := range entries {
-		currDir := root
+		parentDir := root
 		names := strings.Split(entry.Path, "/")
 
 		for i, name := range names {
@@ -89,10 +93,10 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 					hash: entry.Hash,
 					name: name,
 				}
-				currDir.files = append(currDir.files, fileNode)
+				parentDir.files = append(parentDir.files, fileNode)
 			} else {
 				var childDir *directoryNode
-				if existingChild, exists := currDir.children[name]; exists {
+				if existingChild, exists := parentDir.children[name]; exists {
 					childDir = existingChild
 				} else {
 					childDir = &directoryNode{
@@ -100,9 +104,9 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 						children: make(map[string]*directoryNode),
 						files:    make([]*fileNode, 0),
 					}
-					currDir.children[name] = childDir
+					parentDir.children[name] = childDir
 				}
-				currDir = childDir
+				parentDir = childDir
 			}
 		}
 	}
@@ -110,18 +114,20 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 }
 
 func sortTreeEntries(entries []domain.TreeEntry) {
-	sort.Slice(entries, func(i, j int) bool {
-		NameI := entries[i].Name
-		NameJ := entries[j].Name
+	sort.Slice(
+		entries, func(i, j int) bool {
+			NameI := entries[i].Name
+			NameJ := entries[j].Name
 
-		if entries[i].Mode.IsDirectory() {
-			NameI += "/"
-		}
-		if entries[j].Mode.IsDirectory() {
-			NameJ += "/"
-		}
-		return NameI < NameJ
-	})
+			if entries[i].Mode.IsDirectory() {
+				NameI += "/"
+			}
+			if entries[j].Mode.IsDirectory() {
+				NameJ += "/"
+			}
+			return NameI < NameJ
+		},
+	)
 }
 
 type fileNode struct {
