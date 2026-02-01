@@ -76,6 +76,12 @@ func collectPaths(index *domain.Index, resolvedPaths []pathspec.ResolvedPath) (
 		case pathspec.File, pathspec.NonExistent:
 			if entry, _ := index.FindEntry(resolved.NormalizedScope); entry != nil {
 				indexEntries = []*domain.IndexEntry{entry}
+			} else {
+				prefix := resolved.NormalizedScope
+				if prefix != "" {
+					prefix += "/"
+				}
+				indexEntries = index.FindEntriesByPathPrefix(prefix)
 			}
 		case pathspec.Directory:
 			prefix := resolved.NormalizedScope
