@@ -14,11 +14,6 @@ type LogService struct {
 	objectService *ObjectService
 }
 
-const (
-	colorGreen = "\033[32m"
-	colorReset = "\033[0m"
-)
-
 func NewLogService(refService *RefService, objectService *ObjectService) *LogService {
 	return &LogService{
 		refService:    refService,

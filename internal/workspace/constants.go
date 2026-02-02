@@ -1,6 +1,8 @@
 package workspace
 
-import "os"
+import (
+	"os"
+)
 
 const (
 	GelDirName     = ".gel"
@@ -19,6 +21,5 @@ const (
 )
 
 const (
-	DefaultBranch  = "main"
-	DefaultHeadRef = "ref: refs/heads/main\n"
+	DefaultHeadContent = "ref: refs/heads/main\n"
 )
