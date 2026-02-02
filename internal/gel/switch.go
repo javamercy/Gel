@@ -19,7 +19,8 @@ func NewSwitchService(
 	refService *RefService,
 	objectService *ObjectService,
 	readTreeService *ReadTreeService,
-	workspaceProvider *workspace.Provider) *SwitchService {
+	workspaceProvider *workspace.Provider,
+) *SwitchService {
 	return &SwitchService{
 		refService:        refService,
 		objectService:     objectService,
@@ -29,6 +30,9 @@ func NewSwitchService(
 }
 
 func (s *SwitchService) Switch(branch string, create, force bool) (string, error) {
+	// TODO: handle force, also there are some improvements need to be done.
+	// I'll get back here after implementing Status/Diff commands.
+
 	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
 	exists := s.refService.Exists(targetRef)
 	currentCommitHash, err := s.refService.Resolve(workspace.HeadFileName)
@@ -84,13 +88,13 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 }
 
 func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string) error {
-
-	treeWalker := NewTreeWalker(s.objectService, WalkOptions{
-		Recursive:    true,
-		IncludeTrees: false,
-		OnlyTrees:    false,
-	})
-
+	treeWalker := NewTreeWalker(
+		s.objectService, WalkOptions{
+			Recursive:    true,
+			IncludeTrees: false,
+			OnlyTrees:    false,
+		},
+	)
 	currentPathMap := make(map[string]string)
 	currentProcessor := func(entry domain.TreeEntry, relPath string) error {
 		currentPathMap[relPath] = entry.Hash
@@ -118,7 +122,6 @@ func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string)
 			if err != nil {
 				return err
 			}
-			// Create parent directory if needed
 			dir := filepath.Dir(targetPath)
 			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 				return err
