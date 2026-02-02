@@ -102,7 +102,7 @@ func initializeServices() error {
 	updateRefService = gel.NewUpdateRefService(refService)
 	commitService = gel.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
 	logService = gel.NewLogService(refService, objectService)
-	branchService = gel.NewBranchService(refService, workspaceProvider)
+	branchService = gel.NewBranchService(refService, objectService, workspaceProvider)
 	restoreService = gel.NewRestoreService(indexService, objectService, refService)
 	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
 
