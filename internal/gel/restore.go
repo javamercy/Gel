@@ -15,19 +15,21 @@ var (
 )
 
 type RestoreService struct {
-	indexService  *IndexService
-	objectService *ObjectService
-	refService    *RefService
+	indexService      *IndexService
+	objectService     *ObjectService
+	hashObjectService *HashObjectService
+	refService        *RefService
 }
 
 func NewRestoreService(
-	indexService *IndexService,
-	objectService *ObjectService,
-	refService *RefService) *RestoreService {
+	indexService *IndexService, objectService *ObjectService, hashObjectService *HashObjectService,
+	refService *RefService,
+) *RestoreService {
 	return &RestoreService{
-		indexService:  indexService,
-		objectService: objectService,
-		refService:    refService,
+		indexService:      indexService,
+		objectService:     objectService,
+		hashObjectService: hashObjectService,
+		refService:        refService,
 	}
 }
 
@@ -89,7 +91,7 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 		if indexEntry == nil {
 			continue
 		}
-		currHash, err := r.objectService.ComputeHash(path)
+		currHash, _, err := r.hashObjectService.HashObject(path, false)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
@@ -98,7 +100,6 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 			if err != nil {
 				return err
 			}
-			// Create parent directory if needed
 			dir := filepath.Dir(path)
 			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 				return err

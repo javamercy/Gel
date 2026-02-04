@@ -3,7 +3,6 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/storage"
-	"os"
 )
 
 type ObjectService struct {
@@ -109,21 +108,6 @@ func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain
 		return nil, err
 	}
 	return treeEntries, nil
-}
-
-func (o *ObjectService) ComputeHash(path string) (string, error) {
-	fileData, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-
-	blob, err := domain.NewBlob(fileData)
-	if err != nil {
-		return "", err
-	}
-
-	serializedData := blob.Serialize()
-	return ComputeSHA256(serializedData), nil
 }
 
 func (o *ObjectService) Exists(hash string) bool {

@@ -13,8 +13,9 @@ const (
 )
 
 type LsFilesService struct {
-	indexService  *IndexService
-	objectService *ObjectService
+	indexService      *IndexService
+	objectService     *ObjectService
+	hashObjectService *HashObjectService
 }
 
 func NewLsFilesService(indexService *IndexService, objectService *ObjectService) *LsFilesService {
@@ -93,7 +94,7 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 			return nil
 		}
 		if !fileInfo.ModTime().Equal(entry.UpdatedTime) {
-			currentHash, err := l.objectService.ComputeHash(entry.Path)
+			currentHash, _, err := l.hashObjectService.HashObject(entry.Path, false)
 			if err != nil {
 				return err
 			}

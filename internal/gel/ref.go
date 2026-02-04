@@ -59,7 +59,9 @@ func (r *RefService) Read(ref string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	if len(contentBytes) == 0 {
+		return "", nil
+	}
 	hash := strings.TrimSpace(string(contentBytes))
 	if err := validate.Hash(hash); err != nil {
 		return "", err
