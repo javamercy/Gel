@@ -32,6 +32,8 @@ var (
 	branchService      *gel.BranchService
 	restoreService     *gel.RestoreService
 	switchService      *gel.SwitchService
+	workingDirService  *gel.WorkingDirService
+	statusService      *gel.StatusService
 
 	isServicesInitialized bool
 )
@@ -103,8 +105,10 @@ func initializeServices() error {
 	commitService = gel.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
 	logService = gel.NewLogService(refService, objectService)
 	branchService = gel.NewBranchService(refService, objectService, workspaceProvider)
-	restoreService = gel.NewRestoreService(indexService, objectService, refService)
+	restoreService = gel.NewRestoreService(indexService, objectService, hashObjectService, refService)
 	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
+	workingDirService = gel.NewWorkingDirService(pathResolver, hashObjectService)
+	statusService = gel.NewStatusService(indexService, objectService, workingDirService, refService, symbolicRefService)
 
 	isServicesInitialized = true
 
