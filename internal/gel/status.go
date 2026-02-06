@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 )
 
 type FileStatus struct {
@@ -55,7 +54,7 @@ func (s *StatusService) Status(writer io.Writer) error {
 	}
 	headTreeEntries := make(map[string]string)
 	commitHash, err := s.refService.Resolve(workspace.HeadFileName)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err != nil && !errors.Is(err, ErrRefNotFound) {
 		return err
 	}
 	if commitHash != "" {

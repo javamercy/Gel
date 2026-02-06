@@ -3,10 +3,15 @@ package gel
 import (
 	"Gel/internal/gel/validate"
 	"Gel/internal/workspace"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+)
+
+var (
+	ErrRefNotFound = errors.New("reference not found")
 )
 
 type RefService struct {
@@ -24,6 +29,9 @@ func (r *RefService) ReadSymbolic(name string) (string, error) {
 	refPath := filepath.Join(ws.GelDir, name)
 	contentBytes, err := os.ReadFile(refPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%w: %s", ErrRefNotFound, name)
+		}
 		return "", err
 	}
 
@@ -57,6 +65,9 @@ func (r *RefService) Read(ref string) (string, error) {
 	absPath := filepath.Join(ws.GelDir, ref)
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
+		}
 		return "", err
 	}
 	if len(contentBytes) == 0 {
@@ -79,8 +90,6 @@ func (r *RefService) Write(ref, hash string) error {
 
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
-
-	// Create parent directory if needed
 	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 		return err
