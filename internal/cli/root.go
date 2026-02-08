@@ -34,6 +34,7 @@ var (
 	switchService      *gel.SwitchService
 	workingDirService  *gel.WorkingDirService
 	statusService      *gel.StatusService
+	diffService        *gel.DiffService
 
 	isServicesInitialized bool
 )
@@ -109,6 +110,9 @@ func initializeServices() error {
 	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
 	workingDirService = gel.NewWorkingDirService(pathResolver, hashObjectService)
 	statusService = gel.NewStatusService(indexService, objectService, workingDirService, refService, symbolicRefService)
+	diffService = gel.NewDiffService(
+		objectService, indexService, refService, workingDirService, gel.NewMyersDiffAlgorithm(),
+	)
 
 	isServicesInitialized = true
 
