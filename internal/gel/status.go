@@ -44,7 +44,7 @@ func (s *StatusService) Status(writer io.Writer) error {
 
 	indexEntries := make(map[string]string)
 	idxEntries, err := s.indexService.GetEntries()
-	if err != nil && !errors.Is(err, ErrIndexNotFound) {
+	if err != nil {
 		return err
 	}
 	if len(idxEntries) > 0 {

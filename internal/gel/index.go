@@ -7,10 +7,6 @@ import (
 	"io/fs"
 )
 
-var (
-	ErrIndexNotFound = errors.New("index not found")
-)
-
 type IndexService struct {
 	indexStorage *storage.IndexStorage
 }
@@ -24,7 +20,10 @@ func NewIndexService(indexStorage *storage.IndexStorage) *IndexService {
 func (i *IndexService) Read() (*domain.Index, error) {
 	data, err := i.indexStorage.Read()
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, ErrIndexNotFound
+		return domain.NewEmptyIndex(), nil
+	}
+	if err != nil {
+		return nil, err
 	}
 	return domain.DeserializeIndex(data)
 }

@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/domain"
-	"errors"
 )
 
 type UpdateIndexService struct {
@@ -25,9 +24,7 @@ func (u *UpdateIndexService) UpdateIndex(paths []string, add, remove, write bool
 	[]string, error,
 ) {
 	index, err := u.indexService.Read()
-	if errors.Is(err, ErrIndexNotFound) {
-		index = domain.NewEmptyIndex()
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 
