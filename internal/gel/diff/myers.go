@@ -1,35 +1,8 @@
-package gel
+package diff
 
 import (
 	"slices"
 )
-
-type OperationType int
-
-const (
-	Insertion OperationType = iota
-	Deletion
-	Match
-)
-
-func (o OperationType) String() string {
-	switch o {
-	case Insertion:
-		return "insertion"
-	case Deletion:
-		return "deletion"
-	case Match:
-		return "match"
-	}
-	return ""
-}
-
-type LineDiff struct {
-	OperationType OperationType
-	Content       string
-	OldPos        int
-	NewPos        int
-}
 
 type MyersDiffAlgorithm struct {
 }
@@ -99,7 +72,7 @@ func (m *MyersDiffAlgorithm) backtrack(trace [][]int, A, B []string) []LineDiff 
 		for x > prevX && y > prevY {
 			diffs = append(
 				diffs,
-				LineDiff{Match, A[x-1], x, y},
+				LineDiff{OpTypeMatch, A[x-1], x, y},
 			)
 			x--
 			y--
@@ -107,13 +80,13 @@ func (m *MyersDiffAlgorithm) backtrack(trace [][]int, A, B []string) []LineDiff 
 		if x > prevX {
 			diffs = append(
 				diffs,
-				LineDiff{Deletion, A[x-1], x, y},
+				LineDiff{OpTypeDeletion, A[x-1], x, y},
 			)
 			x--
 		} else {
 			diffs = append(
 				diffs,
-				LineDiff{Insertion, B[y-1], x, y},
+				LineDiff{OpTypeInsertion, B[y-1], x, y},
 			)
 			y--
 		}
@@ -121,18 +94,18 @@ func (m *MyersDiffAlgorithm) backtrack(trace [][]int, A, B []string) []LineDiff 
 
 	if x > 0 && y > 0 {
 		for x > 0 && y > 0 {
-			diffs = append(diffs, LineDiff{Match, A[x-1], x, y})
+			diffs = append(diffs, LineDiff{OpTypeMatch, A[x-1], x, y})
 			x--
 			y--
 		}
 	} else if x > 0 && y == 0 {
 		for x > 0 {
-			diffs = append(diffs, LineDiff{Deletion, A[x-1], x, y})
+			diffs = append(diffs, LineDiff{OpTypeDeletion, A[x-1], x, y})
 			x--
 		}
 	} else if y > 0 {
 		for y > 0 {
-			diffs = append(diffs, LineDiff{Match, A[y-1], x, y})
+			diffs = append(diffs, LineDiff{OpTypeMatch, A[y-1], x, y})
 			y--
 		}
 	}

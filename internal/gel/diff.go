@@ -2,199 +2,253 @@ package gel
 
 import (
 	"Gel/domain"
+	"Gel/internal/gel/diff"
+	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 )
 
-type Region struct {
-	Start int
-	End   int
-}
+type EntrySource int
 
-type Hunk struct {
-	OldStart  int
-	OldLength int
-	NewStart  int
-	NewLength int
-	Lines     []LineDiff
-}
+const (
+	EntrySourceIndex EntrySource = iota
+	EntrySourceHead
+	EntrySourceWorkingTree
+	EntrySourceCommit
+)
 
+type ContentLoaderFunc func(path, hash string) (string, error)
 type DiffService struct {
-	objectService     *ObjectService
-	indexService      *IndexService
-	refService        *RefService
-	workingDirService *WorkingDirService
-	diffHelper        *MyersDiffAlgorithm
+	objectService      *ObjectService
+	indexService       *IndexService
+	refService         *RefService
+	workingTreeService *WorkingTreeService
+	diffAlgorithm      *diff.MyersDiffAlgorithm
 }
 
 func NewDiffService(
 	objectService *ObjectService,
 	indexService *IndexService,
 	refService *RefService,
-	workingDirService *WorkingDirService,
-	diffHelper *MyersDiffAlgorithm,
+	workingTreeService *WorkingTreeService,
+	diffAlgorithm *diff.MyersDiffAlgorithm,
 ) *DiffService {
 	return &DiffService{
-		objectService:     objectService,
-		indexService:      indexService,
-		refService:        refService,
-		workingDirService: workingDirService,
-		diffHelper:        diffHelper,
+		objectService:      objectService,
+		indexService:       indexService,
+		refService:         refService,
+		workingTreeService: workingTreeService,
+		diffAlgorithm:      diffAlgorithm,
 	}
 }
 
-func (d *DiffService) Diff(head, staged bool, firstCommitHash, secondCommitHash string) error {
+func (d *DiffService) Diff(
+	head, staged bool,
+	baseCommitHash, targetCommitHash string,
+) error {
 	if head {
-		return d.diffWithHead()
+		headEntries, err := d.resolveEntries(EntrySourceHead, "")
+		if err != nil {
+			return err
+		}
+		workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
+		if err != nil {
+			return err
+		}
+		return d.computeEntryDiffs(headEntries, workingTreeEntries, d.loadBlobContent, d.loadFileContent)
+	} else if staged {
+		headEntries, err := d.resolveEntries(EntrySourceHead, "")
+		if err != nil {
+			return err
+		}
+		indexEntries, err := d.resolveEntries(EntrySourceIndex, "")
+		if err != nil {
+			return err
+		}
+		return d.computeEntryDiffs(indexEntries, headEntries, d.loadBlobContent, d.loadBlobContent)
+	} else if baseCommitHash != "" && targetCommitHash != "" {
+		firstCommitEntries, err := d.resolveEntries(EntrySourceCommit, baseCommitHash)
+		if err != nil {
+			return err
+		}
+		secondCommitEntries, err := d.resolveEntries(EntrySourceCommit, targetCommitHash)
+		if err != nil {
+			return err
+		}
+		return d.computeEntryDiffs(firstCommitEntries, secondCommitEntries, d.loadBlobContent, d.loadBlobContent)
+	} else if baseCommitHash != "" {
+		commitEntries, err := d.resolveEntries(EntrySourceCommit, baseCommitHash)
+		if err != nil {
+			return err
+		}
+		workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
+		if err != nil {
+			return err
+		}
+		return d.computeEntryDiffs(workingTreeEntries, commitEntries, d.loadFileContent, d.loadBlobContent)
 	}
 
-	if staged {
-		return d.diffWithStaged(firstCommitHash)
-	}
-
-	if firstCommitHash != "" && secondCommitHash != "" {
-		return d.diffWithCommits(firstCommitHash, secondCommitHash)
-	}
-	if firstCommitHash != "" {
-		return d.diffWithCommit(firstCommitHash)
-	}
-
-	indexEntries, err := d.indexService.GetEntryMap()
+	indexEntries, err := d.resolveEntries(EntrySourceIndex, "")
 	if err != nil {
 		return err
 	}
-	workingDirFiles, err := d.workingDirService.GetFileMap()
+	workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
 	if err != nil {
 		return err
 	}
+	return d.computeEntryDiffs(workingTreeEntries, indexEntries, d.loadFileContent, d.loadBlobContent)
+}
 
-	for path, hash := range workingDirFiles {
-		workingDirFileData, err := os.ReadFile(path)
-		if err != nil && errors.Is(err, os.ErrNotExist) {
+func (d *DiffService) computeEntryDiffs(
+	newEntries, oldEntries map[string]string,
+	newContentLoader, oldContentLoader ContentLoaderFunc,
+) error {
+	for newPath, newHash := range newEntries {
+		newData, err := newContentLoader(newPath, newHash)
+		if err != nil {
 			return err
 		}
 
-		workingDirFileLines := strings.Split(strings.TrimSuffix(string(workingDirFileData), "\n"), "\n")
-		indexHash, ok := indexEntries[path]
+		newLines := strings.Split(strings.TrimSuffix(newData, "\n"), "\n")
+		oldHash, ok := oldEntries[newPath]
 		if !ok {
-			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
-			fmt.Printf("new file mode %s\n", domain.RegularFileStr)
-			fmt.Printf("index 0000000..%s %s\n", hash[:7], domain.RegularFileStr)
-			fmt.Printf("--- /dev/null\n+++ b/%s\n", path)
+			d.printNewFileHeader(newPath, newPath, newHash[:7])
+			lineDiffs := d.diffAlgorithm.ComputeLineDiffs([]string{}, newLines)
+			regions := diff.FindRegions(lineDiffs)
+			hunks := diff.BuildHunks(lineDiffs, regions)
+			d.printHunks(hunks)
+		} else if newHash != oldHash {
+			oldData, err := oldContentLoader("", oldHash)
+			if err != nil {
+				return err
+			}
+			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
+			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, newLines)
+			regions := diff.FindRegions(lineDiffs)
+			hunks := diff.BuildHunks(lineDiffs, regions)
+			d.printModifiedFileHeader(newPath, newPath, oldHash[:7], newHash[:7])
+			d.printHunks(hunks)
+		}
+	}
 
-			lineDiffs := d.diffHelper.ComputeLineDiffs([]string{}, workingDirFileLines)
-			regions := d.FindRegions(lineDiffs)
-			hunks := d.BuildHunks(lineDiffs, regions)
-			d.printDiff(hunks)
-		} else if hash != indexHash {
-			blob, err := d.objectService.ReadBlob(indexHash)
+	for oldPath, oldHash := range oldEntries {
+		if _, ok := newEntries[oldPath]; !ok {
+			d.printDeletedFileHeader(oldPath, oldHash[:7])
+			oldData, err := oldContentLoader(oldPath, oldHash)
 			if err != nil {
 				return err
 			}
 
-			indexFileLines := strings.Split(strings.TrimSuffix(string(blob.Body()), "\n"), "\n")
-			lineDiffs := d.diffHelper.ComputeLineDiffs(indexFileLines, workingDirFileLines)
-			regions := d.FindRegions(lineDiffs)
-			hunks := d.BuildHunks(lineDiffs, regions)
-			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
-			fmt.Printf("index %s...%s %s\n", hash[:7], indexHash[:7], domain.RegularFileStr)
-			fmt.Printf("--- a/%s\n+++ b/%s\n", path, path)
-			d.printDiff(hunks)
-		} else {
-			//fmt.Println("Unchanged file: ", path)
-		}
-	}
-
-	for path, hash := range indexEntries {
-		if _, ok := workingDirFiles[path]; !ok {
-			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
-			fmt.Printf("deleted file mode %s\n", domain.RegularFileStr)
-			fmt.Printf("index %s..0000000 %s\n", hash[:7], domain.RegularFileStr)
-			fmt.Printf("--a/%s\n", path)
-
-			indexFileData, err := d.objectService.ReadBlob(hash)
-			if err != nil {
-				return err
-			}
-
-			indexFileLines := strings.Split(strings.TrimSuffix(string(indexFileData.Body()), "\n"), "\n")
-			lineDiffs := d.diffHelper.ComputeLineDiffs(indexFileLines, []string{})
-			regions := d.FindRegions(lineDiffs)
-			hunks := d.BuildHunks(lineDiffs, regions)
-			d.printDiff(hunks)
+			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
+			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, []string{})
+			regions := diff.FindRegions(lineDiffs)
+			hunks := diff.BuildHunks(lineDiffs, regions)
+			d.printHunks(hunks)
 		}
 	}
 	return nil
 }
 
-func (d *DiffService) diffWithStaged(commitHash string) error {
-	return nil
-}
-
-func (d *DiffService) diffWithHead() error {
-	return nil
-}
-
-func (d *DiffService) diffWithCommit(commitHash string) error {
-	return nil
-}
-
-func (d *DiffService) diffWithCommits(firstCommitHash, secondCommitHash string) error {
-	return nil
-}
-
-func (d *DiffService) FindRegions(diffs []LineDiff) []Region {
-	regions := make([]Region, 0)
-	size := len(diffs)
-	for i := 0; i < size; i++ {
-		if diffs[i].OperationType == Match {
-			continue
+func (d *DiffService) resolveEntries(source EntrySource, commitHash string) (map[string]string, error) {
+	switch source {
+	case EntrySourceIndex:
+		entries, err := d.indexService.GetEntryMap()
+		if err != nil {
+			return nil, err
 		}
-		start, end := i-3, i+4
-		if len(regions) == 0 || regions[len(regions)-1].End < start {
-			regions = append(regions, Region{max(0, start), min(size, end)})
-		} else {
-			regions[len(regions)-1].End = min(size, max(regions[len(regions)-1].End, end))
+		return entries, nil
+	case EntrySourceHead:
+		commitHash, err := d.refService.Resolve(workspace.HeadFileName)
+		if err != nil {
+			return nil, err
 		}
-	}
-	return regions
-}
-
-func (d *DiffService) BuildHunks(diffs []LineDiff, regions []Region) []Hunk {
-	hunks := make([]Hunk, 0)
-	for _, region := range regions {
-		oldLength := 0
-		newLength := 0
-
-		for i := region.Start; i < region.End; i++ {
-			switch diffs[i].OperationType {
-			case Match:
-				oldLength++
-				newLength++
-			case Insertion:
-				newLength++
-			case Deletion:
-				oldLength++
-			}
+		commit, err := d.objectService.ReadCommit(commitHash)
+		if err != nil {
+			return nil, err
 		}
-		oldStart := diffs[region.Start].OldPos
-		newStart := diffs[region.Start].NewPos
-		hunks = append(
-			hunks, Hunk{
-				OldStart:  oldStart,
-				OldLength: oldLength,
-				NewStart:  newStart,
-				NewLength: newLength,
-				Lines:     diffs[region.Start:region.End],
+		entries := make(map[string]string)
+
+		//TODO: refactor this walker
+		walker := NewTreeWalker(d.objectService, WalkOptions{Recursive: true})
+		err = walker.Walk(
+			commit.TreeHash, "", func(entry domain.TreeEntry, relPath string) error {
+				entries[relPath] = entry.Hash
+				return nil
 			},
 		)
+		if err != nil {
+			return nil, err
+		}
+		return entries, nil
+	case EntrySourceWorkingTree:
+		entries, err := d.workingTreeService.GetFileMap()
+		if err != nil {
+			return nil, err
+		}
+		return entries, nil
+	case EntrySourceCommit:
+		commit, err := d.objectService.ReadCommit(commitHash)
+		if err != nil {
+			return nil, err
+		}
+		entries := make(map[string]string)
+
+		// TODO: refactor this walker
+		walker := NewTreeWalker(d.objectService, WalkOptions{Recursive: true})
+		err = walker.Walk(
+			commit.TreeHash, "", func(entry domain.TreeEntry, relPath string) error {
+				entries[relPath] = entry.Hash
+				return nil
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return entries, nil
 	}
-	return hunks
+	return nil, errors.New("invalid source type")
 }
 
-func (d *DiffService) printDiff(hunks []Hunk) {
+func (d *DiffService) loadBlobContent(_, hash string) (string, error) {
+	blob, err := d.objectService.ReadBlob(hash)
+	if err != nil {
+		return "", err
+	}
+	return string(blob.Body()), nil
+}
+
+func (d *DiffService) loadFileContent(path, _ string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func (d *DiffService) printNewFileHeader(oldPath, newPath, hash string) {
+	fmt.Printf("%sdiff --gel a/%s b/%s%s\n", colorBold, oldPath, newPath, colorReset)
+	fmt.Printf("%snew file mode %s%s\n", colorBold, domain.RegularFileMode, colorReset)
+	fmt.Printf("%sindex 00000000..%s%s\n", colorBold, hash, colorReset)
+	fmt.Printf("%s--- /dev/null%s\n", colorBold, colorReset)
+	fmt.Printf("%s+++ b/%s%s\n", colorBold, newPath, colorReset)
+}
+
+func (d *DiffService) printDeletedFileHeader(oldPath, oldHash string) {
+	fmt.Printf("%sdeleted file mode %s%s\n", colorBold, domain.RegularFileMode, colorReset)
+	fmt.Printf("%sindex %s..00000000%s\n", colorBold, oldHash, colorReset)
+	fmt.Printf("%s--- a/%s%s\n", colorBold, oldPath, colorReset)
+	fmt.Printf("%s+++ /dev/null%s\n", colorBold, colorReset)
+}
+
+func (d *DiffService) printModifiedFileHeader(oldPath, newPath, oldHash, newHash string) {
+	fmt.Printf("%sindex %s..%s %s%s\n", colorBold, oldHash, newHash, domain.RegularFileMode, colorReset)
+	fmt.Printf("%s--- a/%s%s\n", colorBold, oldPath, colorReset)
+	fmt.Printf("%s+++ b/%s%s\n", colorBold, newPath, colorReset)
+}
+
+func (d *DiffService) printHunks(hunks []diff.Hunk) {
 	for _, hunk := range hunks {
 		header := fmt.Sprintf("@@ -%d,%d +%d,%d @@", hunk.OldStart, hunk.OldLength, hunk.NewStart, hunk.NewLength)
 		fmt.Println(header)
@@ -202,13 +256,13 @@ func (d *DiffService) printDiff(hunks []Hunk) {
 			var prefix string
 			var color string
 			switch line.OperationType {
-			case Match:
+			case diff.OpTypeMatch:
 				prefix = " "
 				color = ""
-			case Insertion:
+			case diff.OpTypeInsertion:
 				prefix = "+ "
 				color = colorGreen
-			case Deletion:
+			case diff.OpTypeDeletion:
 				prefix = "- "
 				color = colorRed
 			}

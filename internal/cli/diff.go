@@ -1,6 +1,10 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"Gel/internal/workspace"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	diffStagedFlag bool
@@ -10,18 +14,16 @@ var diffCmd = &cobra.Command{
 	Short: "Show changes between commits, commit and working tree, etc",
 	Args:  cobra.RangeArgs(0, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if diffStagedFlag {
-			// Head vs Index
-		}
 		if len(args) == 0 {
-			// Index vs working dir
-			return diffService.Diff(false, false, "", "")
+			return diffService.Diff(false, diffStagedFlag, "", "")
 		} else if len(args) == 1 {
-			// commit vs working dir
-		} else {
-			// commit vs commit
+			arg := args[0]
+			if arg == workspace.HeadFileName {
+				return diffService.Diff(true, false, "", "")
+			}
+			return diffService.Diff(false, false, arg, "")
 		}
-		return nil
+		return diffService.Diff(false, false, args[0], args[1])
 	},
 }
 
