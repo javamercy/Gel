@@ -3,7 +3,6 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/internal/pathspec"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -28,9 +27,7 @@ func NewAddService(
 
 func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose bool) error {
 	index, err := a.indexService.Read()
-	if errors.Is(err, ErrIndexNotFound) {
-		index = domain.NewEmptyIndex()
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 
