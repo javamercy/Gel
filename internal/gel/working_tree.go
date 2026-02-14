@@ -16,7 +16,7 @@ func NewWorkingDirService(
 	}
 }
 
-func (w *WorkingDirService) GetWorkingDirFiles() (map[string]string, error) {
+func (w *WorkingDirService) GetFileMap() (map[string]string, error) {
 	resolvedPaths, err := w.pathResolver.Resolve([]string{"."})
 	if err != nil {
 		return nil, err

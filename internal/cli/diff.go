@@ -15,7 +15,7 @@ var diffCmd = &cobra.Command{
 		}
 		if len(args) == 0 {
 			// Index vs working dir
-			return diffService.Diff()
+			return diffService.Diff(false, false, "", "")
 		} else if len(args) == 1 {
 			// commit vs working dir
 		} else {

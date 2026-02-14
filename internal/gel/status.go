@@ -77,7 +77,7 @@ func (s *StatusService) Status(writer io.Writer) error {
 		}
 	}
 
-	workingDirFiles, err := s.workingDirService.GetWorkingDirFiles()
+	workingDirFiles, err := s.workingDirService.GetFileMap()
 	if err != nil {
 		return err
 	}

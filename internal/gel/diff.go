@@ -1,6 +1,8 @@
 package gel
 
 import (
+	"Gel/domain"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -43,48 +45,103 @@ func NewDiffService(
 	}
 }
 
-func (d *DiffService) Diff() error {
-	indexEntries := make(map[string]string)
-	idxEntries, err := d.indexService.GetEntries()
+func (d *DiffService) Diff(head, staged bool, firstCommitHash, secondCommitHash string) error {
+	if head {
+		return d.diffWithHead()
+	}
+
+	if staged {
+		return d.diffWithStaged(firstCommitHash)
+	}
+
+	if firstCommitHash != "" && secondCommitHash != "" {
+		return d.diffWithCommits(firstCommitHash, secondCommitHash)
+	}
+	if firstCommitHash != "" {
+		return d.diffWithCommit(firstCommitHash)
+	}
+
+	indexEntries, err := d.indexService.GetEntryMap()
 	if err != nil {
 		return err
 	}
-	for _, entry := range idxEntries {
-		indexEntries[entry.Path] = entry.Hash
-	}
-	workingDirFiles, err := d.workingDirService.GetWorkingDirFiles()
+	workingDirFiles, err := d.workingDirService.GetFileMap()
 	if err != nil {
 		return err
 	}
 
 	for path, hash := range workingDirFiles {
+		workingDirFileData, err := os.ReadFile(path)
+		if err != nil && errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+
+		workingDirFileLines := strings.Split(strings.TrimSuffix(string(workingDirFileData), "\n"), "\n")
 		indexHash, ok := indexEntries[path]
 		if !ok {
-			//fmt.Println("New file: ", path)
+			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
+			fmt.Printf("new file mode %s\n", domain.RegularFileStr)
+			fmt.Printf("index 0000000..%s %s\n", hash[:7], domain.RegularFileStr)
+			fmt.Printf("--- /dev/null\n+++ b/%s\n", path)
+
+			lineDiffs := d.diffHelper.ComputeLineDiffs([]string{}, workingDirFileLines)
+			regions := d.FindRegions(lineDiffs)
+			hunks := d.BuildHunks(lineDiffs, regions)
+			d.printDiff(hunks)
 		} else if hash != indexHash {
 			blob, err := d.objectService.ReadBlob(indexHash)
 			if err != nil {
 				return err
 			}
-			workingDirFileData, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			indexLines := strings.Split(string(blob.Body()), "\n")
-			workingDirLines := strings.Split(string(workingDirFileData), "\n")
 
-			lineDiffs := d.diffHelper.ComputeLineDiffs(indexLines, workingDirLines)
+			indexFileLines := strings.Split(strings.TrimSuffix(string(blob.Body()), "\n"), "\n")
+			lineDiffs := d.diffHelper.ComputeLineDiffs(indexFileLines, workingDirFileLines)
 			regions := d.FindRegions(lineDiffs)
 			hunks := d.BuildHunks(lineDiffs, regions)
 			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
-			fmt.Printf("index %s...%s %o\n", hash[:7], indexHash[:7], idxEntries[0].Mode)
+			fmt.Printf("index %s...%s %s\n", hash[:7], indexHash[:7], domain.RegularFileStr)
 			fmt.Printf("--- a/%s\n+++ b/%s\n", path, path)
 			d.printDiff(hunks)
-			fmt.Println()
 		} else {
 			//fmt.Println("Unchanged file: ", path)
 		}
 	}
+
+	for path, hash := range indexEntries {
+		if _, ok := workingDirFiles[path]; !ok {
+			fmt.Printf("diff --gel a/%s b/%s\n", path, path)
+			fmt.Printf("deleted file mode %s\n", domain.RegularFileStr)
+			fmt.Printf("index %s..0000000 %s\n", hash[:7], domain.RegularFileStr)
+			fmt.Printf("--a/%s\n", path)
+
+			indexFileData, err := d.objectService.ReadBlob(hash)
+			if err != nil {
+				return err
+			}
+
+			indexFileLines := strings.Split(strings.TrimSuffix(string(indexFileData.Body()), "\n"), "\n")
+			lineDiffs := d.diffHelper.ComputeLineDiffs(indexFileLines, []string{})
+			regions := d.FindRegions(lineDiffs)
+			hunks := d.BuildHunks(lineDiffs, regions)
+			d.printDiff(hunks)
+		}
+	}
+	return nil
+}
+
+func (d *DiffService) diffWithStaged(commitHash string) error {
+	return nil
+}
+
+func (d *DiffService) diffWithHead() error {
+	return nil
+}
+
+func (d *DiffService) diffWithCommit(commitHash string) error {
+	return nil
+}
+
+func (d *DiffService) diffWithCommits(firstCommitHash, secondCommitHash string) error {
 	return nil
 }
 
@@ -149,10 +206,10 @@ func (d *DiffService) printDiff(hunks []Hunk) {
 				prefix = " "
 				color = ""
 			case Insertion:
-				prefix = "+"
+				prefix = "+ "
 				color = colorGreen
 			case Deletion:
-				prefix = "-"
+				prefix = "- "
 				color = colorRed
 			}
 			fmt.Printf("%s%s%s%s\n", color, prefix, line.Content, colorReset)
