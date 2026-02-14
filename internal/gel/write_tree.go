@@ -40,7 +40,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 		if err != nil {
 			return "", err
 		}
-		entry, err := domain.NewTreeEntry(domain.Directory, subTreeHash, childDir.name)
+		entry, err := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
 		if err != nil {
 			return "", err
 		}

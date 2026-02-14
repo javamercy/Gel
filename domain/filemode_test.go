@@ -11,11 +11,9 @@ func TestParseFileMode(t *testing.T) {
 		input    uint32
 		expected FileMode
 	}{
-		{0o100644, RegularFile},
-		{0o100755, ExecutableFile},
-		{0o040000, Directory},
-		{0o120000, Symlink},
-		{0o160000, Submodule},
+		{0o100644, RegularFileMode},
+		{0o100755, ExecutableFileMode},
+		{0o040000, DirectoryMode},
 		{0, InvalidMode},
 		{0o777, InvalidMode},
 	}
@@ -34,11 +32,9 @@ func TestParseFileModeFromString(t *testing.T) {
 		input    string
 		expected FileMode
 	}{
-		{"100644", RegularFile},
-		{"100755", ExecutableFile},
-		{"40000", Directory},
-		{"120000", Symlink},
-		{"160000", Submodule},
+		{"100644", RegularFileMode},
+		{"100755", ExecutableFileMode},
+		{"40000", DirectoryMode},
 		{"invalid", InvalidMode},
 		{"", InvalidMode},
 	}
@@ -57,11 +53,9 @@ func TestFileMode_String(t *testing.T) {
 		mode     FileMode
 		expected string
 	}{
-		{RegularFile, "100644"},
-		{ExecutableFile, "100755"},
-		{Directory, "40000"},
-		{Symlink, "120000"},
-		{Submodule, "160000"},
+		{RegularFileMode, "100644"},
+		{ExecutableFileMode, "100755"},
+		{DirectoryMode, "40000"},
 		{InvalidMode, ""},
 	}
 
@@ -75,22 +69,16 @@ func TestFileMode_String(t *testing.T) {
 }
 
 func TestFileMode_Helpers(t *testing.T) {
-	assert.True(t, RegularFile.IsRegularFile())
-	assert.False(t, Directory.IsRegularFile())
+	assert.True(t, RegularFileMode.IsRegularFile())
+	assert.False(t, DirectoryMode.IsRegularFile())
 
-	assert.True(t, Directory.IsDirectory())
-	assert.False(t, RegularFile.IsDirectory())
+	assert.True(t, DirectoryMode.IsDirectory())
+	assert.False(t, RegularFileMode.IsDirectory())
 
-	assert.True(t, ExecutableFile.IsExecutableFile())
-	assert.False(t, RegularFile.IsExecutableFile())
+	assert.True(t, ExecutableFileMode.IsExecutableFile())
+	assert.False(t, RegularFileMode.IsExecutableFile())
 
-	assert.True(t, Symlink.IsSymlink())
-	assert.False(t, RegularFile.IsSymlink())
-
-	assert.True(t, Submodule.IsSubmodule())
-	assert.False(t, RegularFile.IsSubmodule())
-
-	assert.True(t, RegularFile.IsValid())
+	assert.True(t, RegularFileMode.IsValid())
 	assert.False(t, InvalidMode.IsValid())
 }
 
@@ -100,11 +88,9 @@ func TestFileMode_ObjectType(t *testing.T) {
 		expectedType ObjectType
 		expectErr    bool
 	}{
-		{RegularFile, ObjectTypeBlob, false},
-		{ExecutableFile, ObjectTypeBlob, false},
-		{Symlink, ObjectTypeBlob, false},
-		{Directory, ObjectTypeTree, false},
-		{Submodule, ObjectTypeCommit, false},
+		{RegularFileMode, ObjectTypeBlob, false},
+		{ExecutableFileMode, ObjectTypeBlob, false},
+		{DirectoryMode, ObjectTypeTree, false},
 		{InvalidMode, "", true},
 	}
 

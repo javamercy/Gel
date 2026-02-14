@@ -197,26 +197,28 @@ func TestSerializeDeserializeIndex_RoundTrip(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			index := NewEmptyIndex()
-			for i, path := range tt.paths {
-				index.AddEntry(createTestEntry(path, fmt.Sprintf("hash%d", i)))
-			}
+		t.Run(
+			tt.name, func(t *testing.T) {
+				index := NewEmptyIndex()
+				for i, path := range tt.paths {
+					index.AddEntry(createTestEntry(path, fmt.Sprintf("hash%d", i)))
+				}
 
-			data, err := index.Serialize()
-			require.NoError(t, err)
+				data, err := index.Serialize()
+				require.NoError(t, err)
 
-			deserializedIndex, err := DeserializeIndex(data)
-			require.NoError(t, err)
+				deserializedIndex, err := DeserializeIndex(data)
+				require.NoError(t, err)
 
-			assert.Equal(t, index.Header.NumEntries, deserializedIndex.Header.NumEntries)
-			assert.Equal(t, len(index.Entries), len(deserializedIndex.Entries))
+				assert.Equal(t, index.Header.NumEntries, deserializedIndex.Header.NumEntries)
+				assert.Equal(t, len(index.Entries), len(deserializedIndex.Entries))
 
-			for i := range index.Entries {
-				assert.Equal(t, index.Entries[i].Path, deserializedIndex.Entries[i].Path)
-				assert.Equal(t, index.Entries[i].Hash, deserializedIndex.Entries[i].Hash)
-			}
-		})
+				for i := range index.Entries {
+					assert.Equal(t, index.Entries[i].Path, deserializedIndex.Entries[i].Path)
+					assert.Equal(t, index.Entries[i].Hash, deserializedIndex.Entries[i].Hash)
+				}
+			},
+		)
 	}
 }
 
@@ -244,7 +246,7 @@ func createTestEntry(path, hashSeed string) *IndexEntry {
 		path,
 		fullHash,
 		100,
-		uint32(RegularFile),
+		uint32(RegularFileMode),
 		0, 0, 0, 0,
 		uint16(len(path)),
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),

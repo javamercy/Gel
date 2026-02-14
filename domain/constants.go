@@ -8,6 +8,6 @@ const (
 
 // Index format constants
 const (
-	IndexSignature = "DIRC" // Directory Cache signature
+	IndexSignature = "DIRC" // DirectoryMode Cache signature
 	IndexVersion   = 2      // Index format version
 )
