@@ -2,21 +2,21 @@ package gel
 
 import "Gel/internal/pathspec"
 
-type WorkingDirService struct {
+type WorkingTreeService struct {
 	pathResolver      *pathspec.PathResolver
 	hashObjectService *HashObjectService
 }
 
 func NewWorkingDirService(
 	pathResolver *pathspec.PathResolver, hashObjectService *HashObjectService,
-) *WorkingDirService {
-	return &WorkingDirService{
+) *WorkingTreeService {
+	return &WorkingTreeService{
 		pathResolver:      pathResolver,
 		hashObjectService: hashObjectService,
 	}
 }
 
-func (w *WorkingDirService) GetFileMap() (map[string]string, error) {
+func (w *WorkingTreeService) GetFileMap() (map[string]string, error) {
 	resolvedPaths, err := w.pathResolver.Resolve([]string{"."})
 	if err != nil {
 		return nil, err

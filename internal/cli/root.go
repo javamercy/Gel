@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Gel/internal/gel"
+	"Gel/internal/gel/diff"
 	"Gel/internal/pathspec"
 	"Gel/internal/workspace"
 	"Gel/storage"
@@ -32,7 +33,7 @@ var (
 	branchService      *gel.BranchService
 	restoreService     *gel.RestoreService
 	switchService      *gel.SwitchService
-	workingDirService  *gel.WorkingDirService
+	workingDirService  *gel.WorkingTreeService
 	statusService      *gel.StatusService
 	diffService        *gel.DiffService
 
@@ -111,7 +112,7 @@ func initializeServices() error {
 	workingDirService = gel.NewWorkingDirService(pathResolver, hashObjectService)
 	statusService = gel.NewStatusService(indexService, objectService, workingDirService, refService, symbolicRefService)
 	diffService = gel.NewDiffService(
-		objectService, indexService, refService, workingDirService, gel.NewMyersDiffAlgorithm(),
+		objectService, indexService, refService, workingDirService, diff.NewMyersDiffAlgorithm(),
 	)
 
 	isServicesInitialized = true

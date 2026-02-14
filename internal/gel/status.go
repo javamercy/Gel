@@ -21,13 +21,13 @@ type StatusResult struct {
 type StatusService struct {
 	indexService       *IndexService
 	objectService      *ObjectService
-	workingDirService  *WorkingDirService
+	workingDirService  *WorkingTreeService
 	refService         *RefService
 	symbolicRefService *SymbolicRefService
 }
 
 func NewStatusService(
-	indexService *IndexService, objectService *ObjectService, workingDirService *WorkingDirService,
+	indexService *IndexService, objectService *ObjectService, workingDirService *WorkingTreeService,
 	refService *RefService, symbolicRefService *SymbolicRefService,
 ) *StatusService {
 	return &StatusService{
@@ -97,7 +97,7 @@ func (s *StatusService) Status(writer io.Writer) error {
 	for path := range headTreeEntries {
 		if _, inIndex := indexEntries[path]; !inIndex {
 			// in HEAD but not in Index
-			result.Unstaged = append(result.Staged, FileStatus{path, "Deleted"})
+			result.Unstaged = append(result.Unstaged, FileStatus{path, "Deleted"})
 		}
 	}
 

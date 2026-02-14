@@ -3,7 +3,6 @@ package gel
 import (
 	"Gel/internal/workspace"
 	"errors"
-	"io/fs"
 )
 
 type CommitService struct {
@@ -13,10 +12,12 @@ type CommitService struct {
 	objectService     *ObjectService
 }
 
-func NewCommitService(writeTreeService *WriteTreeService,
+func NewCommitService(
+	writeTreeService *WriteTreeService,
 	commitTreeService *CommitTreeService,
 	refService *RefService,
-	objectService *ObjectService) *CommitService {
+	objectService *ObjectService,
+) *CommitService {
 	return &CommitService{
 		writeTreeService:  writeTreeService,
 		commitTreeService: commitTreeService,
@@ -25,19 +26,19 @@ func NewCommitService(writeTreeService *WriteTreeService,
 	}
 }
 
-func (s *CommitService) Commit(message string) error {
-	treeHash, err := s.writeTreeService.WriteTree()
+func (c *CommitService) Commit(message string) error {
+	treeHash, err := c.writeTreeService.WriteTree()
 	if err != nil {
 		return err
 	}
 
 	var parentHashes []string
-	headRef, err := s.refService.ReadSymbolic(workspace.HeadFileName)
+	headRef, err := c.refService.ReadSymbolic(workspace.HeadFileName)
 	if err != nil {
 		return err
 	}
-	parentHash, err := s.refService.Read(headRef)
-	if errors.Is(err, fs.ErrNotExist) {
+	parentHash, err := c.refService.Read(headRef)
+	if errors.Is(err, ErrRefNotFound) {
 		parentHashes = nil
 	} else if err != nil {
 		return err
@@ -45,7 +46,7 @@ func (s *CommitService) Commit(message string) error {
 
 	if parentHash != "" {
 		parentHashes = append(parentHashes, parentHash)
-		parentCommit, err := s.objectService.ReadCommit(parentHash)
+		parentCommit, err := c.objectService.ReadCommit(parentHash)
 		if err != nil {
 			return err
 		}
@@ -54,9 +55,9 @@ func (s *CommitService) Commit(message string) error {
 		}
 	}
 
-	commitHash, err := s.commitTreeService.CommitTree(treeHash, message, parentHashes)
+	commitHash, err := c.commitTreeService.CommitTree(treeHash, message, parentHashes)
 	if err != nil {
 		return err
 	}
-	return s.refService.Write(headRef, commitHash)
+	return c.refService.Write(headRef, commitHash)
 }
