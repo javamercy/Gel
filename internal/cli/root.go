@@ -33,7 +33,7 @@ var (
 	branchService      *gel.BranchService
 	restoreService     *gel.RestoreService
 	switchService      *gel.SwitchService
-	workingDirService  *gel.WorkingTreeService
+	treeResolver       *gel.TreeResolver
 	statusService      *gel.StatusService
 	diffService        *gel.DiffService
 
@@ -109,13 +109,10 @@ func initializeServices() error {
 	branchService = gel.NewBranchService(refService, objectService, workspaceProvider)
 	restoreService = gel.NewRestoreService(indexService, objectService, hashObjectService, refService)
 	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
-	workingDirService = gel.NewWorkingDirService(pathResolver, hashObjectService)
-	statusService = gel.NewStatusService(indexService, objectService, workingDirService, refService, symbolicRefService)
-	diffService = gel.NewDiffService(
-		objectService, indexService, refService, workingDirService, diff.NewMyersDiffAlgorithm(),
-	)
+	treeResolver = gel.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
+	statusService = gel.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
+	diffService = gel.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
 
 	isServicesInitialized = true
-
 	return nil
 }

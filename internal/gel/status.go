@@ -1,9 +1,7 @@
 package gel
 
 import (
-	"Gel/domain"
 	"Gel/internal/workspace"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -21,19 +19,19 @@ type StatusResult struct {
 type StatusService struct {
 	indexService       *IndexService
 	objectService      *ObjectService
-	workingDirService  *WorkingTreeService
+	treeResolver       *TreeResolver
 	refService         *RefService
 	symbolicRefService *SymbolicRefService
 }
 
 func NewStatusService(
-	indexService *IndexService, objectService *ObjectService, workingDirService *WorkingTreeService,
+	indexService *IndexService, objectService *ObjectService, treeResolver *TreeResolver,
 	refService *RefService, symbolicRefService *SymbolicRefService,
 ) *StatusService {
 	return &StatusService{
 		indexService:       indexService,
 		objectService:      objectService,
-		workingDirService:  workingDirService,
+		treeResolver:       treeResolver,
 		refService:         refService,
 		symbolicRefService: symbolicRefService,
 	}
@@ -52,32 +50,13 @@ func (s *StatusService) Status(writer io.Writer) error {
 			indexEntries[entry.Path] = entry.Hash
 		}
 	}
-	headTreeEntries := make(map[string]string)
-	commitHash, err := s.refService.Resolve(workspace.HeadFileName)
-	if err != nil && !errors.Is(err, ErrRefNotFound) {
+
+	headTreeEntries, err := s.treeResolver.ResolveHEAD()
+	// TODO: err might be ErrRefNotFound. Double check!
+	if err != nil {
 		return err
 	}
-	if commitHash != "" {
-		commit, err := s.objectService.ReadCommit(commitHash)
-		if err != nil {
-			return err
-		}
-		walkOptions := WalkOptions{
-			Recursive:    true,
-			IncludeTrees: false,
-			OnlyTrees:    false,
-		}
-		processor := func(entry domain.TreeEntry, relPath string) error {
-			headTreeEntries[relPath] = entry.Hash
-			return nil
-		}
-		treeWalker := NewTreeWalker(s.objectService, walkOptions)
-		if err := treeWalker.Walk(commit.TreeHash, "", processor); err != nil {
-			return err
-		}
-	}
-
-	workingDirFiles, err := s.workingDirService.GetFileMap()
+	workingTreeEntries, err := s.treeResolver.ResolveWorkingTree()
 	if err != nil {
 		return err
 	}
@@ -103,18 +82,18 @@ func (s *StatusService) Status(writer io.Writer) error {
 
 	// Compare Index vs Working Dir → Unstaged changes
 	for indexEntryPath, indexEntryHash := range indexEntries {
-		workingDirHash, inWorkingDir := workingDirFiles[indexEntryPath]
+		workingTreeHash, inWorkingDir := workingTreeEntries[indexEntryPath]
 		if !inWorkingDir {
 			// in Index but not in Working Dir
 			result.Unstaged = append(result.Unstaged, FileStatus{indexEntryPath, "Deleted"})
-		} else if workingDirHash != indexEntryHash {
+		} else if workingTreeHash != indexEntryHash {
 			// in Index and Working Dir but different
 			result.Unstaged = append(result.Unstaged, FileStatus{indexEntryPath, "Modified"})
 		}
 	}
 
 	// Find untracked files
-	for path := range workingDirFiles {
+	for path := range workingTreeEntries {
 		if _, inIndex := indexEntries[path]; !inIndex {
 			result.Untracked = append(result.Untracked, path)
 		}

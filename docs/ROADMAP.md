@@ -47,7 +47,7 @@ _Managing branches and HEAD_
 
 _Understanding repository state_
 
-- [ ] **status** - Show working tree status (staged, modified, untracked)
+- [x] **status** - Show working tree status (staged, modified, untracked)
 - [ ] **diff** - Show changes between commits, index, and working tree
 - [ ] **show** - Show commit details and diff
 
@@ -57,15 +57,15 @@ _Moving through commit history_
 
 - [ ] **checkout** - Detached HEAD mode, checkout specific commits
 - [ ] **reset** - Reset current HEAD to a specified state
-- [ ] **stash** - Stash changes in working directory
+- [ ] ~~**stash** - Stash changes in working directory~~
 - [ ] **reflog** - Manage reflog information
 
 ## Phase 8: Undoing Changes
 
 _Reverting and cleaning_
 
-- [ ] **revert** - Create a commit that undoes another commit
-- [ ] **clean** - Remove untracked files from working tree
+- [ ] ~~**revert** - Create a commit that undoes another commit~~
+- [ ] ~~**clean** - Remove untracked files from working tree~~
 - [ ] **rm** - Remove files from working tree and index
 
 ## Phase 9: Merging & Rebasing
@@ -73,14 +73,14 @@ _Reverting and cleaning_
 _Combining branches_
 
 - [ ] **merge** - Join two or more development histories
-- [ ] **rebase** - Reapply commits on top of another base
-- [ ] **cherry-pick** - Apply specific commits to current branch
+- [ ] ~~**rebase** - Reapply commits on top of another base~~
+- [ ] ~~**cherry-pick** - Apply specific commits to current branch~~
 
 ## Phase 10: Tags
 
 _Marking specific points in history_
 
-- [ ] **tag** - Create, list, delete tags
+- [ ] ~~**tag** - Create, list, delete tags~~
 
 ## Phase 11: Remote Operations
 
@@ -96,8 +96,8 @@ _Distributed version control_
 
 _Power user operations_
 
-- [ ] **blame** - Show what revision last modified each line
-- [ ] **bisect** - Binary search for bug-introducing commit
+- [ ] ~~**blame** - Show what revision last modified each line~~
+- [ ] ~~**bisect** - Binary search for bug-introducing commit~~
 - [ ] **gc** - Cleanup and optimize repository
 
 ---

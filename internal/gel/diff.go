@@ -3,7 +3,6 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/internal/gel/diff"
-	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 	"os"
@@ -21,26 +20,23 @@ const (
 
 type ContentLoaderFunc func(path, hash string) (string, error)
 type DiffService struct {
-	objectService      *ObjectService
-	indexService       *IndexService
-	refService         *RefService
-	workingTreeService *WorkingTreeService
-	diffAlgorithm      *diff.MyersDiffAlgorithm
+	objectService *ObjectService
+	refService    *RefService
+	treeResolver  *TreeResolver
+	diffAlgorithm *diff.MyersDiffAlgorithm
 }
 
 func NewDiffService(
 	objectService *ObjectService,
-	indexService *IndexService,
 	refService *RefService,
-	workingTreeService *WorkingTreeService,
+	treeResolver *TreeResolver,
 	diffAlgorithm *diff.MyersDiffAlgorithm,
 ) *DiffService {
 	return &DiffService{
-		objectService:      objectService,
-		indexService:       indexService,
-		refService:         refService,
-		workingTreeService: workingTreeService,
-		diffAlgorithm:      diffAlgorithm,
+		objectService: objectService,
+		refService:    refService,
+		treeResolver:  treeResolver,
+		diffAlgorithm: diffAlgorithm,
 	}
 }
 
@@ -154,55 +150,25 @@ func (d *DiffService) computeEntryDiffs(
 func (d *DiffService) resolveEntries(source EntrySource, commitHash string) (map[string]string, error) {
 	switch source {
 	case EntrySourceIndex:
-		entries, err := d.indexService.GetEntryMap()
+		entries, err := d.treeResolver.ResolveIndex()
 		if err != nil {
 			return nil, err
 		}
 		return entries, nil
 	case EntrySourceHead:
-		commitHash, err := d.refService.Resolve(workspace.HeadFileName)
-		if err != nil {
-			return nil, err
-		}
-		commit, err := d.objectService.ReadCommit(commitHash)
-		if err != nil {
-			return nil, err
-		}
-		entries := make(map[string]string)
-
-		//TODO: refactor this walker
-		walker := NewTreeWalker(d.objectService, WalkOptions{Recursive: true})
-		err = walker.Walk(
-			commit.TreeHash, "", func(entry domain.TreeEntry, relPath string) error {
-				entries[relPath] = entry.Hash
-				return nil
-			},
-		)
+		entries, err := d.treeResolver.ResolveHEAD()
 		if err != nil {
 			return nil, err
 		}
 		return entries, nil
 	case EntrySourceWorkingTree:
-		entries, err := d.workingTreeService.GetFileMap()
+		entries, err := d.treeResolver.ResolveWorkingTree()
 		if err != nil {
 			return nil, err
 		}
 		return entries, nil
 	case EntrySourceCommit:
-		commit, err := d.objectService.ReadCommit(commitHash)
-		if err != nil {
-			return nil, err
-		}
-		entries := make(map[string]string)
-
-		// TODO: refactor this walker
-		walker := NewTreeWalker(d.objectService, WalkOptions{Recursive: true})
-		err = walker.Walk(
-			commit.TreeHash, "", func(entry domain.TreeEntry, relPath string) error {
-				entries[relPath] = entry.Hash
-				return nil
-			},
-		)
+		entries, err := d.treeResolver.ResolveCommit(commitHash)
 		if err != nil {
 			return nil, err
 		}

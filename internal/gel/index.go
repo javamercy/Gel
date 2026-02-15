@@ -43,16 +43,3 @@ func (i *IndexService) GetEntries() ([]*domain.IndexEntry, error) {
 	}
 	return index.Entries, nil
 }
-
-func (i *IndexService) GetEntryMap() (map[string]string, error) {
-	entries, err := i.GetEntries()
-	if err != nil {
-		return nil, err
-	}
-
-	entriesMap := make(map[string]string, len(entries))
-	for _, entry := range entries {
-		entriesMap[entry.Path] = entry.Hash
-	}
-	return entriesMap, nil
-}
