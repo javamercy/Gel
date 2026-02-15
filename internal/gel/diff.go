@@ -3,19 +3,9 @@ package gel
 import (
 	"Gel/domain"
 	"Gel/internal/gel/diff"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
-)
-
-type EntrySource int
-
-const (
-	EntrySourceIndex EntrySource = iota
-	EntrySourceHead
-	EntrySourceWorkingTree
-	EntrySourceCommit
 )
 
 type ContentLoaderFunc func(path, hash string) (string, error)
@@ -45,52 +35,52 @@ func (d *DiffService) Diff(
 	baseCommitHash, targetCommitHash string,
 ) error {
 	if head {
-		headEntries, err := d.resolveEntries(EntrySourceHead, "")
+		headEntries, err := d.treeResolver.ResolveHEAD()
 		if err != nil {
 			return err
 		}
-		workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
+		workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
 		if err != nil {
 			return err
 		}
 		return d.computeEntryDiffs(headEntries, workingTreeEntries, d.loadBlobContent, d.loadFileContent)
 	} else if staged {
-		headEntries, err := d.resolveEntries(EntrySourceHead, "")
+		headEntries, err := d.treeResolver.ResolveHEAD()
 		if err != nil {
 			return err
 		}
-		indexEntries, err := d.resolveEntries(EntrySourceIndex, "")
+		indexEntries, err := d.treeResolver.ResolveIndex()
 		if err != nil {
 			return err
 		}
 		return d.computeEntryDiffs(indexEntries, headEntries, d.loadBlobContent, d.loadBlobContent)
 	} else if baseCommitHash != "" && targetCommitHash != "" {
-		firstCommitEntries, err := d.resolveEntries(EntrySourceCommit, baseCommitHash)
+		baseCommitEntries, err := d.treeResolver.ResolveCommit(baseCommitHash)
 		if err != nil {
 			return err
 		}
-		secondCommitEntries, err := d.resolveEntries(EntrySourceCommit, targetCommitHash)
+		targetCommitEntries, err := d.treeResolver.ResolveCommit(targetCommitHash)
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(firstCommitEntries, secondCommitEntries, d.loadBlobContent, d.loadBlobContent)
+		return d.computeEntryDiffs(baseCommitEntries, targetCommitEntries, d.loadBlobContent, d.loadBlobContent)
 	} else if baseCommitHash != "" {
-		commitEntries, err := d.resolveEntries(EntrySourceCommit, baseCommitHash)
+		commitEntries, err := d.treeResolver.ResolveCommit(baseCommitHash)
 		if err != nil {
 			return err
 		}
-		workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
+		workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
 		if err != nil {
 			return err
 		}
 		return d.computeEntryDiffs(workingTreeEntries, commitEntries, d.loadFileContent, d.loadBlobContent)
 	}
 
-	indexEntries, err := d.resolveEntries(EntrySourceIndex, "")
+	indexEntries, err := d.treeResolver.ResolveIndex()
 	if err != nil {
 		return err
 	}
-	workingTreeEntries, err := d.resolveEntries(EntrySourceWorkingTree, "")
+	workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
 	if err != nil {
 		return err
 	}
@@ -145,36 +135,6 @@ func (d *DiffService) computeEntryDiffs(
 		}
 	}
 	return nil
-}
-
-func (d *DiffService) resolveEntries(source EntrySource, commitHash string) (map[string]string, error) {
-	switch source {
-	case EntrySourceIndex:
-		entries, err := d.treeResolver.ResolveIndex()
-		if err != nil {
-			return nil, err
-		}
-		return entries, nil
-	case EntrySourceHead:
-		entries, err := d.treeResolver.ResolveHEAD()
-		if err != nil {
-			return nil, err
-		}
-		return entries, nil
-	case EntrySourceWorkingTree:
-		entries, err := d.treeResolver.ResolveWorkingTree()
-		if err != nil {
-			return nil, err
-		}
-		return entries, nil
-	case EntrySourceCommit:
-		entries, err := d.treeResolver.ResolveCommit(commitHash)
-		if err != nil {
-			return nil, err
-		}
-		return entries, nil
-	}
-	return nil, errors.New("invalid source type")
 }
 
 func (d *DiffService) loadBlobContent(_, hash string) (string, error) {
