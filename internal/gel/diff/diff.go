@@ -2,7 +2,7 @@ package diff
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel"
+	"Gel/internal/gel/core"
 	"fmt"
 	"io"
 	"os"
@@ -28,16 +28,16 @@ type DiffOptions struct {
 type ContentLoaderFunc func(path, hash string) (string, error)
 
 type DiffService struct {
-	objectService *gel.ObjectService
-	refService    *gel.RefService
-	treeResolver  *gel.TreeResolver
+	objectService *core.ObjectService
+	refService    *core.RefService
+	treeResolver  *core.TreeResolver
 	diffAlgorithm *MyersDiffAlgorithm
 }
 
 func NewDiffService(
-	objectService *gel.ObjectService,
-	refService *gel.RefService,
-	treeResolver *gel.TreeResolver,
+	objectService *core.ObjectService,
+	refService *core.RefService,
+	treeResolver *core.TreeResolver,
 	diffAlgorithm *MyersDiffAlgorithm,
 ) *DiffService {
 	return &DiffService{
@@ -187,22 +187,22 @@ func (d *DiffService) loadFileContent(path, _ string) (string, error) {
 
 func (d *DiffService) printNewFileHeader(writer io.Writer, oldPath, newPath, hash string) error {
 	if _, err := fmt.Fprintf(
-		writer, "%sdiff --gel a/%s b/%s%s\n", gel.ColorBold, oldPath, newPath, gel.ColorReset,
+		writer, "%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, newPath, core.ColorReset,
 	); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(
-		writer, "%snew file mode %s%s\n", gel.ColorBold, domain.RegularFileMode, gel.ColorReset,
+		writer, "%snew file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%sindex 00000000..%s%s\n", gel.ColorBold, hash, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%sindex 00000000..%s%s\n", core.ColorBold, hash, core.ColorReset); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s--- /dev/null%s\n", gel.ColorBold, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s--- /dev/null%s\n", core.ColorBold, core.ColorReset); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", gel.ColorBold, newPath, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset); err != nil {
 		return err
 	}
 	return nil
@@ -210,17 +210,17 @@ func (d *DiffService) printNewFileHeader(writer io.Writer, oldPath, newPath, has
 
 func (d *DiffService) printDeletedFileHeader(writer io.Writer, oldPath, oldHash string) error {
 	if _, err := fmt.Fprintf(
-		writer, "%sdeleted file mode %s%s\n", gel.ColorBold, domain.RegularFileMode, gel.ColorReset,
+		writer, "%sdeleted file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%sindex %s..00000000%s\n", gel.ColorBold, oldHash, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%sindex %s..00000000%s\n", core.ColorBold, oldHash, core.ColorReset); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", gel.ColorBold, oldPath, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s+++ /dev/null%s\n", gel.ColorBold, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s+++ /dev/null%s\n", core.ColorBold, core.ColorReset); err != nil {
 		return err
 	}
 	return nil
@@ -228,14 +228,14 @@ func (d *DiffService) printDeletedFileHeader(writer io.Writer, oldPath, oldHash 
 
 func (d *DiffService) printModifiedFileHeader(writer io.Writer, oldPath, newPath, oldHash, newHash string) error {
 	if _, err := fmt.Fprintf(
-		writer, "%sindex %s..%s %s%s\n", gel.ColorBold, oldHash, newHash, domain.RegularFileMode, gel.ColorReset,
+		writer, "%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", gel.ColorBold, oldPath, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", gel.ColorBold, newPath, gel.ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset); err != nil {
 		return err
 	}
 	return nil
@@ -256,12 +256,12 @@ func (d *DiffService) printHunks(writer io.Writer, hunks []Hunk) error {
 				color = ""
 			case OpTypeInsertion:
 				prefix = "+ "
-				color = gel.ColorGreen
+				color = core.ColorGreen
 			case OpTypeDeletion:
 				prefix = "- "
-				color = gel.ColorRed
+				color = core.ColorRed
 			}
-			if _, err := fmt.Fprintf(writer, "%s%s%s%s\n", color, prefix, line.Content, gel.ColorReset); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s%s%s%s\n", color, prefix, line.Content, core.ColorReset); err != nil {
 				return err
 			}
 		}

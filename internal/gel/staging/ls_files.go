@@ -1,7 +1,8 @@
-package gel
+package staging
 
 import (
 	"Gel/domain"
+	"Gel/internal/gel/core"
 	"fmt"
 	"io"
 	"os"
@@ -13,12 +14,12 @@ const (
 )
 
 type LsFilesService struct {
-	indexService      *IndexService
-	objectService     *ObjectService
-	hashObjectService *HashObjectService
+	indexService      *core.IndexService
+	objectService     *core.ObjectService
+	hashObjectService *core.HashObjectService
 }
 
-func NewLsFilesService(indexService *IndexService, objectService *ObjectService) *LsFilesService {
+func NewLsFilesService(indexService *core.IndexService, objectService *core.ObjectService) *LsFilesService {
 	return &LsFilesService{
 		indexService:  indexService,
 		objectService: objectService,

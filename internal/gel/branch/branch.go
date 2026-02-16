@@ -1,7 +1,8 @@
-package gel
+package branch
 
 import (
-	"Gel/internal/workspace"
+	"Gel/internal/gel/core"
+	workspace2 "Gel/internal/gel/workspace"
 	"errors"
 	"fmt"
 	"io"
@@ -16,13 +17,13 @@ type branch struct {
 	isCurrent bool
 }
 type BranchService struct {
-	refService        *RefService
-	objectService     *ObjectService
-	workspaceProvider *workspace.Provider
+	refService        *core.RefService
+	objectService     *core.ObjectService
+	workspaceProvider *workspace2.Provider
 }
 
 func NewBranchService(
-	refService *RefService, objectService *ObjectService, workspaceProvider *workspace.Provider,
+	refService *core.RefService, objectService *core.ObjectService, workspaceProvider *workspace2.Provider,
 ) *BranchService {
 	return &BranchService{
 		refService:        refService,
@@ -33,9 +34,9 @@ func NewBranchService(
 
 func (b *BranchService) List(writer io.Writer) error {
 	ws := b.workspaceProvider.GetWorkspace()
-	headsDir := filepath.Join(ws.GelDir, workspace.RefsDirName, workspace.HeadsDirName)
+	headsDir := filepath.Join(ws.GelDir, workspace2.RefsDirName, workspace2.HeadsDirName)
 
-	currentBranch, err := b.refService.ReadSymbolic(workspace.HeadFileName)
+	currentBranch, err := b.refService.ReadSymbolic(workspace2.HeadFileName)
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func (b *BranchService) List(writer io.Writer) error {
 
 	for _, b := range branches {
 		if b.isCurrent {
-			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", ColorGreen, b.name, ColorReset); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, b.name, core.ColorReset); err != nil {
 				return err
 			}
 		} else {
@@ -91,14 +92,14 @@ func (b *BranchService) Create(name string, startPoint string) error {
 	if err := validateBranchName(name); err != nil {
 		return err
 	}
-	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	ref := filepath.Join(workspace2.RefsDirName, workspace2.HeadsDirName, name)
 	exists := b.refService.Exists(ref)
 	if exists {
 		return errors.New("branch already exists")
 	}
 
 	if startPoint == "" {
-		commitHash, err := b.refService.Resolve(workspace.HeadFileName)
+		commitHash, err := b.refService.Resolve(workspace2.HeadFileName)
 		if err != nil {
 			return err
 		}
@@ -107,7 +108,7 @@ func (b *BranchService) Create(name string, startPoint string) error {
 
 	if commitHash, err := b.refService.Resolve(
 		filepath.Join(
-			workspace.RefsDirName, workspace.HeadsDirName, startPoint,
+			workspace2.RefsDirName, workspace2.HeadsDirName, startPoint,
 		),
 	); err == nil {
 		return b.refService.Write(ref, commitHash)
@@ -125,12 +126,12 @@ func (b *BranchService) Delete(name string) error {
 		return err
 	}
 
-	currRef, err := b.refService.ReadSymbolic(workspace.HeadFileName)
+	currRef, err := b.refService.ReadSymbolic(workspace2.HeadFileName)
 	if err != nil {
 		return err
 	}
 
-	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	refToDelete := filepath.Join(workspace2.RefsDirName, workspace2.HeadsDirName, name)
 	if refToDelete == currRef {
 		return errors.New("cannot delete the current branch")
 	}

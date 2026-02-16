@@ -1,22 +1,24 @@
-package gel
+package commit
 
 import (
-	"Gel/internal/workspace"
+	"Gel/internal/gel/core"
+	"Gel/internal/gel/tree"
+	"Gel/internal/gel/workspace"
 	"errors"
 )
 
 type CommitService struct {
-	writeTreeService  *WriteTreeService
+	writeTreeService  *tree.WriteTreeService
 	commitTreeService *CommitTreeService
-	refService        *RefService
-	objectService     *ObjectService
+	refService        *core.RefService
+	objectService     *core.ObjectService
 }
 
 func NewCommitService(
-	writeTreeService *WriteTreeService,
+	writeTreeService *tree.WriteTreeService,
 	commitTreeService *CommitTreeService,
-	refService *RefService,
-	objectService *ObjectService,
+	refService *core.RefService,
+	objectService *core.ObjectService,
 ) *CommitService {
 	return &CommitService{
 		writeTreeService:  writeTreeService,
@@ -38,7 +40,7 @@ func (c *CommitService) Commit(message string) error {
 		return err
 	}
 	parentHash, err := c.refService.Read(headRef)
-	if errors.Is(err, ErrRefNotFound) {
+	if errors.Is(err, core.ErrRefNotFound) {
 		parentHashes = nil
 	} else if err != nil {
 		return err

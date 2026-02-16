@@ -1,22 +1,21 @@
-package gel
+package core
 
 import (
 	"Gel/domain"
-	"Gel/internal/pathspec"
-	"Gel/internal/workspace"
+	"Gel/internal/gel/workspace"
 )
 
 type TreeResolver struct {
 	objectService     *ObjectService
 	indexService      *IndexService
 	refService        *RefService
-	pathResolver      *pathspec.PathResolver
+	pathResolver      *PathResolver
 	hashObjectService *HashObjectService
 }
 
 func NewTreeResolver(
 	objectService *ObjectService, indexService *IndexService, refService *RefService,
-	pathResolver *pathspec.PathResolver, hashObjectService *HashObjectService,
+	pathResolver *PathResolver, hashObjectService *HashObjectService,
 ) *TreeResolver {
 	return &TreeResolver{
 		objectService:     objectService,

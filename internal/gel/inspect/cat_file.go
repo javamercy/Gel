@@ -1,16 +1,17 @@
-package gel
+package inspect
 
 import (
 	"Gel/domain"
+	"Gel/internal/gel/core"
 	"fmt"
 	"io"
 )
 
 type CatFileService struct {
-	objectService *ObjectService
+	objectService *core.ObjectService
 }
 
-func NewCatFileService(objectService *ObjectService) *CatFileService {
+func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 	return &CatFileService{
 		objectService: objectService,
 	}

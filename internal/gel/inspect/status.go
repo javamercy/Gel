@@ -1,7 +1,9 @@
-package gel
+package inspect
 
 import (
-	"Gel/internal/workspace"
+	"Gel/internal/gel"
+	"Gel/internal/gel/core"
+	"Gel/internal/gel/workspace"
 	"errors"
 	"fmt"
 	"io"
@@ -18,16 +20,16 @@ type StatusResult struct {
 	Untracked []string
 }
 type StatusService struct {
-	indexService       *IndexService
-	objectService      *ObjectService
-	treeResolver       *TreeResolver
-	refService         *RefService
-	symbolicRefService *SymbolicRefService
+	indexService       *core.IndexService
+	objectService      *core.ObjectService
+	treeResolver       *core.TreeResolver
+	refService         *core.RefService
+	symbolicRefService *gel.SymbolicRefService
 }
 
 func NewStatusService(
-	indexService *IndexService, objectService *ObjectService, treeResolver *TreeResolver,
-	refService *RefService, symbolicRefService *SymbolicRefService,
+	indexService *core.IndexService, objectService *core.ObjectService, treeResolver *core.TreeResolver,
+	refService *core.RefService, symbolicRefService *gel.SymbolicRefService,
 ) *StatusService {
 	return &StatusService{
 		indexService:       indexService,
@@ -53,7 +55,7 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 	}
 
 	headTreeEntries, err := s.treeResolver.ResolveHEAD()
-	if err != nil && errors.Is(err, ErrRefNotFound) {
+	if err != nil && errors.Is(err, core.ErrRefNotFound) {
 		return err
 	}
 	workingTreeEntries, err := s.treeResolver.ResolveWorkingTree()
@@ -98,7 +100,7 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 }
 
 func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSize int, result *StatusResult) error {
-	if _, err := fmt.Fprintf(writer, "On branch %s%s%s", ColorGreen, branch, ColorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "On branch %s%s%s", core.ColorGreen, branch, core.ColorReset); err != nil {
 		return err
 	}
 	if headTreeSize == 0 {
@@ -108,14 +110,14 @@ func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSiz
 	}
 	if len(result.Staged) > 0 {
 		if _, err := fmt.Fprintf(
-			writer, "\n%sChanges to be committed:%s\n", ColorGreen, ColorReset,
+			writer, "\n%sChanges to be committed:%s\n", core.ColorGreen, core.ColorReset,
 		); err != nil {
 			return err
 		}
 		for _, staged := range result.Staged {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s%s:  %s%s\n", ColorGreen, staged.Status, staged.Path, ColorReset,
+				"\t%s%s:  %s%s\n", core.ColorGreen, staged.Status, staged.Path, core.ColorReset,
 			); err != nil {
 				return err
 			}
@@ -123,27 +125,27 @@ func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSiz
 	}
 	if len(result.Unstaged) > 0 {
 		if _, err := fmt.Fprintf(
-			writer, "\nChanges not staged for commit:%s\n", ColorReset,
+			writer, "\nChanges not staged for commit:%s\n", core.ColorReset,
 		); err != nil {
 			return err
 		}
 		for _, unstaged := range result.Unstaged {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s:  %s%s\n", unstaged.Status, unstaged.Path, ColorReset,
+				"\t%s:  %s%s\n", unstaged.Status, unstaged.Path, core.ColorReset,
 			); err != nil {
 				return err
 			}
 		}
 	}
 	if len(result.Untracked) > 0 {
-		if _, err := fmt.Fprintf(writer, "\nUntracked files:%s\n", ColorReset); err != nil {
+		if _, err := fmt.Fprintf(writer, "\nUntracked files:%s\n", core.ColorReset); err != nil {
 			return err
 		}
 		for _, untracked := range result.Untracked {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s%s\n", untracked, ColorReset,
+				"\t%s%s\n", untracked, core.ColorReset,
 			); err != nil {
 				return err
 			}

@@ -1,7 +1,8 @@
-package gel
+package commit
 
 import (
 	"Gel/domain"
+	"Gel/internal/gel/core"
 	"errors"
 	"fmt"
 	"io"
@@ -10,11 +11,11 @@ import (
 )
 
 type LogService struct {
-	refService    *RefService
-	objectService *ObjectService
+	refService    *core.RefService
+	objectService *core.ObjectService
 }
 
-func NewLogService(refService *RefService, objectService *ObjectService) *LogService {
+func NewLogService(refService *core.RefService, objectService *core.ObjectService) *LogService {
 	return &LogService{
 		refService:    refService,
 		objectService: objectService,
@@ -61,8 +62,8 @@ func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.C
 	if err != nil {
 		return err
 	}
-	commitPrefix := ColorGreen
-	commitSuffix := ColorReset
+	commitPrefix := core.ColorGreen
+	commitSuffix := core.ColorReset
 	if _, err := fmt.Fprintf(
 		writer,
 		"%scommit %s%s\n"+
@@ -83,8 +84,8 @@ func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.C
 
 func (l *LogService) printCommitOneline(writer io.Writer, hash string, commit *domain.Commit) error {
 	shortHash := hash[:7]
-	commitPrefix := ColorGreen
-	commitSuffix := ColorReset
+	commitPrefix := core.ColorGreen
+	commitSuffix := core.ColorReset
 	firstLine := strings.Split(commit.Message, "\n")[0]
 	if _, err := fmt.Fprintf(writer, "%s%s%s %s\n", commitPrefix, shortHash, commitSuffix, firstLine); err != nil {
 		return err

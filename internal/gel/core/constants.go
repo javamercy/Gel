@@ -1,4 +1,4 @@
-package gel
+package core
 
 const (
 	ColorGreen = "\033[32m"

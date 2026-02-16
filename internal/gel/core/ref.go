@@ -1,7 +1,7 @@
-package gel
+package core
 
 import (
-	"Gel/internal/workspace"
+	workspace2 "Gel/internal/gel/workspace"
 	"errors"
 	"fmt"
 	"os"
@@ -14,10 +14,10 @@ var (
 )
 
 type RefService struct {
-	workspaceProvider *workspace.Provider
+	workspaceProvider *workspace2.Provider
 }
 
-func NewRefService(workspaceProvider *workspace.Provider) *RefService {
+func NewRefService(workspaceProvider *workspace2.Provider) *RefService {
 	return &RefService{
 		workspaceProvider: workspaceProvider,
 	}
@@ -53,7 +53,7 @@ func (r *RefService) WriteSymbolic(name, ref string) error {
 	ws := r.workspaceProvider.GetWorkspace()
 	path := filepath.Join(ws.GelDir, name)
 	contentStr := fmt.Sprintf("ref: %s\n", ref)
-	return os.WriteFile(path, []byte(contentStr), workspace.FilePermission)
+	return os.WriteFile(path, []byte(contentStr), workspace2.FilePermission)
 }
 
 func (r *RefService) Read(ref string) (string, error) {
@@ -83,12 +83,12 @@ func (r *RefService) Write(ref, hash string) error {
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
 	dir := filepath.Dir(absPath)
-	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, workspace2.DirPermission); err != nil {
 		return err
 	}
 
 	contentStr := fmt.Sprintf("%s\n", hash)
-	return os.WriteFile(absPath, []byte(contentStr), workspace.FilePermission)
+	return os.WriteFile(absPath, []byte(contentStr), workspace2.FilePermission)
 }
 
 func (r *RefService) Delete(ref string) error {

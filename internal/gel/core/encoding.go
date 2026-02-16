@@ -1,4 +1,4 @@
-package gel
+package core
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package pathspec
+package core
 
 import (
 	"errors"
@@ -109,11 +109,13 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 			normalizedPaths[normalizedPath] = true
 		}
 
-		resolvedPaths = append(resolvedPaths, ResolvedPath{
-			Type:            pathspecType,
-			NormalizedScope: normalizedScope,
-			NormalizedPaths: normalizedPaths,
-		})
+		resolvedPaths = append(
+			resolvedPaths, ResolvedPath{
+				Type:            pathspecType,
+				NormalizedScope: normalizedScope,
+				NormalizedPaths: normalizedPaths,
+			},
+		)
 	}
 
 	return resolvedPaths, nil
@@ -161,19 +163,21 @@ func classifyPathspec(pathspec string) PathspecType {
 func expandDirectory(path string) ([]string, error) {
 	var files []string
 
-	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			info, err := os.Stat(p)
-			if err == nil && info.IsDir() {
-				return nil
+	err := filepath.WalkDir(
+		path, func(p string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
 			}
-			files = append(files, p)
-		}
-		return nil
-	})
+			if !d.IsDir() {
+				info, err := os.Stat(p)
+				if err == nil && info.IsDir() {
+					return nil
+				}
+				files = append(files, p)
+			}
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

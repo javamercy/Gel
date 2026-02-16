@@ -1,7 +1,7 @@
 package gel
 
 import (
-	"Gel/internal/workspace"
+	"Gel/internal/gel/workspace"
 	"fmt"
 	"os"
 	"path/filepath"

@@ -2,41 +2,48 @@ package cli
 
 import (
 	"Gel/internal/gel"
+	"Gel/internal/gel/branch"
+	"Gel/internal/gel/commit"
+	"Gel/internal/gel/core"
 	"Gel/internal/gel/diff"
-	"Gel/internal/pathspec"
-	storage2 "Gel/internal/storage"
-	"Gel/internal/workspace"
+	"Gel/internal/gel/inspect"
+	"Gel/internal/gel/staging"
+	"Gel/internal/gel/tree"
+	"Gel/internal/gel/workspace"
+	"Gel/internal/storage"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	objectService *gel.ObjectService
-	indexService  *gel.IndexService
-	configService *gel.ConfigService
+	objectService     *core.ObjectService
+	indexService      *core.IndexService
+	configService     *core.ConfigService
+	refService        *core.RefService
+	hashObjectService *core.HashObjectService
+	treeResolver      *core.TreeResolver
+	pathResolver      *core.PathResolver
+)
 
-	addService         *gel.AddService
-	hashObjectService  *gel.HashObjectService
-	catFileService     *gel.CatFileService
-	lsFilesService     *gel.LsFilesService
-	updateIndexService *gel.UpdateIndexService
-	writeTreeService   *gel.WriteTreeService
-	readTreeService    *gel.ReadTreeService
-	lsTreeService      *gel.LsTreeService
-	commitTreeService  *gel.CommitTreeService
-	refService         *gel.RefService
-	symbolicRefService *gel.SymbolicRefService
-	updateRefService   *gel.UpdateRefService
-	commitService      *gel.CommitService
-	logService         *gel.LogService
-	branchService      *gel.BranchService
-	restoreService     *gel.RestoreService
-	switchService      *gel.SwitchService
-	treeResolver       *gel.TreeResolver
-	statusService      *gel.StatusService
-	diffService        *diff.DiffService
-
+var (
+	addService            *staging.AddService
+	catFileService        *inspect.CatFileService
+	lsFilesService        *staging.LsFilesService
+	updateIndexService    *staging.UpdateIndexService
+	writeTreeService      *tree.WriteTreeService
+	readTreeService       *tree.ReadTreeService
+	lsTreeService         *tree.LsTreeService
+	commitTreeService     *commit.CommitTreeService
+	symbolicRefService    *gel.SymbolicRefService
+	updateRefService      *gel.UpdateRefService
+	commitService         *commit.CommitService
+	logService            *commit.LogService
+	branchService         *branch.BranchService
+	restoreService        *inspect.RestoreService
+	switchService         *branch.SwitchService
+	statusService         *inspect.StatusService
+	diffService           *diff.DiffService
 	isServicesInitialized bool
 )
 
@@ -82,37 +89,36 @@ func initializeServices() error {
 		return err
 	}
 
-	objectStorage := storage2.NewObjectStorage(workspaceProvider)
-	indexStorage := storage2.NewIndexStorage(workspaceProvider)
-	configStorage := storage2.NewConfigStorage(workspaceProvider)
+	objectStorage := storage.NewObjectStorage(workspaceProvider)
+	indexStorage := storage.NewIndexStorage(workspaceProvider)
+	configStorage := storage.NewConfigStorage(workspaceProvider)
 
-	objectService = gel.NewObjectService(objectStorage)
-	indexService = gel.NewIndexService(indexStorage)
-	configService = gel.NewConfigService(configStorage)
+	objectService = core.NewObjectService(objectStorage)
+	indexService = core.NewIndexService(indexStorage)
+	configService = core.NewConfigService(configStorage)
+	refService = core.NewRefService(workspaceProvider)
+	hashObjectService = core.NewHashObjectService(objectService)
+	pathResolver = core.NewPathResolver(cwd, nil)
+	treeResolver = core.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
 
-	hashObjectService = gel.NewHashObjectService(objectService)
-	catFileService = gel.NewCatFileService(objectService)
+	catFileService = inspect.NewCatFileService(objectService)
+	updateIndexService = staging.NewUpdateIndexService(indexService, hashObjectService, objectService)
+	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
+	lsFilesService = staging.NewLsFilesService(indexService, objectService)
+	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
+	readTreeService = tree.NewReadTreeService(indexService, objectService)
+	lsTreeService = tree.NewLsTreeService(objectService)
+	commitTreeService = commit.NewCommitTreeService(objectService, configService)
 
-	pathResolver := pathspec.NewPathResolver(cwd, nil)
-	updateIndexService = gel.NewUpdateIndexService(indexService, hashObjectService, objectService)
-	addService = gel.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = gel.NewLsFilesService(indexService, objectService)
-	writeTreeService = gel.NewWriteTreeService(indexService, objectService)
-	readTreeService = gel.NewReadTreeService(indexService, objectService)
-	lsTreeService = gel.NewLsTreeService(objectService)
-	commitTreeService = gel.NewCommitTreeService(objectService, configService)
-	refService = gel.NewRefService(workspaceProvider)
 	symbolicRefService = gel.NewSymbolicRefService(refService)
 	updateRefService = gel.NewUpdateRefService(refService)
-	commitService = gel.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
-	logService = gel.NewLogService(refService, objectService)
-	branchService = gel.NewBranchService(refService, objectService, workspaceProvider)
-	restoreService = gel.NewRestoreService(indexService, objectService, hashObjectService, refService)
-	switchService = gel.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
-	treeResolver = gel.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
-	statusService = gel.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
+	commitService = commit.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
+	logService = commit.NewLogService(refService, objectService)
+	branchService = branch.NewBranchService(refService, objectService, workspaceProvider)
+	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService)
+	switchService = branch.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
+	statusService = inspect.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
 	diffService = diff.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
-
 	isServicesInitialized = true
 	return nil
 }

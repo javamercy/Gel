@@ -1,10 +1,12 @@
 package gel
 
+import "Gel/internal/gel/core"
+
 type SymbolicRefService struct {
-	refService *RefService
+	refService *core.RefService
 }
 
-func NewSymbolicRefService(refService *RefService) *SymbolicRefService {
+func NewSymbolicRefService(refService *core.RefService) *SymbolicRefService {
 	return &SymbolicRefService{
 		refService: refService,
 	}
