@@ -2,21 +2,21 @@ package staging
 
 import (
 	"Gel/domain"
-	core2 "Gel/internal/core"
+	"Gel/internal/core"
 	"fmt"
 	"io"
 )
 
 type AddService struct {
-	indexService       *core2.IndexService
+	indexService       *core.IndexService
 	updateIndexService *UpdateIndexService
-	pathResolver       *core2.PathResolver
+	pathResolver       *core.PathResolver
 }
 
 func NewAddService(
-	indexService *core2.IndexService,
+	indexService *core.IndexService,
 	updateIndexService *UpdateIndexService,
-	pathResolver *core2.PathResolver,
+	pathResolver *core.PathResolver,
 ) *AddService {
 	return &AddService{
 		indexService:       indexService,
@@ -56,7 +56,7 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose b
 	return nil
 }
 
-func collectPaths(index *domain.Index, resolvedPaths []core2.ResolvedPath) (
+func collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
 	[]string, []string, error,
 ) {
 	var pathsToAdd []string
@@ -70,7 +70,7 @@ func collectPaths(index *domain.Index, resolvedPaths []core2.ResolvedPath) (
 		var indexEntries []*domain.IndexEntry
 
 		switch resolved.Type {
-		case core2.File, core2.NonExistent:
+		case core.File, core.NonExistent:
 			if entry, _ := index.FindEntry(resolved.NormalizedScope); entry != nil {
 				indexEntries = []*domain.IndexEntry{entry}
 			} else {
@@ -80,13 +80,13 @@ func collectPaths(index *domain.Index, resolvedPaths []core2.ResolvedPath) (
 				}
 				indexEntries = index.FindEntriesByPathPrefix(prefix)
 			}
-		case core2.Directory:
+		case core.Directory:
 			prefix := resolved.NormalizedScope
 			if prefix != "" {
 				prefix += "/"
 			}
 			indexEntries = index.FindEntriesByPathPrefix(prefix)
-		case core2.GlobPattern:
+		case core.GlobPattern:
 			indexEntries = index.FindEntriesByPathPattern(resolved.NormalizedScope)
 		}
 

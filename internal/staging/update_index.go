@@ -2,17 +2,17 @@ package staging
 
 import (
 	"Gel/domain"
-	core2 "Gel/internal/core"
+	"Gel/internal/core"
 )
 
 type UpdateIndexService struct {
-	indexService      *core2.IndexService
-	hashObjectService *core2.HashObjectService
-	objectService     *core2.ObjectService
+	indexService      *core.IndexService
+	hashObjectService *core.HashObjectService
+	objectService     *core.ObjectService
 }
 
 func NewUpdateIndexService(
-	indexService *core2.IndexService, hashObjectService *core2.HashObjectService, objectService *core2.ObjectService,
+	indexService *core.IndexService, hashObjectService *core.HashObjectService, objectService *core.ObjectService,
 ) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,

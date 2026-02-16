@@ -2,16 +2,16 @@ package commit
 
 import (
 	"Gel/domain"
-	core2 "Gel/internal/core"
+	"Gel/internal/core"
 	"time"
 )
 
 type CommitTreeService struct {
-	objectService *core2.ObjectService
-	configService *core2.ConfigService
+	objectService *core.ObjectService
+	configService *core.ConfigService
 }
 
-func NewCommitTreeService(objectService *core2.ObjectService, configService *core2.ConfigService) *CommitTreeService {
+func NewCommitTreeService(objectService *core.ObjectService, configService *core.ConfigService) *CommitTreeService {
 	return &CommitTreeService{
 		objectService: objectService,
 		configService: configService,
@@ -46,7 +46,7 @@ func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes
 	}
 	commit := domain.NewCommitFromFields(commitFields)
 	serializedData := commit.Serialize()
-	commitHash := core2.ComputeSHA256(serializedData)
+	commitHash := core.ComputeSHA256(serializedData)
 	err = c.objectService.Write(commitHash, serializedData)
 	if err != nil {
 		return "", err

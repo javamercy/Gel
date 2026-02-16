@@ -1,7 +1,7 @@
 package branch
 
 import (
-	core2 "Gel/internal/core"
+	"Gel/internal/core"
 	"Gel/internal/workspace"
 	"errors"
 	"fmt"
@@ -17,13 +17,13 @@ type branch struct {
 	isCurrent bool
 }
 type BranchService struct {
-	refService        *core2.RefService
-	objectService     *core2.ObjectService
+	refService        *core.RefService
+	objectService     *core.ObjectService
 	workspaceProvider *workspace.Provider
 }
 
 func NewBranchService(
-	refService *core2.RefService, objectService *core2.ObjectService, workspaceProvider *workspace.Provider,
+	refService *core.RefService, objectService *core.ObjectService, workspaceProvider *workspace.Provider,
 ) *BranchService {
 	return &BranchService{
 		refService:        refService,
@@ -76,7 +76,7 @@ func (b *BranchService) List(writer io.Writer) error {
 
 	for _, b := range branches {
 		if b.isCurrent {
-			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core2.ColorGreen, b.name, core2.ColorReset); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, b.name, core.ColorReset); err != nil {
 				return err
 			}
 		} else {

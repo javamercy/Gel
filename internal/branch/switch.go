@@ -2,7 +2,7 @@ package branch
 
 import (
 	"Gel/domain"
-	core2 "Gel/internal/core"
+	"Gel/internal/core"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
 	"fmt"
@@ -11,15 +11,15 @@ import (
 )
 
 type SwitchService struct {
-	refService        *core2.RefService
-	objectService     *core2.ObjectService
+	refService        *core.RefService
+	objectService     *core.ObjectService
 	readTreeService   *tree.ReadTreeService
 	workspaceProvider *workspace.Provider
 }
 
 func NewSwitchService(
-	refService *core2.RefService,
-	objectService *core2.ObjectService,
+	refService *core.RefService,
+	objectService *core.ObjectService,
 	readTreeService *tree.ReadTreeService,
 	workspaceProvider *workspace.Provider,
 ) *SwitchService {
@@ -90,8 +90,8 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 }
 
 func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string) error {
-	treeWalker := core2.NewTreeWalker(
-		s.objectService, core2.WalkOptions{
+	treeWalker := core.NewTreeWalker(
+		s.objectService, core.WalkOptions{
 			Recursive:    true,
 			IncludeTrees: false,
 			OnlyTrees:    false,
