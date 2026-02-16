@@ -26,6 +26,7 @@ type DiffOptions struct {
 }
 
 type ContentLoaderFunc func(path, hash string) (string, error)
+
 type DiffService struct {
 	objectService *gel.ObjectService
 	refService    *gel.RefService
@@ -78,7 +79,7 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, baseCommitEntries, targetCommitEntries, d.loadBlobContent, d.loadBlobContent)
+		return d.computeEntryDiffs(writer, targetCommitEntries, baseCommitEntries, d.loadBlobContent, d.loadBlobContent)
 	case ModeCommitVsWorkingTree:
 		commitEntries, err := d.treeResolver.ResolveCommit(options.BaseCommitHash)
 		if err != nil {

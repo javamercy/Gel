@@ -25,9 +25,14 @@ var diffCmd = &cobra.Command{
 			if arg == workspace.HeadFileName {
 				return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsHEAD})
 			}
-			return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeCommitVsWorkingTree})
+			return diffService.Diff(
+				cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeCommitVsWorkingTree, BaseCommitHash: arg},
+			)
 		}
-		return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeCommitVsCommit})
+		return diffService.Diff(
+			cmd.OutOrStdout(),
+			diff.DiffOptions{Mode: diff.ModeCommitVsCommit, BaseCommitHash: args[0], TargetCommitHash: args[1]},
+		)
 	},
 }
 

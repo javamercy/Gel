@@ -2,6 +2,7 @@ package gel
 
 import (
 	"Gel/internal/workspace"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -40,7 +41,6 @@ func NewStatusService(
 func (s *StatusService) Status(writer io.Writer, short bool) error {
 	// TODO: handle short flag
 	result := &StatusResult{}
-
 	indexEntries := make(map[string]string)
 	idxEntries, err := s.indexService.GetEntries()
 	if err != nil {
@@ -53,8 +53,7 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 	}
 
 	headTreeEntries, err := s.treeResolver.ResolveHEAD()
-	// TODO: err might be ErrRefNotFound. Double check!
-	if err != nil {
+	if err != nil && errors.Is(err, ErrRefNotFound) {
 		return err
 	}
 	workingTreeEntries, err := s.treeResolver.ResolveWorkingTree()
@@ -62,26 +61,19 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 		return err
 	}
 
-	// Compare HEAD vs Index → Staged changes
 	for indexEntryPath, indexEntryHash := range indexEntries {
 		headHash, inHead := headTreeEntries[indexEntryPath]
 		if !inHead {
-			// in Index but not in HEAD
 			result.Staged = append(result.Staged, FileStatus{indexEntryPath, "New File"})
 		} else if headHash != indexEntryHash {
-			// in Index and in HEAD but different
 			result.Staged = append(result.Staged, FileStatus{indexEntryPath, "Modified"})
 		}
 	}
-
 	for path := range headTreeEntries {
 		if _, inIndex := indexEntries[path]; !inIndex {
-			// in HEAD but not in Index
 			result.Unstaged = append(result.Unstaged, FileStatus{path, "Deleted"})
 		}
 	}
-
-	// Compare Index vs Working Dir → Unstaged changes
 	for indexEntryPath, indexEntryHash := range indexEntries {
 		workingTreeHash, inWorkingDir := workingTreeEntries[indexEntryPath]
 		if !inWorkingDir {
@@ -92,8 +84,6 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 			result.Unstaged = append(result.Unstaged, FileStatus{indexEntryPath, "Modified"})
 		}
 	}
-
-	// Find untracked files
 	for path := range workingTreeEntries {
 		if _, inIndex := indexEntries[path]; !inIndex {
 			result.Untracked = append(result.Untracked, path)
