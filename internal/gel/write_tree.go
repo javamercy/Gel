@@ -40,18 +40,12 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 		if err != nil {
 			return "", err
 		}
-		entry, err := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
-		if err != nil {
-			return "", err
-		}
+		entry := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
 		entries = append(entries, entry)
 	}
 
 	for _, file := range root.files {
-		entry, err := domain.NewTreeEntry(file.mode, file.hash, file.name)
-		if err != nil {
-			return "", err
-		}
+		entry := domain.NewTreeEntry(file.mode, file.hash, file.name)
 		entries = append(entries, entry)
 	}
 

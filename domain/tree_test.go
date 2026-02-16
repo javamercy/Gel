@@ -10,29 +10,18 @@ import (
 
 func TestNewTreeEntry_Valid(t *testing.T) {
 	hash := "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
-	entry, err := NewTreeEntry(RegularFileMode, hash, "file.txt")
-	assert.NoError(t, err)
+	entry := NewTreeEntry(RegularFileMode, hash, "file.txt")
 	assert.Equal(t, RegularFileMode, entry.Mode)
 	assert.Equal(t, hash, entry.Hash)
 	assert.Equal(t, "file.txt", entry.Name)
-}
-
-func TestNewTreeEntry_Invalid(t *testing.T) {
-	hash := "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
-
-	_, err := NewTreeEntry(RegularFileMode, "invalid-hash", "file.txt")
-	assert.Error(t, err)
-
-	_, err = NewTreeEntry(RegularFileMode, hash, "")
-	assert.Error(t, err)
 }
 
 func TestTree_Deserialize_MultipleEntries(t *testing.T) {
 	hash1 := "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
 	hash2 := "b1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
 
-	entry1, _ := NewTreeEntry(RegularFileMode, hash1, "file1.txt")
-	entry2, _ := NewTreeEntry(DirectoryMode, hash2, "dir1")
+	entry1 := NewTreeEntry(RegularFileMode, hash1, "file1.txt")
+	entry2 := NewTreeEntry(DirectoryMode, hash2, "dir1")
 
 	tree, err := NewTreeFromEntries([]TreeEntry{entry1, entry2})
 	require.NoError(t, err)

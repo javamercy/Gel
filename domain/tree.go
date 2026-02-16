@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/domain/validation"
 	"bytes"
 	"encoding/hex"
 	"errors"
@@ -14,17 +13,13 @@ type TreeEntry struct {
 	Name string   `validate:"required,relativepath"`
 }
 
-func NewTreeEntry(mode FileMode, hash, name string) (TreeEntry, error) {
+func NewTreeEntry(mode FileMode, hash, name string) TreeEntry {
 	entry := TreeEntry{
 		Mode: mode,
 		Hash: hash,
 		Name: name,
 	}
-	validator := validation.GetValidator()
-	if err := validator.Struct(entry); err != nil {
-		return TreeEntry{}, err
-	}
-	return entry, nil
+	return entry
 }
 
 type Tree struct {
@@ -40,11 +35,6 @@ func NewTree(body []byte) (*Tree, error) {
 	tree := &Tree{
 		body: body,
 	}
-	validator := validation.GetValidator()
-	if err := validator.Struct(tree); err != nil {
-		return nil, err
-	}
-
 	entries, err := tree.Deserialize()
 	if err != nil {
 		return nil, err
@@ -119,10 +109,7 @@ func (tree *Tree) Deserialize() ([]TreeEntry, error) {
 		hashBytes := body[i : i+32]
 		hash := hex.EncodeToString(hashBytes)
 		i += 32
-		entry, err := NewTreeEntry(mode, hash, name)
-		if err != nil {
-			return nil, err
-		}
+		entry := NewTreeEntry(mode, hash, name)
 		entries = append(entries, entry)
 	}
 	return entries, nil

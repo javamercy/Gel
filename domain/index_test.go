@@ -224,25 +224,20 @@ func TestSerializeDeserializeIndex_RoundTrip(t *testing.T) {
 
 func TestDeserialize_EmptyData(t *testing.T) {
 	var data []byte
-
 	index, err := DeserializeIndex(data)
-
 	require.NoError(t, err)
 	assert.Equal(t, uint32(0), index.Header.NumEntries)
 }
 
 func TestDeserialize_TruncatedData(t *testing.T) {
 	truncatedData := []byte{0x44, 0x49, 0x52, 0x43}
-
 	_, err := DeserializeIndex(truncatedData)
-
 	assert.Error(t, err)
 }
 
 func createTestEntry(path, hashSeed string) *IndexEntry {
-
 	fullHash := fmt.Sprintf("%064x", hashSeed)
-	entry, err := NewIndexEntry(
+	entry := NewIndexEntry(
 		path,
 		fullHash,
 		100,
@@ -252,8 +247,5 @@ func createTestEntry(path, hashSeed string) *IndexEntry {
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 	)
-	if err != nil {
-		panic(err)
-	}
 	return entry
 }

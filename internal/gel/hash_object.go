@@ -36,11 +36,7 @@ func (h *HashObjectService) HashObject(path string, write bool) (string, []byte,
 		return "", nil, err
 	}
 
-	blob, err := domain.NewBlob(data)
-	if err != nil {
-		return "", nil, err
-	}
-
+	blob := domain.NewBlob(data)
 	serializedData := blob.Serialize()
 	hash := ComputeSHA256(serializedData)
 

@@ -20,7 +20,7 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, relPath string) error {
-		indexEntry, err := domain.NewIndexEntry(
+		indexEntry := domain.NewIndexEntry(
 			relPath,
 			entry.Hash,
 			0,
@@ -33,10 +33,6 @@ func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 			time.Time{},
 			time.Time{},
 		)
-
-		if err != nil {
-			return err
-		}
 		indexEntries = append(indexEntries, indexEntry)
 		return nil
 	}

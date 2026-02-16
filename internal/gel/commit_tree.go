@@ -43,11 +43,7 @@ func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes
 		Committer:    identity,
 		Message:      message,
 	}
-	commit, err := domain.NewCommitFromFields(commitFields)
-	if err != nil {
-		return "", err
-	}
-
+	commit := domain.NewCommitFromFields(commitFields)
 	serializedData := commit.Serialize()
 	commitHash := ComputeSHA256(serializedData)
 	err = c.objectService.Write(commitHash, serializedData)

@@ -65,7 +65,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 			return nil, err
 		}
 
-		newEntry, err := domain.NewIndexEntry(
+		newEntry := domain.NewIndexEntry(
 			path,
 			hash,
 			size,
@@ -78,9 +78,6 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 			fileStatInfo.CreatedTime,
 			fileStatInfo.UpdatedTime,
 		)
-		if err != nil {
-			return nil, err
-		}
 		addedPaths = append(addedPaths, path)
 		index.SetEntry(newEntry)
 	}

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/domain/validation"
 	"bytes"
 	"errors"
 	"fmt"
@@ -55,15 +54,11 @@ func NewCommit(body []byte) (*Commit, error) {
 	}
 	return fields, nil
 }
-func NewCommitFromFields(commitFields CommitFields) (*Commit, error) {
-	validator := validation.GetValidator()
-	if err := validator.Struct(commitFields); err != nil {
-		return nil, err
-	}
+func NewCommitFromFields(commitFields CommitFields) *Commit {
 	return &Commit{
 		body:         SerializeBody(commitFields),
 		CommitFields: commitFields,
-	}, nil
+	}
 }
 
 func SerializeBody(fields CommitFields) []byte {
@@ -151,7 +146,7 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 	if !hasTree || !hasAuthor || !hasCommitter || !hasMessage {
 		return nil, ErrInvalidCommitFormat
 	}
-	return NewCommitFromFields(fields)
+	return NewCommitFromFields(fields), nil
 }
 
 func deserializeFieldStr(data []byte, start int) (string, int, error) {

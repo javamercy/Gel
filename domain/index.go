@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"Gel/domain/validation"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
@@ -111,7 +110,8 @@ func NewIndexEntry(
 	groupId uint32,
 	flags uint16,
 	createdTime time.Time,
-	updatedTime time.Time) (*IndexEntry, error) {
+	updatedTime time.Time,
+) *IndexEntry {
 	entry := IndexEntry{
 		path,
 		hash,
@@ -125,11 +125,7 @@ func NewIndexEntry(
 		createdTime,
 		updatedTime,
 	}
-	validator := validation.GetValidator()
-	if err := validator.Struct(entry); err != nil {
-		return nil, err
-	}
-	return &entry, nil
+	return &entry
 }
 
 func (indexEntry *IndexEntry) GetStage() uint16 {
@@ -220,9 +216,11 @@ func (idx *Index) RemoveEntry(path string) {
 }
 
 func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
-	i := sort.Search(len(idx.Entries), func(i int) bool {
-		return idx.Entries[i].Path >= path
-	})
+	i := sort.Search(
+		len(idx.Entries), func(i int) bool {
+			return idx.Entries[i].Path >= path
+		},
+	)
 	if i < len(idx.Entries) && idx.Entries[i].Path == path {
 		return idx.Entries[i], i
 	}
@@ -257,9 +255,11 @@ func (idx *Index) HasEntry(path string) bool {
 func (idx *Index) Serialize() ([]byte, error) {
 	serializedHeader := idx.serializeHeader()
 
-	sort.Slice(idx.Entries, func(i, j int) bool {
-		return idx.Entries[i].Path < idx.Entries[j].Path
-	})
+	sort.Slice(
+		idx.Entries, func(i, j int) bool {
+			return idx.Entries[i].Path < idx.Entries[j].Path
+		},
+	)
 	serializedEntries, err := idx.serializeEntries()
 	if err != nil {
 		return nil, err
@@ -284,7 +284,9 @@ func (idx *Index) serializeHeader() []byte {
 	header := idx.Header
 
 	copy(serializedHeader[0:IndexHeaderSignatureSize], header.Signature[:])
-	binary.BigEndian.PutUint32(serializedHeader[IndexHeaderSignatureSize:IndexHeaderSignatureSize+IndexHeaderVersionSize], header.Version)
+	binary.BigEndian.PutUint32(
+		serializedHeader[IndexHeaderSignatureSize:IndexHeaderSignatureSize+IndexHeaderVersionSize], header.Version,
+	)
 	binary.BigEndian.PutUint32(serializedHeader[IndexHeaderSignatureSize+IndexHeaderVersionSize:], header.NumEntries)
 
 	return serializedHeader
@@ -405,12 +407,6 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 
 	entry.Path = string(data[offset : offset+pathEnd])
 	offset += pathEnd + IndexEntryPathNullTerminateSize
-
-	validator := validation.GetValidator()
-	if err := validator.Struct(entry); err != nil {
-		return nil, 0, err
-	}
-
 	padding := (PaddingAlignment - (offset % PaddingAlignment)) % PaddingAlignment
 	totalSize := offset + padding
 

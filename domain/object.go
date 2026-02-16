@@ -39,7 +39,7 @@ func DeserializeObject(data []byte) (Object, error) {
 
 	switch objectType {
 	case ObjectTypeBlob:
-		return NewBlob(body)
+		return NewBlob(body), nil
 
 	case ObjectTypeTree:
 		return NewTree(body)

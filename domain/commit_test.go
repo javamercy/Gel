@@ -17,30 +17,9 @@ func TestNewCommitFromFields_Valid(t *testing.T) {
 		Committer:    committer,
 		Message:      "Initial commit",
 	}
-
-	commit, err := NewCommitFromFields(fields)
-	assert.NoError(t, err)
+	commit := NewCommitFromFields(fields)
 	assert.NotNil(t, commit)
 	assert.NotEmpty(t, commit.Body())
-}
-
-func TestNewCommitFromFields_Invalid(t *testing.T) {
-	author := NewIdentity("Author", "author@example.com", "1234567890", "+0000")
-	committer := NewIdentity("Committer", "committer@example.com", "1234567890", "+0000")
-
-	fields := CommitFields{
-		TreeHash:  "",
-		Author:    author,
-		Committer: committer,
-		Message:   "Message",
-	}
-	_, err := NewCommitFromFields(fields)
-	assert.Error(t, err)
-
-	fields.TreeHash = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
-	fields.Message = ""
-	_, err = NewCommitFromFields(fields)
-	assert.Error(t, err)
 }
 
 func TestDeserializeCommit_Malformed(t *testing.T) {

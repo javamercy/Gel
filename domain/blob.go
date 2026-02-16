@@ -1,9 +1,5 @@
 package domain
 
-import (
-	"Gel/domain/validation"
-)
-
 type Blob struct {
 	body []byte
 }
@@ -12,15 +8,11 @@ func (blob *Blob) Body() []byte {
 	return blob.body
 }
 
-func NewBlob(body []byte) (*Blob, error) {
-	validator := validation.GetValidator()
+func NewBlob(body []byte) *Blob {
 	blob := &Blob{
 		body: body,
 	}
-	if err := validator.Struct(blob); err != nil {
-		return nil, err
-	}
-	return blob, nil
+	return blob
 }
 
 func (blob *Blob) Type() ObjectType {
