@@ -2,17 +2,17 @@ package tree
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
+	core2 "Gel/internal/core"
 	"sort"
 	"strings"
 )
 
 type WriteTreeService struct {
-	indexService  *core.IndexService
-	objectService *core.ObjectService
+	indexService  *core2.IndexService
+	objectService *core2.ObjectService
 }
 
-func NewWriteTreeService(indexService *core.IndexService, objectService *core.ObjectService) *WriteTreeService {
+func NewWriteTreeService(indexService *core2.IndexService, objectService *core2.ObjectService) *WriteTreeService {
 	return &WriteTreeService{
 		indexService:  indexService,
 		objectService: objectService,
@@ -58,7 +58,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 	}
 
 	data := tree.Serialize()
-	hash := core.ComputeSHA256(data)
+	hash := core2.ComputeSHA256(data)
 	if w.objectService.Exists(hash) {
 		return hash, nil
 	}

@@ -2,26 +2,26 @@ package branch
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
-	"Gel/internal/gel/tree"
-	workspace2 "Gel/internal/gel/workspace"
+	core2 "Gel/internal/core"
+	"Gel/internal/tree"
+	"Gel/internal/workspace"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 type SwitchService struct {
-	refService        *core.RefService
-	objectService     *core.ObjectService
+	refService        *core2.RefService
+	objectService     *core2.ObjectService
 	readTreeService   *tree.ReadTreeService
-	workspaceProvider *workspace2.Provider
+	workspaceProvider *workspace.Provider
 }
 
 func NewSwitchService(
-	refService *core.RefService,
-	objectService *core.ObjectService,
+	refService *core2.RefService,
+	objectService *core2.ObjectService,
 	readTreeService *tree.ReadTreeService,
-	workspaceProvider *workspace2.Provider,
+	workspaceProvider *workspace.Provider,
 ) *SwitchService {
 	return &SwitchService{
 		refService:        refService,
@@ -35,9 +35,9 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 	// TODO: handle force, also there are some improvements need to be done.
 	// I'll get back here after implementing Status/Diff commands.
 
-	targetRef := filepath.Join(workspace2.RefsDirName, workspace2.HeadsDirName, branch)
+	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
 	exists := s.refService.Exists(targetRef)
-	currentCommitHash, err := s.refService.Resolve(workspace2.HeadFileName)
+	currentCommitHash, err := s.refService.Resolve(workspace.HeadFileName)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		if exists {
 			return "", fmt.Errorf("branch '%s' already exists", branch)
 		}
-		if err := s.refService.WriteSymbolic(workspace2.HeadFileName, targetRef); err != nil {
+		if err := s.refService.WriteSymbolic(workspace.HeadFileName, targetRef); err != nil {
 			return "", err
 		}
 		if err := s.refService.Write(targetRef, currentCommitHash); err != nil {
@@ -78,10 +78,10 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		return "", err
 	}
 
-	if err := s.refService.WriteSymbolic(workspace2.HeadFileName, targetRef); err != nil {
+	if err := s.refService.WriteSymbolic(workspace.HeadFileName, targetRef); err != nil {
 		return "", err
 	}
-	headRef := filepath.Join(workspace2.RefsDirName, workspace2.HeadFileName, workspace2.HeadFileName)
+	headRef := filepath.Join(workspace.RefsDirName, workspace.HeadFileName, workspace.HeadFileName)
 	if err := s.refService.Write(headRef, targetCommitHash); err != nil {
 		return "", err
 	}
@@ -90,8 +90,8 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 }
 
 func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string) error {
-	treeWalker := core.NewTreeWalker(
-		s.objectService, core.WalkOptions{
+	treeWalker := core2.NewTreeWalker(
+		s.objectService, core2.WalkOptions{
 			Recursive:    true,
 			IncludeTrees: false,
 			OnlyTrees:    false,
@@ -125,10 +125,10 @@ func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string)
 				return err
 			}
 			dir := filepath.Dir(targetPath)
-			if err := os.MkdirAll(dir, workspace2.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 				return err
 			}
-			if err := os.WriteFile(targetPath, blob.Body(), workspace2.FilePermission); err != nil {
+			if err := os.WriteFile(targetPath, blob.Body(), workspace.FilePermission); err != nil {
 				return err
 			}
 		}

@@ -2,7 +2,7 @@ package inspect
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
+	"Gel/internal/core"
 	"fmt"
 	"io"
 )

@@ -1,6 +1,8 @@
-package gel
+package internal
 
-import "Gel/internal/gel/core"
+import (
+	"Gel/internal/core"
+)
 
 type SymbolicRefService struct {
 	refService *core.RefService

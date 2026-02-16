@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"Gel/internal/gel"
+	"Gel/internal"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +23,7 @@ var initCmd = &cobra.Command{
 			path = cwd
 		}
 
-		initService := gel.NewInitService()
+		initService := internal.NewInitService()
 		message, err := initService.Init(path)
 		if err != nil {
 			return err

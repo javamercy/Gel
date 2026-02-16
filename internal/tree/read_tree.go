@@ -2,16 +2,16 @@ package tree
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
+	core2 "Gel/internal/core"
 	"time"
 )
 
 type ReadTreeService struct {
-	indexService  *core.IndexService
-	objectService *core.ObjectService
+	indexService  *core2.IndexService
+	objectService *core2.ObjectService
 }
 
-func NewReadTreeService(indexService *core.IndexService, objectService *core.ObjectService) *ReadTreeService {
+func NewReadTreeService(indexService *core2.IndexService, objectService *core2.ObjectService) *ReadTreeService {
 	return &ReadTreeService{
 		indexService:  indexService,
 		objectService: objectService,
@@ -38,13 +38,13 @@ func (readTreeService *ReadTreeService) ReadTree(hash string) error {
 		return nil
 	}
 
-	options := core.WalkOptions{
+	options := core2.WalkOptions{
 		Recursive:    true,
 		IncludeTrees: false,
 		OnlyTrees:    false,
 	}
 
-	treeWalker := core.NewTreeWalker(readTreeService.objectService, options)
+	treeWalker := core2.NewTreeWalker(readTreeService.objectService, options)
 	err := treeWalker.Walk(hash, "", processor)
 	if err != nil {
 		return err

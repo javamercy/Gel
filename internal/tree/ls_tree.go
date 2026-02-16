@@ -2,16 +2,16 @@ package tree
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
+	core2 "Gel/internal/core"
 	"fmt"
 	"io"
 )
 
 type LsTreeService struct {
-	objectService *core.ObjectService
+	objectService *core2.ObjectService
 }
 
-func NewLsTreeService(objectService *core.ObjectService) *LsTreeService {
+func NewLsTreeService(objectService *core2.ObjectService) *LsTreeService {
 	return &LsTreeService{
 		objectService: objectService,
 	}
@@ -42,11 +42,11 @@ func (l *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTre
 		return nil
 	}
 
-	options := core.WalkOptions{
+	options := core2.WalkOptions{
 		Recursive:    recursive,
 		IncludeTrees: showTrees,
 		OnlyTrees:    false,
 	}
-	treeWalker := core.NewTreeWalker(l.objectService, options)
+	treeWalker := core2.NewTreeWalker(l.objectService, options)
 	return treeWalker.Walk(hash, "", processor)
 }

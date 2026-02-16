@@ -1,7 +1,7 @@
-package gel
+package internal
 
 import (
-	"Gel/internal/gel/core"
+	"Gel/internal/core"
 	"fmt"
 )
 

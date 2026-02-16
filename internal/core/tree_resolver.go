@@ -2,7 +2,7 @@ package core
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/workspace"
+	"Gel/internal/workspace"
 )
 
 type TreeResolver struct {

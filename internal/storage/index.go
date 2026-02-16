@@ -1,15 +1,15 @@
 package storage
 
 import (
-	workspace2 "Gel/internal/gel/workspace"
+	"Gel/internal/workspace"
 	"os"
 )
 
 type IndexStorage struct {
-	workspaceProvider *workspace2.Provider
+	workspaceProvider *workspace.Provider
 }
 
-func NewIndexStorage(workspaceProvider *workspace2.Provider) *IndexStorage {
+func NewIndexStorage(workspaceProvider *workspace.Provider) *IndexStorage {
 	return &IndexStorage{
 		workspaceProvider: workspaceProvider,
 	}
@@ -22,5 +22,5 @@ func (i *IndexStorage) Read() ([]byte, error) {
 
 func (i *IndexStorage) Write(data []byte) error {
 	ws := i.workspaceProvider.GetWorkspace()
-	return os.WriteFile(ws.IndexPath, data, workspace2.FilePermission)
+	return os.WriteFile(ws.IndexPath, data, workspace.FilePermission)
 }

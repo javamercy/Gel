@@ -2,8 +2,8 @@ package inspect
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/core"
-	"Gel/internal/gel/workspace"
+	core2 "Gel/internal/core"
+	"Gel/internal/workspace"
 	"errors"
 	"io/fs"
 	"os"
@@ -16,15 +16,15 @@ var (
 )
 
 type RestoreService struct {
-	indexService      *core.IndexService
-	objectService     *core.ObjectService
-	hashObjectService *core.HashObjectService
-	refService        *core.RefService
+	indexService      *core2.IndexService
+	objectService     *core2.ObjectService
+	hashObjectService *core2.HashObjectService
+	refService        *core2.RefService
 }
 
 func NewRestoreService(
-	indexService *core.IndexService, objectService *core.ObjectService, hashObjectService *core.HashObjectService,
-	refService *core.RefService,
+	indexService *core2.IndexService, objectService *core2.ObjectService, hashObjectService *core2.HashObjectService,
+	refService *core2.RefService,
 ) *RestoreService {
 	return &RestoreService{
 		indexService:      indexService,

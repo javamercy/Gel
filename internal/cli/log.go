@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"Gel/internal/gel/workspace"
+	"Gel/internal/workspace"
 
 	"github.com/spf13/cobra"
 )

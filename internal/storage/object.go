@@ -1,16 +1,16 @@
 package storage
 
 import (
-	workspace2 "Gel/internal/gel/workspace"
+	"Gel/internal/workspace"
 	"os"
 	"path/filepath"
 )
 
 type ObjectStorage struct {
-	workspaceProvider *workspace2.Provider
+	workspaceProvider *workspace.Provider
 }
 
-func NewObjectStorage(workspaceProvider *workspace2.Provider) *ObjectStorage {
+func NewObjectStorage(workspaceProvider *workspace.Provider) *ObjectStorage {
 	return &ObjectStorage{
 		workspaceProvider: workspaceProvider,
 	}
@@ -19,10 +19,10 @@ func NewObjectStorage(workspaceProvider *workspace2.Provider) *ObjectStorage {
 func (o *ObjectStorage) Write(hash string, data []byte) error {
 	objectPath := o.objectPath(hash)
 	dir := filepath.Dir(objectPath)
-	if err := os.MkdirAll(dir, workspace2.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
 		return err
 	}
-	return os.WriteFile(objectPath, data, workspace2.FilePermission)
+	return os.WriteFile(objectPath, data, workspace.FilePermission)
 }
 
 func (o *ObjectStorage) Read(hash string) ([]byte, error) {
