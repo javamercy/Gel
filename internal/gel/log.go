@@ -61,8 +61,8 @@ func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.C
 	if err != nil {
 		return err
 	}
-	commitPrefix := colorGreen
-	commitSuffix := colorReset
+	commitPrefix := ColorGreen
+	commitSuffix := ColorReset
 	if _, err := fmt.Fprintf(
 		writer,
 		"%scommit %s%s\n"+
@@ -83,8 +83,8 @@ func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.C
 
 func (l *LogService) printCommitOneline(writer io.Writer, hash string, commit *domain.Commit) error {
 	shortHash := hash[:7]
-	commitPrefix := colorGreen
-	commitSuffix := colorReset
+	commitPrefix := ColorGreen
+	commitSuffix := ColorReset
 	firstLine := strings.Split(commit.Message, "\n")[0]
 	if _, err := fmt.Fprintf(writer, "%s%s%s %s\n", commitPrefix, shortHash, commitSuffix, firstLine); err != nil {
 		return err

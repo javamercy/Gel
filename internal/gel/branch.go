@@ -75,7 +75,7 @@ func (b *BranchService) List(writer io.Writer) error {
 
 	for _, b := range branches {
 		if b.isCurrent {
-			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", colorGreen, b.name, colorReset); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", ColorGreen, b.name, ColorReset); err != nil {
 				return err
 			}
 		} else {

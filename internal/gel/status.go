@@ -37,7 +37,8 @@ func NewStatusService(
 	}
 }
 
-func (s *StatusService) Status(writer io.Writer) error {
+func (s *StatusService) Status(writer io.Writer, short bool) error {
+	// TODO: handle short flag
 	result := &StatusResult{}
 
 	indexEntries := make(map[string]string)
@@ -107,7 +108,7 @@ func (s *StatusService) Status(writer io.Writer) error {
 }
 
 func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSize int, result *StatusResult) error {
-	if _, err := fmt.Fprintf(writer, "On branch %s%s%s", colorGreen, branch, colorReset); err != nil {
+	if _, err := fmt.Fprintf(writer, "On branch %s%s%s", ColorGreen, branch, ColorReset); err != nil {
 		return err
 	}
 	if headTreeSize == 0 {
@@ -117,14 +118,14 @@ func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSiz
 	}
 	if len(result.Staged) > 0 {
 		if _, err := fmt.Fprintf(
-			writer, "\n%sChanges to be committed:%s\n", colorGreen, colorReset,
+			writer, "\n%sChanges to be committed:%s\n", ColorGreen, ColorReset,
 		); err != nil {
 			return err
 		}
 		for _, staged := range result.Staged {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s%s:  %s%s\n", colorGreen, staged.Status, staged.Path, colorReset,
+				"\t%s%s:  %s%s\n", ColorGreen, staged.Status, staged.Path, ColorReset,
 			); err != nil {
 				return err
 			}
@@ -132,27 +133,27 @@ func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSiz
 	}
 	if len(result.Unstaged) > 0 {
 		if _, err := fmt.Fprintf(
-			writer, "\nChanges not staged for commit:%s\n", colorReset,
+			writer, "\nChanges not staged for commit:%s\n", ColorReset,
 		); err != nil {
 			return err
 		}
 		for _, unstaged := range result.Unstaged {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s:  %s%s\n", unstaged.Status, unstaged.Path, colorReset,
+				"\t%s:  %s%s\n", unstaged.Status, unstaged.Path, ColorReset,
 			); err != nil {
 				return err
 			}
 		}
 	}
 	if len(result.Untracked) > 0 {
-		if _, err := fmt.Fprintf(writer, "\nUntracked files:%s\n", colorReset); err != nil {
+		if _, err := fmt.Fprintf(writer, "\nUntracked files:%s\n", ColorReset); err != nil {
 			return err
 		}
 		for _, untracked := range result.Untracked {
 			if _, err := fmt.Fprintf(
 				writer,
-				"\t%s%s\n", untracked, colorReset,
+				"\t%s%s\n", untracked, ColorReset,
 			); err != nil {
 				return err
 			}

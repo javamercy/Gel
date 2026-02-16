@@ -10,7 +10,7 @@ var statusCmd = &cobra.Command{
 	Short: "Show the working tree status",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return statusService.Status(cmd.OutOrStdout())
+		return statusService.Status(cmd.OutOrStdout(), statusShortFlag)
 	},
 }
 
