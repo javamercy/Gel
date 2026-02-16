@@ -2,7 +2,7 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/storage"
+	"Gel/internal/storage"
 )
 
 type ObjectService struct {

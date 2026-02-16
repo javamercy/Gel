@@ -4,8 +4,8 @@ import (
 	"Gel/internal/gel"
 	"Gel/internal/gel/diff"
 	"Gel/internal/pathspec"
+	storage2 "Gel/internal/storage"
 	"Gel/internal/workspace"
-	"Gel/storage"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -82,9 +82,9 @@ func initializeServices() error {
 		return err
 	}
 
-	objectStorage := storage.NewObjectStorage(workspaceProvider)
-	indexStorage := storage.NewIndexStorage(workspaceProvider)
-	configStorage := storage.NewConfigStorage(workspaceProvider)
+	objectStorage := storage2.NewObjectStorage(workspaceProvider)
+	indexStorage := storage2.NewIndexStorage(workspaceProvider)
+	configStorage := storage2.NewConfigStorage(workspaceProvider)
 
 	objectService = gel.NewObjectService(objectStorage)
 	indexService = gel.NewIndexService(indexStorage)
