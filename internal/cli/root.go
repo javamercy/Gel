@@ -1,15 +1,14 @@
 package cli
 
 import (
-	"Gel/internal"
-	branch2 "Gel/internal/branch"
-	commit2 "Gel/internal/commit"
-	core2 "Gel/internal/core"
-	diff2 "Gel/internal/diff"
-	inspect2 "Gel/internal/inspect"
-	staging2 "Gel/internal/staging"
+	"Gel/internal/branch"
+	"Gel/internal/commit"
+	"Gel/internal/core"
+	"Gel/internal/diff"
+	"Gel/internal/inspect"
+	"Gel/internal/staging"
 	"Gel/internal/storage"
-	tree2 "Gel/internal/tree"
+	"Gel/internal/tree"
 	"Gel/internal/workspace"
 	"os"
 
@@ -17,33 +16,33 @@ import (
 )
 
 var (
-	objectService     *core2.ObjectService
-	indexService      *core2.IndexService
-	configService     *core2.ConfigService
-	refService        *core2.RefService
-	hashObjectService *core2.HashObjectService
-	treeResolver      *core2.TreeResolver
-	pathResolver      *core2.PathResolver
+	objectService     *core.ObjectService
+	indexService      *core.IndexService
+	configService     *core.ConfigService
+	refService        *core.RefService
+	hashObjectService *core.HashObjectService
+	treeResolver      *core.TreeResolver
+	pathResolver      *core.PathResolver
 )
 
 var (
-	addService            *staging2.AddService
-	catFileService        *inspect2.CatFileService
-	lsFilesService        *staging2.LsFilesService
-	updateIndexService    *staging2.UpdateIndexService
-	writeTreeService      *tree2.WriteTreeService
-	readTreeService       *tree2.ReadTreeService
-	lsTreeService         *tree2.LsTreeService
-	commitTreeService     *commit2.CommitTreeService
-	symbolicRefService    *internal.SymbolicRefService
-	updateRefService      *internal.UpdateRefService
-	commitService         *commit2.CommitService
-	logService            *commit2.LogService
-	branchService         *branch2.BranchService
-	restoreService        *inspect2.RestoreService
-	switchService         *branch2.SwitchService
-	statusService         *inspect2.StatusService
-	diffService           *diff2.DiffService
+	addService            *staging.AddService
+	catFileService        *inspect.CatFileService
+	lsFilesService        *staging.LsFilesService
+	updateIndexService    *staging.UpdateIndexService
+	writeTreeService      *tree.WriteTreeService
+	readTreeService       *tree.ReadTreeService
+	lsTreeService         *tree.LsTreeService
+	commitTreeService     *commit.CommitTreeService
+	symbolicRefService    *core.SymbolicRefService
+	updateRefService      *core.UpdateRefService
+	commitService         *commit.CommitService
+	logService            *commit.LogService
+	branchService         *branch.BranchService
+	restoreService        *inspect.RestoreService
+	switchService         *branch.SwitchService
+	statusService         *inspect.StatusService
+	diffService           *diff.DiffService
 	isServicesInitialized bool
 )
 
@@ -93,32 +92,32 @@ func initializeServices() error {
 	indexStorage := storage.NewIndexStorage(workspaceProvider)
 	configStorage := storage.NewConfigStorage(workspaceProvider)
 
-	objectService = core2.NewObjectService(objectStorage)
-	indexService = core2.NewIndexService(indexStorage)
-	configService = core2.NewConfigService(configStorage)
-	refService = core2.NewRefService(workspaceProvider)
-	hashObjectService = core2.NewHashObjectService(objectService)
-	pathResolver = core2.NewPathResolver(cwd, nil)
-	treeResolver = core2.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
+	objectService = core.NewObjectService(objectStorage)
+	indexService = core.NewIndexService(indexStorage)
+	configService = core.NewConfigService(configStorage)
+	refService = core.NewRefService(workspaceProvider)
+	hashObjectService = core.NewHashObjectService(objectService)
+	pathResolver = core.NewPathResolver(cwd, nil)
+	treeResolver = core.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
+	symbolicRefService = core.NewSymbolicRefService(refService)
+	updateRefService = core.NewUpdateRefService(refService)
 
-	catFileService = inspect2.NewCatFileService(objectService)
-	updateIndexService = staging2.NewUpdateIndexService(indexService, hashObjectService, objectService)
-	addService = staging2.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = staging2.NewLsFilesService(indexService, objectService)
-	writeTreeService = tree2.NewWriteTreeService(indexService, objectService)
-	readTreeService = tree2.NewReadTreeService(indexService, objectService)
-	lsTreeService = tree2.NewLsTreeService(objectService)
-	commitTreeService = commit2.NewCommitTreeService(objectService, configService)
+	catFileService = inspect.NewCatFileService(objectService)
+	updateIndexService = staging.NewUpdateIndexService(indexService, hashObjectService, objectService)
+	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
+	lsFilesService = staging.NewLsFilesService(indexService, objectService)
+	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
+	readTreeService = tree.NewReadTreeService(indexService, objectService)
+	lsTreeService = tree.NewLsTreeService(objectService)
+	commitTreeService = commit.NewCommitTreeService(objectService, configService)
+	commitService = commit.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
+	logService = commit.NewLogService(refService, objectService)
+	switchService = branch.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
+	branchService = branch.NewBranchService(refService, objectService, workspaceProvider)
+	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService)
+	statusService = inspect.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
+	diffService = diff.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
 
-	symbolicRefService = internal.NewSymbolicRefService(refService)
-	updateRefService = internal.NewUpdateRefService(refService)
-	commitService = commit2.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
-	logService = commit2.NewLogService(refService, objectService)
-	branchService = branch2.NewBranchService(refService, objectService, workspaceProvider)
-	restoreService = inspect2.NewRestoreService(indexService, objectService, hashObjectService, refService)
-	switchService = branch2.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
-	statusService = inspect2.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
-	diffService = diff2.NewDiffService(objectService, refService, treeResolver, diff2.NewMyersDiffAlgorithm())
 	isServicesInitialized = true
 	return nil
 }

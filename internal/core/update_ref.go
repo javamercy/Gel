@@ -1,15 +1,14 @@
-package internal
+package core
 
 import (
-	"Gel/internal/core"
 	"fmt"
 )
 
 type UpdateRefService struct {
-	refService *core.RefService
+	refService *RefService
 }
 
-func NewUpdateRefService(refService *core.RefService) *UpdateRefService {
+func NewUpdateRefService(refService *RefService) *UpdateRefService {
 	return &UpdateRefService{
 		refService: refService,
 	}

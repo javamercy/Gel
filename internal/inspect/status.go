@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"Gel/internal"
 	core2 "Gel/internal/core"
 	"Gel/internal/workspace"
 	"errors"
@@ -24,12 +23,12 @@ type StatusService struct {
 	objectService      *core2.ObjectService
 	treeResolver       *core2.TreeResolver
 	refService         *core2.RefService
-	symbolicRefService *internal.SymbolicRefService
+	symbolicRefService *core2.SymbolicRefService
 }
 
 func NewStatusService(
 	indexService *core2.IndexService, objectService *core2.ObjectService, treeResolver *core2.TreeResolver,
-	refService *core2.RefService, symbolicRefService *internal.SymbolicRefService,
+	refService *core2.RefService, symbolicRefService *core2.SymbolicRefService,
 ) *StatusService {
 	return &StatusService{
 		indexService:       indexService,
