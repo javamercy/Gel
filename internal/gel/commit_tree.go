@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/validate"
 	"time"
 )
 
@@ -19,10 +18,6 @@ func NewCommitTreeService(objectService *ObjectService, configService *ConfigSer
 }
 
 func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes []string) (string, error) {
-	if err := validate.Hash(hash); err != nil {
-		return "", err
-	}
-
 	_, err := c.objectService.ReadTree(hash)
 	if err != nil {
 		return "", err

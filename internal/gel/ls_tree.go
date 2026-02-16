@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/validate"
 	"fmt"
 	"io"
 )
@@ -18,10 +17,6 @@ func NewLsTreeService(objectService *ObjectService) *LsTreeService {
 }
 
 func (l *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTrees, nameOnly bool) error {
-	if err := validate.Hash(hash); err != nil {
-		return err
-	}
-
 	processor := func(entry domain.TreeEntry, relPath string) error {
 		objectType, err := entry.Mode.ObjectType()
 		if err != nil {

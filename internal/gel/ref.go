@@ -1,7 +1,6 @@
 package gel
 
 import (
-	"Gel/internal/gel/validate"
 	"Gel/internal/workspace"
 	"errors"
 	"fmt"
@@ -74,9 +73,6 @@ func (r *RefService) Read(ref string) (string, error) {
 		return "", nil
 	}
 	hash := strings.TrimSpace(string(contentBytes))
-	if err := validate.Hash(hash); err != nil {
-		return "", err
-	}
 	return hash, nil
 }
 
@@ -84,10 +80,6 @@ func (r *RefService) Write(ref, hash string) error {
 	if !strings.HasPrefix(ref, "refs/") {
 		return fmt.Errorf("ref must start with refs/")
 	}
-	if err := validate.Hash(hash); err != nil {
-		return err
-	}
-
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
 	dir := filepath.Dir(absPath)

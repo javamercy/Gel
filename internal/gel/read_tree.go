@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/validate"
 	"time"
 )
 
@@ -19,10 +18,6 @@ func NewReadTreeService(indexService *IndexService, objectService *ObjectService
 }
 
 func (readTreeService *ReadTreeService) ReadTree(hash string) error {
-	if err := validate.Hash(hash); err != nil {
-		return err
-	}
-
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, relPath string) error {
 		indexEntry, err := domain.NewIndexEntry(

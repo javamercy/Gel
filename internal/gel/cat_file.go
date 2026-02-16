@@ -2,7 +2,6 @@ package gel
 
 import (
 	"Gel/domain"
-	"Gel/internal/gel/validate"
 	"fmt"
 	"io"
 )
@@ -18,10 +17,6 @@ func NewCatFileService(objectService *ObjectService) *CatFileService {
 }
 
 func (c *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
-	if err := validate.Hash(hash); err != nil {
-		return err
-	}
-
 	if exists {
 		if !c.objectService.Exists(hash) {
 			return fmt.Errorf("object %s does not exist", hash)
