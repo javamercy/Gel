@@ -8,11 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
-)
-
-var (
-	pathNotFoundInTreeError = errors.New("path not found")
 )
 
 type RestoreService struct {
@@ -20,17 +15,22 @@ type RestoreService struct {
 	objectService     *core.ObjectService
 	hashObjectService *core.HashObjectService
 	refService        *core.RefService
+	treeResolver      *core.TreeResolver
 }
 
 func NewRestoreService(
-	indexService *core.IndexService, objectService *core.ObjectService, hashObjectService *core.HashObjectService,
+	indexService *core.IndexService,
+	objectService *core.ObjectService,
+	hashObjectService *core.HashObjectService,
 	refService *core.RefService,
+	treeResolver *core.TreeResolver,
 ) *RestoreService {
 	return &RestoreService{
 		indexService:      indexService,
 		objectService:     objectService,
 		hashObjectService: hashObjectService,
 		refService:        refService,
+		treeResolver:      treeResolver,
 	}
 }
 
@@ -62,8 +62,8 @@ func (r *RestoreService) restoreWithStaged(paths []string) error {
 		existsInHead := false
 		existsInIndex := index.HasEntry(path)
 
-		treeEntry, err := r.LookupPathInTree(commit.TreeHash, path)
-		if err != nil && !errors.Is(err, pathNotFoundInTreeError) {
+		treeEntry, err := r.treeResolver.LookupPathInTree(commit.TreeHash, path)
+		if err != nil && !errors.Is(err, core.PathNotFoundInTreeError) {
 			return err
 		} else if err == nil {
 			existsInHead = true
@@ -111,25 +111,4 @@ func (r *RestoreService) restoreWorkingDir(paths []string) error {
 		}
 	}
 	return nil
-}
-
-func (r *RestoreService) LookupPathInTree(treeHash, path string) (domain.TreeEntry, error) {
-	segments := strings.Split(path, "/")
-	return r.lookupPathInTreeRecursive(treeHash, segments)
-}
-
-func (r *RestoreService) lookupPathInTreeRecursive(treeHash string, segments []string) (domain.TreeEntry, error) {
-	entries, err := r.objectService.ReadTreeAndDeserializeEntries(treeHash)
-	if err != nil {
-		return domain.TreeEntry{}, err
-	}
-	for _, entry := range entries {
-		if entry.Name == segments[0] {
-			if len(segments) == 1 {
-				return entry, nil
-			}
-			return r.lookupPathInTreeRecursive(entry.Hash, segments[1:])
-		}
-	}
-	return domain.TreeEntry{}, pathNotFoundInTreeError
 }

@@ -114,7 +114,7 @@ func initializeServices() error {
 	logService = commit.NewLogService(refService, objectService)
 	switchService = branch.NewSwitchService(refService, objectService, readTreeService, workspaceProvider)
 	branchService = branch.NewBranchService(refService, objectService, workspaceProvider)
-	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService)
+	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService, treeResolver)
 	statusService = inspect.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
 	diffService = diff.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
 
