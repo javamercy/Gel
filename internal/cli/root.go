@@ -105,7 +105,7 @@ func initializeServices() error {
 	catFileService = inspect.NewCatFileService(objectService)
 	updateIndexService = staging.NewUpdateIndexService(indexService, hashObjectService, objectService)
 	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = staging.NewLsFilesService(indexService, objectService)
+	lsFilesService = staging.NewLsFilesService(indexService, objectService, hashObjectService)
 	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
 	readTreeService = tree.NewReadTreeService(indexService, objectService)
 	lsTreeService = tree.NewLsTreeService(objectService)

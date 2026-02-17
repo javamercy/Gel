@@ -19,10 +19,15 @@ type LsFilesService struct {
 	hashObjectService *core.HashObjectService
 }
 
-func NewLsFilesService(indexService *core.IndexService, objectService *core.ObjectService) *LsFilesService {
+func NewLsFilesService(
+	indexService *core.IndexService,
+	objectService *core.ObjectService,
+	hashObjectService *core.HashObjectService,
+) *LsFilesService {
 	return &LsFilesService{
-		indexService:  indexService,
-		objectService: objectService,
+		indexService:      indexService,
+		objectService:     objectService,
+		hashObjectService: hashObjectService,
 	}
 }
 
