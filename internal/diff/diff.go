@@ -27,6 +27,22 @@ type DiffOptions struct {
 
 type ContentLoaderFunc func(path, hash string) (string, error)
 
+type DiffStatus int
+
+const (
+	DiffStatusModified DiffStatus = iota
+	DiffStatusAdded
+	DiffStatusDeleted
+)
+
+type DiffResult struct {
+	Hunks   []Hunk
+	Status  DiffStatus
+	OldPath string
+	NewPath string
+	OldHash string
+	NewHash string
+}
 type DiffService struct {
 	objectService *core.ObjectService
 	refService    *core.RefService
@@ -49,6 +65,8 @@ func NewDiffService(
 }
 
 func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
+	var results []*DiffResult
+	var resultsErr error
 	switch options.Mode {
 	case ModeWorkingTreeVsHEAD:
 		headEntries, err := d.treeResolver.ResolveHEAD()
@@ -59,7 +77,9 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, headEntries, workingTreeEntries, d.loadBlobContent, d.loadFileContent)
+		results, resultsErr = d.ComputeDiffResults(
+			headEntries, workingTreeEntries, d.LoadBlobContent, d.LoadFileContent,
+		)
 	case ModeIndexVsHEAD:
 		headEntries, err := d.treeResolver.ResolveHEAD()
 		if err != nil {
@@ -69,17 +89,28 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, indexEntries, headEntries, d.loadBlobContent, d.loadBlobContent)
+		results, resultsErr = d.ComputeDiffResults(
+			indexEntries, headEntries, d.LoadBlobContent, d.LoadBlobContent,
+		)
 	case ModeCommitVsCommit:
-		baseCommitEntries, err := d.treeResolver.ResolveCommit(options.BaseCommitHash)
-		if err != nil {
-			return err
+		var baseCommitEntries map[string]string
+		if options.BaseCommitHash == "" {
+			baseCommitEntries = make(map[string]string)
+		} else {
+			var err error
+			baseCommitEntries, err = d.treeResolver.ResolveCommit(options.BaseCommitHash)
+			if err != nil {
+				return err
+			}
 		}
+
 		targetCommitEntries, err := d.treeResolver.ResolveCommit(options.TargetCommitHash)
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, targetCommitEntries, baseCommitEntries, d.loadBlobContent, d.loadBlobContent)
+		results, resultsErr = d.ComputeDiffResults(
+			targetCommitEntries, baseCommitEntries, d.LoadBlobContent, d.LoadBlobContent,
+		)
 	case ModeCommitVsWorkingTree:
 		commitEntries, err := d.treeResolver.ResolveCommit(options.BaseCommitHash)
 		if err != nil {
@@ -89,7 +120,9 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, workingTreeEntries, commitEntries, d.loadFileContent, d.loadBlobContent)
+		results, resultsErr = d.ComputeDiffResults(
+			workingTreeEntries, commitEntries, d.LoadFileContent, d.LoadBlobContent,
+		)
 	case ModeWorkingTreeVsIndex:
 		indexEntries, err := d.treeResolver.ResolveIndex()
 		if err != nil {
@@ -99,77 +132,83 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 		if err != nil {
 			return err
 		}
-		return d.computeEntryDiffs(writer, workingTreeEntries, indexEntries, d.loadFileContent, d.loadBlobContent)
+		results, resultsErr = d.ComputeDiffResults(
+			workingTreeEntries, indexEntries, d.LoadFileContent, d.LoadBlobContent,
+		)
 	default:
 		return fmt.Errorf("unsupported diff mode: %d", options.Mode)
 	}
+	if resultsErr != nil {
+		return resultsErr
+	}
+	return d.PrintResults(writer, results)
 }
 
-// TODO: update this func such that it does not print, returns a diff object.
-func (d *DiffService) computeEntryDiffs(
-	writer io.Writer,
+func (d *DiffService) ComputeDiffResults(
 	newEntries, oldEntries map[string]string,
 	newContentLoader, oldContentLoader ContentLoaderFunc,
-) error {
+) ([]*DiffResult, error) {
+	var results []*DiffResult
 	for newPath, newHash := range newEntries {
 		newData, err := newContentLoader(newPath, newHash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		newLines := strings.Split(strings.TrimSuffix(newData, "\n"), "\n")
 		oldHash, ok := oldEntries[newPath]
 		if !ok {
-			if err := d.printNewFileHeader(writer, newPath, newPath, newHash[:7]); err != nil {
-				return err
-			}
 			lineDiffs := d.diffAlgorithm.ComputeLineDiffs([]string{}, newLines)
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
-			if err := d.printHunks(writer, hunks); err != nil {
-				return err
-			}
+			results = append(
+				results, &DiffResult{
+					hunks, DiffStatusAdded, "",
+					newPath, "", newHash,
+				},
+			)
 		} else if newHash != oldHash {
 			oldData, err := oldContentLoader("", oldHash)
 			if err != nil {
-				return err
+				return nil, err
 			}
+
 			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
 			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, newLines)
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
-			if err := d.printModifiedFileHeader(writer, newPath, newPath, oldHash[:7], newHash[:7]); err != nil {
-				return err
-			}
-			if err := d.printHunks(writer, hunks); err != nil {
-				return err
-			}
+			results = append(
+				results, &DiffResult{
+					hunks, DiffStatusModified, "",
+					newPath, oldHash, newHash,
+				},
+			)
 		}
 	}
 
 	for oldPath, oldHash := range oldEntries {
 		if _, ok := newEntries[oldPath]; !ok {
-			if err := d.printDeletedFileHeader(writer, oldPath, oldHash[:7]); err != nil {
-				return err
-			}
 			oldData, err := oldContentLoader(oldPath, oldHash)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
 			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, []string{})
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
-			if err := d.printHunks(writer, hunks); err != nil {
-				return err
-			}
+			results = append(
+				results, &DiffResult{
+					hunks, DiffStatusDeleted, oldPath,
+					"", oldHash, "",
+				},
+			)
 		}
 	}
-	return nil
+	return results, nil
 }
 
-func (d *DiffService) loadBlobContent(_, hash string) (string, error) {
+func (d *DiffService) LoadBlobContent(_, hash string) (string, error) {
 	blob, err := d.objectService.ReadBlob(hash)
 	if err != nil {
 		return "", err
@@ -177,7 +216,7 @@ func (d *DiffService) loadBlobContent(_, hash string) (string, error) {
 	return string(blob.Body()), nil
 }
 
-func (d *DiffService) loadFileContent(path, _ string) (string, error) {
+func (d *DiffService) LoadFileContent(path, _ string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -185,7 +224,31 @@ func (d *DiffService) loadFileContent(path, _ string) (string, error) {
 	return string(data), nil
 }
 
-func (d *DiffService) printNewFileHeader(writer io.Writer, oldPath, newPath, hash string) error {
+func (d *DiffService) PrintResults(writer io.Writer, results []*DiffResult) error {
+	for _, result := range results {
+		var err error
+		switch result.Status {
+		case DiffStatusAdded:
+			err = d.PrintAddedFileHeader(writer, result.OldPath, result.NewPath, result.NewHash[:7])
+
+		case DiffStatusModified:
+			err = d.PrintModifiedFileHeader(
+				writer, result.OldPath, result.NewPath, result.OldHash[:7], result.NewHash[:7],
+			)
+		case DiffStatusDeleted:
+			err = d.PrintDeletedFileHeader(writer, result.OldPath, result.OldHash[:7])
+		}
+		if err != nil {
+			return err
+		}
+		if err := d.PrintHunks(writer, result.Hunks); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DiffService) PrintAddedFileHeader(writer io.Writer, oldPath, newPath, hash string) error {
 	if _, err := fmt.Fprintf(
 		writer, "%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, newPath, core.ColorReset,
 	); err != nil {
@@ -208,7 +271,7 @@ func (d *DiffService) printNewFileHeader(writer io.Writer, oldPath, newPath, has
 	return nil
 }
 
-func (d *DiffService) printDeletedFileHeader(writer io.Writer, oldPath, oldHash string) error {
+func (d *DiffService) PrintDeletedFileHeader(writer io.Writer, oldPath, oldHash string) error {
 	if _, err := fmt.Fprintf(
 		writer, "%sdeleted file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
@@ -228,7 +291,7 @@ func (d *DiffService) printDeletedFileHeader(writer io.Writer, oldPath, oldHash 
 	return nil
 }
 
-func (d *DiffService) printModifiedFileHeader(writer io.Writer, oldPath, newPath, oldHash, newHash string) error {
+func (d *DiffService) PrintModifiedFileHeader(writer io.Writer, oldPath, newPath, oldHash, newHash string) error {
 	if _, err := fmt.Fprintf(
 		writer, "%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
@@ -243,7 +306,7 @@ func (d *DiffService) printModifiedFileHeader(writer io.Writer, oldPath, newPath
 	return nil
 }
 
-func (d *DiffService) printHunks(writer io.Writer, hunks []Hunk) error {
+func (d *DiffService) PrintHunks(writer io.Writer, hunks []Hunk) error {
 	for _, hunk := range hunks {
 		header := fmt.Sprintf("@@ -%d,%d +%d,%d @@", hunk.OldStart, hunk.OldLength, hunk.NewStart, hunk.NewLength)
 		if _, err := fmt.Fprintln(writer, header); err != nil {
