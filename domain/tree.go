@@ -8,9 +8,9 @@ import (
 )
 
 type TreeEntry struct {
-	Mode FileMode `validate:"required"`
-	Hash string   `validate:"required,sha256hex"`
-	Name string   `validate:"required,relativepath"`
+	Mode FileMode
+	Hash string
+	Name string
 }
 
 func NewTreeEntry(mode FileMode, hash, name string) TreeEntry {
@@ -23,12 +23,12 @@ func NewTreeEntry(mode FileMode, hash, name string) TreeEntry {
 }
 
 type Tree struct {
-	body    []byte      `validate:"required"`
-	entries []TreeEntry `validate:"-"`
+	body    []byte
+	entries []TreeEntry
 }
 
-func (tree *Tree) Body() []byte {
-	return tree.body
+func (t *Tree) Body() []byte {
+	return t.body
 }
 
 func NewTree(body []byte) (*Tree, error) {
@@ -61,20 +61,20 @@ func NewTreeFromEntries(entries []TreeEntry) (*Tree, error) {
 	}, nil
 }
 
-func (tree *Tree) Type() ObjectType {
+func (t *Tree) Type() ObjectType {
 	return ObjectTypeTree
 }
 
-func (tree *Tree) Size() int {
-	return len(tree.body)
+func (t *Tree) Size() int {
+	return len(t.body)
 }
 
-func (tree *Tree) Serialize() []byte {
-	return SerializeObject(ObjectTypeTree, tree.body)
+func (t *Tree) Serialize() []byte {
+	return SerializeObject(ObjectTypeTree, t.body)
 }
 
-func (tree *Tree) Deserialize() ([]TreeEntry, error) {
-	body := tree.body
+func (t *Tree) Deserialize() ([]TreeEntry, error) {
+	body := t.body
 	var entries []TreeEntry
 	i := 0
 	for i < len(body) {
