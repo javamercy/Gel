@@ -62,21 +62,22 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		return "", fmt.Errorf("branch '%s' does not exist", branch)
 	}
 
-	currentCommit, err := s.objectService.ReadCommit(currentCommitHash)
-	if err != nil {
-		return "", err
-	}
-
 	targetCommitHash, err := s.refService.Read(targetRef)
 	if err != nil {
 		return "", err
 	}
 
-	targetCommit, err := s.objectService.ReadCommit(targetCommitHash)
-	if err != nil {
+	if currentCommitHash == targetCommitHash {
+		return fmt.Sprintf("Switched to branch '%s'", branch),
+			s.refService.WriteSymbolic(workspace.HeadFileName, targetRef)
+	}
+
+	if err := s.updateWorkingTree(currentCommitHash, targetCommitHash); err != nil {
 		return "", err
 	}
-	if err := s.updateWorkingTree(currentCommit.TreeHash, targetCommit.TreeHash); err != nil {
+
+	targetCommit, err := s.objectService.ReadCommit(targetCommitHash)
+	if err != nil {
 		return "", err
 	}
 	if err := s.readTreeService.ReadTree(targetCommit.TreeHash); err != nil {
@@ -86,19 +87,19 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		return "", err
 	}
 
-	headRef := filepath.Join(workspace.RefsDirName, workspace.HeadFileName, workspace.HeadFileName)
+	headRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, workspace.HeadFileName)
 	if err := s.refService.Write(headRef, targetCommitHash); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("Switched to branch '%s'", branch), nil
 }
 
-func (s *SwitchService) updateWorkingTree(currentTreeHash, targetTreeHash string) error {
-	currentEntries, err := s.treeResolver.ResolveCommit(currentTreeHash)
+func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash string) error {
+	currentEntries, err := s.treeResolver.ResolveCommit(currentCommitHash)
 	if err != nil {
 		return err
 	}
-	targetEntries, err := s.treeResolver.ResolveCommit(targetTreeHash)
+	targetEntries, err := s.treeResolver.ResolveCommit(TargetCommitHash)
 	if err != nil {
 		return err
 	}
