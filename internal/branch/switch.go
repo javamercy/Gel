@@ -1,7 +1,6 @@
 package branch
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
@@ -11,36 +10,42 @@ import (
 )
 
 type SwitchService struct {
-	refService        *core.RefService
-	objectService     *core.ObjectService
-	readTreeService   *tree.ReadTreeService
-	workspaceProvider *workspace.Provider
+	indexService    *core.IndexService
+	refService      *core.RefService
+	objectService   *core.ObjectService
+	readTreeService *tree.ReadTreeService
+	treeResolver    *core.TreeResolver
 }
 
 func NewSwitchService(
+	indexService *core.IndexService,
 	refService *core.RefService,
 	objectService *core.ObjectService,
 	readTreeService *tree.ReadTreeService,
-	workspaceProvider *workspace.Provider,
+	treeResolver *core.TreeResolver,
 ) *SwitchService {
 	return &SwitchService{
-		refService:        refService,
-		objectService:     objectService,
-		readTreeService:   readTreeService,
-		workspaceProvider: workspaceProvider,
+		indexService:    indexService,
+		refService:      refService,
+		objectService:   objectService,
+		readTreeService: readTreeService,
+		treeResolver:    treeResolver,
 	}
 }
 
 func (s *SwitchService) Switch(branch string, create, force bool) (string, error) {
-	// TODO: handle force, also there are some improvements need to be done.
-	// I'll get back here after implementing Status/Diff commands.
-
+	if !force {
+		if err := s.checkForUncommittedChanges(); err != nil {
+			return "", err
+		}
+	}
 	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
 	exists := s.refService.Exists(targetRef)
 	currentCommitHash, err := s.refService.Resolve(workspace.HeadFileName)
 	if err != nil {
 		return "", err
 	}
+
 	if create {
 		if exists {
 			return "", fmt.Errorf("branch '%s' already exists", branch)
@@ -71,54 +76,34 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 	if err != nil {
 		return "", err
 	}
-	if err := s.updateWorkingDir(currentCommit.TreeHash, targetCommit.TreeHash); err != nil {
+	if err := s.updateWorkingTree(currentCommit.TreeHash, targetCommit.TreeHash); err != nil {
 		return "", err
 	}
 	if err := s.readTreeService.ReadTree(targetCommit.TreeHash); err != nil {
 		return "", err
 	}
-
 	if err := s.refService.WriteSymbolic(workspace.HeadFileName, targetRef); err != nil {
 		return "", err
 	}
+
 	headRef := filepath.Join(workspace.RefsDirName, workspace.HeadFileName, workspace.HeadFileName)
 	if err := s.refService.Write(headRef, targetCommitHash); err != nil {
 		return "", err
 	}
-
 	return fmt.Sprintf("Switched to branch '%s'", branch), nil
 }
 
-func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string) error {
-	treeWalker := core.NewTreeWalker(
-		s.objectService, core.WalkOptions{
-			Recursive:    true,
-			IncludeTrees: false,
-			OnlyTrees:    false,
-		},
-	)
-	currentPathMap := make(map[string]string)
-	currentProcessor := func(entry domain.TreeEntry, relPath string) error {
-		currentPathMap[relPath] = entry.Hash
-		return nil
-	}
-	err := treeWalker.Walk(currentTreeHash, "", currentProcessor)
+func (s *SwitchService) updateWorkingTree(currentTreeHash, targetTreeHash string) error {
+	currentEntries, err := s.treeResolver.ResolveCommit(currentTreeHash)
 	if err != nil {
 		return err
 	}
-
-	targetPathMap := make(map[string]string)
-	targetProcessor := func(entry domain.TreeEntry, relPath string) error {
-		targetPathMap[relPath] = entry.Hash
-		return nil
-	}
-	err = treeWalker.Walk(targetTreeHash, "", targetProcessor)
+	targetEntries, err := s.treeResolver.ResolveCommit(targetTreeHash)
 	if err != nil {
 		return err
 	}
-
-	for targetPath, targetHash := range targetPathMap {
-		currentHash, ok := currentPathMap[targetPath]
+	for targetPath, targetHash := range targetEntries {
+		currentHash, ok := currentEntries[targetPath]
 		if !ok || targetHash != currentHash {
 			blob, err := s.objectService.ReadBlob(targetHash)
 			if err != nil {
@@ -134,11 +119,31 @@ func (s *SwitchService) updateWorkingDir(currentTreeHash, targetTreeHash string)
 		}
 	}
 
-	for currentPath := range currentPathMap {
-		if _, existsInTarget := targetPathMap[currentPath]; !existsInTarget {
+	for currentPath := range currentEntries {
+		if _, existsInTarget := targetEntries[currentPath]; !existsInTarget {
 			if err := os.RemoveAll(currentPath); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (s *SwitchService) checkForUncommittedChanges() error {
+	// TODO: we need a change detection service
+	indexEntries, err := s.treeResolver.ResolveIndex()
+	if err != nil {
+		return err
+	}
+	headEntries, err := s.treeResolver.ResolveHEAD()
+	if err != nil {
+		return err
+	}
+
+	for indexPath, indexHash := range indexEntries {
+		headHash, inHead := headEntries[indexPath]
+		if !inHead || indexHash != headHash {
+			return fmt.Errorf("uncommitted changes in '%s'", indexPath)
 		}
 	}
 	return nil
