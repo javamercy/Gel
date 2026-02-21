@@ -26,23 +26,25 @@ var (
 )
 
 var (
-	addService            *staging.AddService
-	catFileService        *inspect.CatFileService
-	lsFilesService        *staging.LsFilesService
-	updateIndexService    *staging.UpdateIndexService
-	writeTreeService      *tree.WriteTreeService
-	readTreeService       *tree.ReadTreeService
-	lsTreeService         *tree.LsTreeService
-	commitTreeService     *commit.CommitTreeService
-	symbolicRefService    *core.SymbolicRefService
-	updateRefService      *core.UpdateRefService
-	commitService         *commit.CommitService
-	logService            *commit.LogService
-	branchService         *branch.BranchService
-	restoreService        *inspect.RestoreService
-	switchService         *branch.SwitchService
-	statusService         *inspect.StatusService
-	diffService           *diff.DiffService
+	addService         *staging.AddService
+	catFileService     *inspect.CatFileService
+	lsFilesService     *staging.LsFilesService
+	updateIndexService *staging.UpdateIndexService
+	writeTreeService   *tree.WriteTreeService
+	readTreeService    *tree.ReadTreeService
+	lsTreeService      *tree.LsTreeService
+	commitTreeService  *commit.CommitTreeService
+	symbolicRefService *core.SymbolicRefService
+	updateRefService   *core.UpdateRefService
+	commitService      *commit.CommitService
+	logService         *commit.LogService
+	branchService      *branch.BranchService
+	restoreService     *inspect.RestoreService
+	switchService      *branch.SwitchService
+	statusService      *inspect.StatusService
+	diffService        *diff.DiffService
+	showService        *inspect.ShowService
+
 	isServicesInitialized bool
 )
 
@@ -117,6 +119,7 @@ func initializeServices() error {
 	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService, treeResolver)
 	statusService = inspect.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
 	diffService = diff.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
+	showService = inspect.NewShowService(objectService, refService, diffService)
 
 	isServicesInitialized = true
 	return nil
