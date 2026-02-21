@@ -163,7 +163,7 @@ func (d *DiffService) ComputeDiffResults(
 			hunks := BuildHunks(lineDiffs, regions)
 			results = append(
 				results, &DiffResult{
-					hunks, DiffStatusAdded, "",
+					hunks, DiffStatusAdded, newPath,
 					newPath, "", newHash,
 				},
 			)
@@ -179,7 +179,7 @@ func (d *DiffService) ComputeDiffResults(
 			hunks := BuildHunks(lineDiffs, regions)
 			results = append(
 				results, &DiffResult{
-					hunks, DiffStatusModified, "",
+					hunks, DiffStatusModified, newPath,
 					newPath, oldHash, newHash,
 				},
 			)
