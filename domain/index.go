@@ -70,17 +70,17 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 }
 
 type IndexEntry struct {
-	Path        string `validate:"required,relativepath"`
-	Hash        string `validate:"required,sha256hex"`
-	Size        uint32 `validate:"gte=0"`
-	Mode        uint32 `validate:"required"`
+	Path        string
+	Hash        string
+	Size        uint32
+	Mode        uint32
 	Device      uint32
 	Inode       uint32
 	UserId      uint32
 	GroupId     uint32
 	Flags       uint16
-	CreatedTime time.Time `validate:"required"`
-	UpdatedTime time.Time `validate:"required"`
+	CreatedTime time.Time
+	UpdatedTime time.Time
 }
 
 func NewEmptyIndexEntry(path, hash string, mode uint32) *IndexEntry {

@@ -19,11 +19,11 @@ const (
 )
 
 type CommitFields struct {
-	TreeHash     string   `validate:"required,sha256hex"`
-	ParentHashes []string `validate:"dive,sha256hex"`
-	Author       Identity `validate:"required"`
-	Committer    Identity `validate:"required"`
-	Message      string   `validate:"required,min=1"`
+	TreeHash     string
+	ParentHashes []string
+	Author       Identity
+	Committer    Identity
+	Message      string
 }
 
 type Commit struct {
