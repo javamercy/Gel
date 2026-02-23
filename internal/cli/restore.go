@@ -1,17 +1,43 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"Gel/internal/inspect"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	restoreStageFlag  bool
 	restoreSourceFlag string
 )
+
 var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore working tree files",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return restoreService.Restore(args, restoreSourceFlag, restoreStageFlag)
+		var options inspect.RestoreOptions
+		switch {
+		case restoreStageFlag && restoreSourceFlag != "":
+			options = inspect.RestoreOptions{
+				Mode:   inspect.RestoreModeCommitVsIndex,
+				Source: restoreSourceFlag,
+			}
+		case restoreStageFlag:
+			options = inspect.RestoreOptions{
+				Mode: inspect.RestoreModeHEADVsIndex,
+			}
+		case restoreSourceFlag != "":
+			options = inspect.RestoreOptions{
+				Mode:   inspect.RestoreModeCommitVsWorkingTree,
+				Source: restoreSourceFlag,
+			}
+		default:
+			options = inspect.RestoreOptions{
+				Mode: inspect.RestoreModeIndexVsWorkingTree,
+			}
+		}
+		return restoreService.Restore(args, options)
 	},
 }
 
