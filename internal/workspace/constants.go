@@ -13,13 +13,10 @@ const (
 	HeadsDirName   = "heads"
 	IndexFileName  = "index"
 	ConfigFileName = "config.toml"
+	MainBranchName = "main"
 )
 
 const (
 	FilePermission os.FileMode = 0o644 // -rw-r--r--
 	DirPermission  os.FileMode = 0o755 // drwxr-xr-x
-)
-
-const (
-	DefaultHeadContent = "ref: refs/heads/main\n"
 )

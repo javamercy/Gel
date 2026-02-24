@@ -36,7 +36,7 @@ func (i *InitService) Init(path string) (string, error) {
 	}
 
 	headPath := filepath.Join(base, workspace.HeadFileName)
-	headContent := []byte(workspace.DefaultHeadContent)
+	headContent := []byte("ref: refs/heads/main\n")
 	if err := os.WriteFile(headPath, headContent, workspace.FilePermission); err != nil {
 		return "", err
 	}
