@@ -2,7 +2,6 @@ package branch
 
 import (
 	"Gel/internal/core"
-	"Gel/internal/inspect"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
 	"fmt"
@@ -17,7 +16,6 @@ type SwitchService struct {
 	objectService   *core.ObjectService
 	readTreeService *tree.ReadTreeService
 	treeResolver    *core.TreeResolver
-	restoreService  *inspect.RestoreService
 }
 
 func NewSwitchService(
@@ -27,7 +25,6 @@ func NewSwitchService(
 	objectService *core.ObjectService,
 	readTreeService *tree.ReadTreeService,
 	treeResolver *core.TreeResolver,
-	restoreService *inspect.RestoreService,
 ) *SwitchService {
 	return &SwitchService{
 		indexService:    indexService,
@@ -36,7 +33,6 @@ func NewSwitchService(
 		objectService:   objectService,
 		readTreeService: readTreeService,
 		treeResolver:    treeResolver,
-		restoreService:  restoreService,
 	}
 }
 
@@ -71,6 +67,7 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 			s.refService.WriteSymbolic(workspace.HeadFileName, targetRef)
 	}
 
+	// TODO: Could we use Restore Service here?
 	if err := s.updateWorkingTree(currentCommitHash, targetCommitHash); err != nil {
 		return "", err
 	}
