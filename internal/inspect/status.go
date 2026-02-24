@@ -42,15 +42,9 @@ func NewStatusService(
 func (s *StatusService) Status(writer io.Writer, short bool) error {
 	// TODO: handle short flag
 	result := &StatusResult{}
-	indexEntries := make(map[string]string)
-	idxEntries, err := s.indexService.GetEntries()
+	indexEntries, err := s.treeResolver.ResolveIndex()
 	if err != nil {
 		return err
-	}
-	if len(idxEntries) > 0 {
-		for _, entry := range idxEntries {
-			indexEntries[entry.Path] = entry.Hash
-		}
 	}
 
 	headTreeEntries, err := s.treeResolver.ResolveHEAD()

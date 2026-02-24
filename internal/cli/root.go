@@ -23,6 +23,7 @@ var (
 	hashObjectService *core.HashObjectService
 	treeResolver      *core.TreeResolver
 	pathResolver      *core.PathResolver
+	changeDetector    *core.ChangeDetector
 )
 
 var (
@@ -100,23 +101,28 @@ func initializeServices() error {
 	refService = core.NewRefService(workspaceProvider)
 	hashObjectService = core.NewHashObjectService(objectService)
 	pathResolver = core.NewPathResolver(cwd, nil)
-	treeResolver = core.NewTreeResolver(objectService, indexService, refService, pathResolver, hashObjectService)
+	changeDetector = core.NewChangeDetector(hashObjectService)
+	treeResolver = core.NewTreeResolver(
+		objectService, indexService, refService, pathResolver, hashObjectService, changeDetector,
+	)
 	symbolicRefService = core.NewSymbolicRefService(refService)
 	updateRefService = core.NewUpdateRefService(refService)
 
 	catFileService = inspect.NewCatFileService(objectService)
-	updateIndexService = staging.NewUpdateIndexService(indexService, hashObjectService, objectService)
+	updateIndexService = staging.NewUpdateIndexService(indexService, objectService, hashObjectService, changeDetector)
 	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = staging.NewLsFilesService(indexService, objectService, hashObjectService)
+	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector)
 	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
 	readTreeService = tree.NewReadTreeService(indexService, objectService)
 	lsTreeService = tree.NewLsTreeService(objectService)
 	commitTreeService = commit.NewCommitTreeService(objectService, configService)
 	commitService = commit.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
 	logService = commit.NewLogService(refService, objectService)
-	switchService = branch.NewSwitchService(indexService, refService, objectService, readTreeService, treeResolver)
+	switchService = branch.NewSwitchService(
+		indexService, refService, branchService, objectService, readTreeService, treeResolver, restoreService,
+	)
 	branchService = branch.NewBranchService(refService, objectService, workspaceProvider)
-	restoreService = inspect.NewRestoreService(indexService, objectService, hashObjectService, refService, treeResolver)
+	restoreService = inspect.NewRestoreService(indexService, objectService, refService, treeResolver, changeDetector)
 	statusService = inspect.NewStatusService(indexService, objectService, treeResolver, refService, symbolicRefService)
 	diffService = diff.NewDiffService(objectService, refService, treeResolver, diff.NewMyersDiffAlgorithm())
 	showService = inspect.NewShowService(objectService, refService, diffService)

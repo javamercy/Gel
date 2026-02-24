@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// FileStatInfo contains file system metadata used for index entries.
-type FileStatInfo struct {
+// FileStat contains file system metadata used for index entries.
+type FileStat struct {
 	Device      uint32
 	Inode       uint32
 	UserId      uint32
@@ -18,32 +18,32 @@ type FileStatInfo struct {
 }
 
 // GetFileStatFromPath retrieves file system metadata for the given path.
-func GetFileStatFromPath(path string) FileStatInfo {
+func GetFileStatFromPath(path string) FileStat {
 	var stat syscall.Stat_t
 	if err := syscall.Stat(path, &stat); err != nil {
-		return FileStatInfo{
+		return FileStat{
 			Device:      0,
 			Inode:       0,
 			UserId:      0,
 			GroupId:     0,
 			Mode:        0,
 			Size:        0,
-			CreatedTime: time.Now(),
-			UpdatedTime: time.Now(),
+			CreatedTime: time.Time{},
+			UpdatedTime: time.Time{},
 		}
 	}
-	return getFileStatInfo(&stat)
+	return getFileStat(&stat)
 }
 
-func getFileStatInfo(fileInfo *syscall.Stat_t) FileStatInfo {
-	return FileStatInfo{
-		Device:      uint32(fileInfo.Dev),
-		Inode:       uint32(fileInfo.Ino),
-		UserId:      fileInfo.Uid,
-		GroupId:     fileInfo.Gid,
-		Mode:        uint32(fileInfo.Mode),
-		Size:        uint32(fileInfo.Size),
-		CreatedTime: time.Unix(fileInfo.Ctimespec.Sec, fileInfo.Ctimespec.Nsec),
-		UpdatedTime: time.Unix(fileInfo.Mtimespec.Sec, fileInfo.Mtimespec.Nsec),
+func getFileStat(stat *syscall.Stat_t) FileStat {
+	return FileStat{
+		Device:      uint32(stat.Dev),
+		Inode:       uint32(stat.Ino),
+		UserId:      stat.Uid,
+		GroupId:     stat.Gid,
+		Mode:        uint32(stat.Mode),
+		Size:        uint32(stat.Size),
+		CreatedTime: time.Unix(stat.Ctimespec.Sec, stat.Ctimespec.Nsec),
+		UpdatedTime: time.Unix(stat.Mtimespec.Sec, stat.Mtimespec.Nsec),
 	}
 }

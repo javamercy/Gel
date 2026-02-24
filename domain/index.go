@@ -128,34 +128,34 @@ func NewIndexEntry(
 	return &entry
 }
 
-func (indexEntry *IndexEntry) GetStage() uint16 {
-	return (indexEntry.Flags >> StageShift) & StageMask
+func (e *IndexEntry) GetStage() uint16 {
+	return (e.Flags >> StageShift) & StageMask
 }
 
-func (indexEntry *IndexEntry) serialize() ([]byte, error) {
+func (e *IndexEntry) serialize() ([]byte, error) {
 
-	pathLen := len(indexEntry.Path)
+	pathLen := len(e.Path)
 	totalBytes := IndexEntryFixedSize + pathLen + IndexEntryPathNullTerminateSize
 	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
 	totalBytes += padding
 
-	hashBytes, err := hex.DecodeString(indexEntry.Hash)
+	hashBytes, err := hex.DecodeString(e.Hash)
 	if err != nil {
 		return nil, err
 	}
 
 	var buffer bytes.Buffer
 	buffer.Grow(totalBytes)
-	if err := writeIndexEntryFields(&buffer, indexEntry); err != nil {
+	if err := writeIndexEntryFields(&buffer, e); err != nil {
 		return nil, err
 	}
 	if _, err := buffer.Write(hashBytes); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(&buffer, binary.BigEndian, indexEntry.Flags); err != nil {
+	if err := binary.Write(&buffer, binary.BigEndian, e.Flags); err != nil {
 		return nil, err
 	}
-	if _, err := buffer.WriteString(indexEntry.Path); err != nil {
+	if _, err := buffer.WriteString(e.Path); err != nil {
 		return nil, err
 	}
 	buffer.WriteByte(0)
@@ -166,6 +166,24 @@ func (indexEntry *IndexEntry) serialize() ([]byte, error) {
 
 	serializedEntry := buffer.Bytes()
 	return serializedEntry, nil
+}
+
+func (e *IndexEntry) MatchesStat(stat FileStat) bool {
+	if e.CreatedTime != stat.CreatedTime {
+		return false
+	}
+
+	// TODO: race condition
+	if e.UpdatedTime != stat.UpdatedTime {
+		return false
+	}
+	if e.Size != stat.Size {
+		return false
+	}
+	if e.Device != stat.Device || e.Inode != stat.Inode {
+		return false
+	}
+	return e.Mode == ParseFileModeFromOsMode(stat.Mode).Uint32()
 }
 
 type Index struct {

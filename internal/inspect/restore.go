@@ -5,7 +5,6 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/workspace"
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -25,26 +24,26 @@ type RestoreOptions struct {
 }
 
 type RestoreService struct {
-	indexService      *core.IndexService
-	objectService     *core.ObjectService
-	hashObjectService *core.HashObjectService
-	refService        *core.RefService
-	treeResolver      *core.TreeResolver
+	indexService   *core.IndexService
+	objectService  *core.ObjectService
+	refService     *core.RefService
+	treeResolver   *core.TreeResolver
+	changeDetector *core.ChangeDetector
 }
 
 func NewRestoreService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
-	hashObjectService *core.HashObjectService,
 	refService *core.RefService,
 	treeResolver *core.TreeResolver,
+	changeDetector *core.ChangeDetector,
 ) *RestoreService {
 	return &RestoreService{
-		indexService:      indexService,
-		objectService:     objectService,
-		hashObjectService: hashObjectService,
-		refService:        refService,
-		treeResolver:      treeResolver,
+		indexService:   indexService,
+		objectService:  objectService,
+		refService:     refService,
+		treeResolver:   treeResolver,
+		changeDetector: changeDetector,
 	}
 }
 
@@ -79,28 +78,30 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 	}
 
 	for _, path := range paths {
-		indexEntry, _ := index.FindEntry(path)
-		if indexEntry == nil {
+		stat := domain.GetFileStatFromPath(path)
+		entry, _ := index.FindEntry(path)
+		if entry == nil {
 			continue
 		}
 
-		// TODO: use a dedicated change detection service
-		currHash, _, err := r.hashObjectService.HashObject(path, false)
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		changeResult, err := r.changeDetector.DetectFileChange(entry, stat)
+		if err != nil {
 			return err
 		}
-		if currHash != indexEntry.Hash {
-			blob, err := r.objectService.ReadBlob(indexEntry.Hash)
-			if err != nil {
-				return err
-			}
-			dir := filepath.Dir(path)
-			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
-				return err
-			}
-			if err := os.WriteFile(path, blob.Body(), workspace.FilePermission); err != nil {
-				return err
-			}
+		if !changeResult.IsModified {
+			continue
+		}
+
+		blob, err := r.objectService.ReadBlob(entry.Hash)
+		if err != nil {
+			return err
+		}
+		dir := filepath.Dir(path)
+		if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, blob.Body(), workspace.FilePermission); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -126,17 +127,15 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash string, paths []s
 	}
 
 	for _, path := range paths {
-		commitHash, inCommit := commitEntries[path]
+		cHash, inCommit := commitEntries[path]
 		if !inCommit {
 			continue
 		}
 
 		workingTreeHash, inWorkingTree := workingTreeEntries[path]
 
-		// TODO: use a dedicated change detection service
-		// TODO: this code is identical to branch/switch.go: 107-120, refactoring needed?
-		if !inWorkingTree || commitHash != workingTreeHash {
-			blob, err := r.objectService.ReadBlob(commitHash)
+		if !inWorkingTree || cHash != workingTreeHash {
+			blob, err := r.objectService.ReadBlob(cHash)
 			if err != nil {
 				return err
 			}
@@ -196,7 +195,7 @@ func (r *RestoreService) resolveSource(source string) (string, error) {
 	switch source {
 	case workspace.HeadFileName:
 		commitHash, err = r.refService.Resolve(source)
-	case "main":
+	case workspace.MainBranchName:
 		commitHash, err = r.refService.Read("refs/heads/main")
 	default:
 		commitHash = source

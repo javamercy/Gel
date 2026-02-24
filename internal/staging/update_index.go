@@ -7,17 +7,22 @@ import (
 
 type UpdateIndexService struct {
 	indexService      *core.IndexService
-	hashObjectService *core.HashObjectService
 	objectService     *core.ObjectService
+	hashObjectService *core.HashObjectService
+	changeDetector    *core.ChangeDetector
 }
 
 func NewUpdateIndexService(
-	indexService *core.IndexService, hashObjectService *core.HashObjectService, objectService *core.ObjectService,
+	indexService *core.IndexService,
+	objectService *core.ObjectService,
+	hashObjectService *core.HashObjectService,
+	changeDetector *core.ChangeDetector,
 ) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,
-		hashObjectService: hashObjectService,
 		objectService:     objectService,
+		hashObjectService: hashObjectService,
+		changeDetector:    changeDetector,
 	}
 }
 
@@ -44,42 +49,58 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 ) {
 	var addedPaths []string
 	for _, path := range paths {
-		fileStatInfo := domain.GetFileStatFromPath(path)
+		stat := domain.GetFileStatFromPath(path)
+		entry, _ := index.FindEntry(path)
 
-		if entry, _ := index.FindEntry(path); entry != nil {
-			if entry.UpdatedTime.Equal(fileStatInfo.UpdatedTime) && entry.Size == fileStatInfo.Size {
+		var newEntry *domain.IndexEntry
+		if entry != nil {
+			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
+			if err != nil {
+				return nil, err
+			}
+
+			if !changeResult.IsModified {
 				continue
 			}
-		}
-		if !write {
+
 			addedPaths = append(addedPaths, path)
-			continue
-		}
 
-		hash, _, err := u.hashObjectService.HashObject(path, write)
-		if err != nil {
-			return nil, err
-		}
+			if !write {
+				continue
+			}
 
-		size, err := u.objectService.GetObjectSize(hash)
-		if err != nil {
-			return nil, err
+			newEntry = domain.NewIndexEntry(
+				path,
+				changeResult.NewHash,
+				stat.Size,
+				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				stat.Device,
+				stat.Inode,
+				stat.UserId,
+				stat.GroupId,
+				domain.ComputeIndexFlags(path, 0),
+				stat.CreatedTime,
+				stat.UpdatedTime,
+			)
+		} else {
+			hash, _, err := u.hashObjectService.HashObject(path, true)
+			if err != nil {
+				return nil, err
+			}
+			newEntry = domain.NewIndexEntry(
+				path,
+				hash,
+				stat.Size,
+				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				stat.Device,
+				stat.Inode,
+				stat.UserId,
+				stat.GroupId,
+				domain.ComputeIndexFlags(path, 0),
+				stat.CreatedTime,
+				stat.UpdatedTime,
+			)
 		}
-
-		newEntry := domain.NewIndexEntry(
-			path,
-			hash,
-			size,
-			domain.ParseFileModeFromOsMode(fileStatInfo.Mode).Uint32(),
-			fileStatInfo.Device,
-			fileStatInfo.Inode,
-			fileStatInfo.UserId,
-			fileStatInfo.GroupId,
-			domain.ComputeIndexFlags(path, 0),
-			fileStatInfo.CreatedTime,
-			fileStatInfo.UpdatedTime,
-		)
-		addedPaths = append(addedPaths, path)
 		index.SetEntry(newEntry)
 	}
 	if !write {

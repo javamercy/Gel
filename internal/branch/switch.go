@@ -2,6 +2,7 @@ package branch
 
 import (
 	"Gel/internal/core"
+	"Gel/internal/inspect"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
 	"fmt"
@@ -12,24 +13,30 @@ import (
 type SwitchService struct {
 	indexService    *core.IndexService
 	refService      *core.RefService
+	branchService   *BranchService
 	objectService   *core.ObjectService
 	readTreeService *tree.ReadTreeService
 	treeResolver    *core.TreeResolver
+	restoreService  *inspect.RestoreService
 }
 
 func NewSwitchService(
 	indexService *core.IndexService,
 	refService *core.RefService,
+	branchService *BranchService,
 	objectService *core.ObjectService,
 	readTreeService *tree.ReadTreeService,
 	treeResolver *core.TreeResolver,
+	restoreService *inspect.RestoreService,
 ) *SwitchService {
 	return &SwitchService{
 		indexService:    indexService,
 		refService:      refService,
+		branchService:   branchService,
 		objectService:   objectService,
 		readTreeService: readTreeService,
 		treeResolver:    treeResolver,
+		restoreService:  restoreService,
 	}
 }
 
@@ -40,25 +47,17 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		}
 	}
 	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
-	exists := s.refService.Exists(targetRef)
 	currentCommitHash, err := s.refService.Resolve(workspace.HeadFileName)
 	if err != nil {
 		return "", err
 	}
 
 	if create {
-		if exists {
-			return "", fmt.Errorf("branch '%s' already exists", branch)
-		}
-		if err := s.refService.WriteSymbolic(workspace.HeadFileName, targetRef); err != nil {
+		if err := s.branchService.Create(branch, currentCommitHash); err != nil {
 			return "", err
 		}
-		if err := s.refService.Write(targetRef, currentCommitHash); err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("Created and switched to branch '%s'", branch), nil
 	}
-	if !exists {
+	if !s.branchService.Exists(branch) {
 		return "", fmt.Errorf("branch '%s' does not exist", branch)
 	}
 
@@ -131,8 +130,7 @@ func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash st
 }
 
 func (s *SwitchService) checkForUncommittedChanges() error {
-	// TODO: we need a change detection service
-	indexEntries, err := s.treeResolver.ResolveIndex()
+	indexEntries, err := s.indexService.GetEntries()
 	if err != nil {
 		return err
 	}
@@ -141,10 +139,10 @@ func (s *SwitchService) checkForUncommittedChanges() error {
 		return err
 	}
 
-	for indexPath, indexHash := range indexEntries {
-		headHash, inHead := headEntries[indexPath]
-		if !inHead || indexHash != headHash {
-			return fmt.Errorf("uncommitted changes in '%s'", indexPath)
+	for _, indexEntry := range indexEntries {
+		headHash, inHead := headEntries[indexEntry.Path]
+		if !inHead || indexEntry.Hash != headHash {
+			return fmt.Errorf("uncommitted changes in '%s'", indexEntry.Path)
 		}
 	}
 	return nil

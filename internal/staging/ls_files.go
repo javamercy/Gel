@@ -14,20 +14,20 @@ const (
 )
 
 type LsFilesService struct {
-	indexService      *core.IndexService
-	objectService     *core.ObjectService
-	hashObjectService *core.HashObjectService
+	indexService   *core.IndexService
+	objectService  *core.ObjectService
+	changeDetector *core.ChangeDetector
 }
 
 func NewLsFilesService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
-	hashObjectService *core.HashObjectService,
+	changeDetector *core.ChangeDetector,
 ) *LsFilesService {
 	return &LsFilesService{
-		indexService:      indexService,
-		objectService:     objectService,
-		hashObjectService: hashObjectService,
+		indexService:   indexService,
+		objectService:  objectService,
+		changeDetector: changeDetector,
 	}
 }
 
@@ -89,25 +89,14 @@ func (l *LsFilesService) LsFilesWithCache(writer io.Writer, entries []*domain.In
 
 func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		fileInfo, err := os.Stat(entry.Path)
+		stat := domain.GetFileStatFromPath(entry.Path)
+		changeResult, err := l.changeDetector.DetectFileChange(entry, stat)
 		if err != nil {
-			continue
+			return err
 		}
-		if uint32(fileInfo.Size()) != entry.Size {
+		if changeResult.IsModified {
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
 				return err
-			}
-			return nil
-		}
-		if !fileInfo.ModTime().Equal(entry.UpdatedTime) {
-			currentHash, _, err := l.hashObjectService.HashObject(entry.Path, false)
-			if err != nil {
-				return err
-			}
-			if currentHash != entry.Hash {
-				if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-					return err
-				}
 			}
 		}
 	}
