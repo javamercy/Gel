@@ -8,14 +8,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
+	"sort"
 	"strings"
 )
 
-type branch struct {
-	name      string
-	isCurrent bool
-}
 type BranchService struct {
 	refService        *core.RefService
 	objectService     *core.ObjectService
@@ -23,7 +19,9 @@ type BranchService struct {
 }
 
 func NewBranchService(
-	refService *core.RefService, objectService *core.ObjectService, workspaceProvider *workspace.Provider,
+	refService *core.RefService,
+	objectService *core.ObjectService,
+	workspaceProvider *workspace.Provider,
 ) *BranchService {
 	return &BranchService{
 		refService:        refService,
@@ -41,7 +39,7 @@ func (b *BranchService) List(writer io.Writer) error {
 		return err
 	}
 
-	branches := make([]branch, 0)
+	branches := make(map[string]bool)
 	err = filepath.WalkDir(
 		headsDir, func(p string, d os.DirEntry, err error) error {
 			if err != nil {
@@ -56,31 +54,28 @@ func (b *BranchService) List(writer io.Writer) error {
 			ref := strings.TrimPrefix(p, ws.GelDir+"/")
 			name := strings.TrimPrefix(p, headsDir+"/")
 			isCurrent := ref == currentBranch
-			branches = append(
-				branches, branch{
-					name:      name,
-					isCurrent: isCurrent,
-				},
-			)
+			branches[name] = isCurrent
 			return nil
 		},
 	)
 	if err != nil {
 		return err
 	}
-	slices.SortFunc(
-		branches, func(a, b branch) int {
-			return strings.Compare(a.name, b.name)
-		},
-	)
 
-	for _, b := range branches {
-		if b.isCurrent {
-			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, b.name, core.ColorReset); err != nil {
+	branchNames := make([]string, 0, len(branches))
+	for name := range branches {
+		branchNames = append(branchNames, name)
+	}
+
+	sort.Strings(branchNames)
+
+	for _, name := range branchNames {
+		if branches[name] {
+			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, name, core.ColorReset); err != nil {
 				return err
 			}
 		} else {
-			if _, err := fmt.Fprintf(writer, "%s\n", b.name); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s\n", name); err != nil {
 				return err
 			}
 		}
@@ -88,16 +83,15 @@ func (b *BranchService) List(writer io.Writer) error {
 	return nil
 }
 
-func (b *BranchService) Create(name string, startPoint string) error {
-	if err := validateBranchName(name); err != nil {
+func (b *BranchService) Create(branch string, startPoint string) error {
+	if err := validateBranchName(branch); err != nil {
 		return err
 	}
-	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
-	exists := b.refService.Exists(ref)
-	if exists {
+	if b.Exists(branch) {
 		return errors.New("branch already exists")
 	}
 
+	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
 	if startPoint == "" {
 		commitHash, err := b.refService.Resolve(workspace.HeadFileName)
 		if err != nil {
@@ -106,11 +100,8 @@ func (b *BranchService) Create(name string, startPoint string) error {
 		return b.refService.Write(ref, commitHash)
 	}
 
-	if commitHash, err := b.refService.Resolve(
-		filepath.Join(
-			workspace.RefsDirName, workspace.HeadsDirName, startPoint,
-		),
-	); err == nil {
+	startBranchRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, startPoint)
+	if commitHash, err := b.refService.Read(startBranchRef); err == nil {
 		return b.refService.Write(ref, commitHash)
 	}
 
@@ -121,8 +112,8 @@ func (b *BranchService) Create(name string, startPoint string) error {
 	return b.refService.Write(ref, startPoint)
 }
 
-func (b *BranchService) Delete(name string) error {
-	if err := validateBranchName(name); err != nil {
+func (b *BranchService) Delete(branch string) error {
+	if err := validateBranchName(branch); err != nil {
 		return err
 	}
 
@@ -131,21 +122,26 @@ func (b *BranchService) Delete(name string) error {
 		return err
 	}
 
-	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
 	if refToDelete == currRef {
 		return errors.New("cannot delete the current branch")
 	}
 	return b.refService.Delete(refToDelete)
 }
 
-func validateBranchName(name string) error {
-	if strings.HasPrefix(name, "-") {
+func (b *BranchService) Exists(branch string) bool {
+	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
+	return b.refService.Exists(targetRef)
+}
+
+func validateBranchName(branch string) error {
+	if strings.HasPrefix(branch, "-") {
 		return errors.New("branch name cannot start with '-'")
 	}
-	if strings.Contains(name, "..") {
+	if strings.Contains(branch, "..") {
 		return errors.New("branch name cannot contain '..'")
 	}
-	if strings.HasSuffix(name, "/") {
+	if strings.HasSuffix(branch, "/") {
 		return errors.New("branch name cannot end with '/'")
 	}
 	return nil
