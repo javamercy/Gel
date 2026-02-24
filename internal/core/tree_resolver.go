@@ -17,11 +17,16 @@ type TreeResolver struct {
 	refService        *RefService
 	pathResolver      *PathResolver
 	hashObjectService *HashObjectService
+	changeDetector    *ChangeDetector
 }
 
 func NewTreeResolver(
-	objectService *ObjectService, indexService *IndexService, refService *RefService,
-	pathResolver *PathResolver, hashObjectService *HashObjectService,
+	objectService *ObjectService,
+	indexService *IndexService,
+	refService *RefService,
+	pathResolver *PathResolver,
+	hashObjectService *HashObjectService,
+	changeDetector *ChangeDetector,
 ) *TreeResolver {
 	return &TreeResolver{
 		objectService:     objectService,
@@ -29,6 +34,7 @@ func NewTreeResolver(
 		refService:        refService,
 		pathResolver:      pathResolver,
 		hashObjectService: hashObjectService,
+		changeDetector:    changeDetector,
 	}
 }
 
@@ -76,14 +82,35 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
 		return nil, err
 	}
 
+	index, err := t.indexService.Read()
+	if err != nil {
+		return nil, err
+	}
+
 	results := make(map[string]string)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			hash, _, err := t.hashObjectService.HashObject(path, false)
-			if err != nil {
-				return nil, err
+			fileStat := domain.GetFileStatFromPath(path)
+			entry, _ := index.FindEntry(path)
+
+			if entry != nil {
+				changeResult, err := t.changeDetector.DetectFileChange(entry, fileStat)
+				if err != nil {
+					return nil, err
+				}
+				if !changeResult.IsModified {
+					results[path] = entry.Hash
+				} else {
+					results[path] = changeResult.NewHash
+				}
+			} else {
+				hash, _, err := t.hashObjectService.HashObject(path, false)
+				if err != nil {
+					return nil, err
+				}
+				results[path] = hash
 			}
-			results[path] = hash
+
 		}
 	}
 	return results, nil
