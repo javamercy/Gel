@@ -3,7 +3,6 @@ package branch
 import (
 	"Gel/internal/core"
 	"Gel/internal/workspace"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -36,7 +35,7 @@ func (b *BranchService) List(writer io.Writer) error {
 
 	currentBranch, err := b.refService.ReadSymbolic(workspace.HeadFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("branch: failed to read symbolic ref: %w", err)
 	}
 
 	branches := make(map[string]bool)
@@ -59,7 +58,7 @@ func (b *BranchService) List(writer io.Writer) error {
 		},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("branch: failed to list branches: %w", err)
 	}
 
 	branchNames := make([]string, 0, len(branches))
@@ -72,26 +71,27 @@ func (b *BranchService) List(writer io.Writer) error {
 	for _, name := range branchNames {
 		if branches[name] {
 			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, name, core.ColorReset); err != nil {
-				return err
+				return fmt.Errorf("branch: failed to write branch name: %w", err)
 			}
 		} else {
 			if _, err := fmt.Fprintf(writer, "%s\n", name); err != nil {
-				return err
+				return fmt.Errorf("branch: failed to write branch name: %w", err)
 			}
 		}
 	}
 	return nil
 }
 
-func (b *BranchService) Create(branch string, startPoint string) error {
-	if err := validateBranchName(branch); err != nil {
-		return err
-	}
-	if b.Exists(branch) {
-		return errors.New("branch already exists")
+func (b *BranchService) Create(name string, startPoint string) error {
+	if err := validateBranchName(name); err != nil {
+		return fmt.Errorf("'%s': %w", name, err)
 	}
 
-	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
+	if b.Exists(name) {
+		return fmt.Errorf("'%s': %w", name, ErrBranchAlreadyExists)
+	}
+
+	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
 	if startPoint == "" {
 		commitHash, err := b.refService.Resolve(workspace.HeadFileName)
 		if err != nil {
@@ -112,9 +112,9 @@ func (b *BranchService) Create(branch string, startPoint string) error {
 	return b.refService.Write(ref, startPoint)
 }
 
-func (b *BranchService) Delete(branch string) error {
-	if err := validateBranchName(branch); err != nil {
-		return err
+func (b *BranchService) Delete(name string) error {
+	if err := validateBranchName(name); err != nil {
+		return fmt.Errorf("'%s': %w", name, err)
 	}
 
 	currRef, err := b.refService.ReadSymbolic(workspace.HeadFileName)
@@ -122,27 +122,26 @@ func (b *BranchService) Delete(branch string) error {
 		return err
 	}
 
-	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
+	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
 	if refToDelete == currRef {
-		return errors.New("cannot delete the current branch")
+		return fmt.Errorf("'%s': %w", name, ErrDeleteCurrentBranch)
 	}
 	return b.refService.Delete(refToDelete)
 }
 
-func (b *BranchService) Exists(branch string) bool {
-	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
+func (b *BranchService) Exists(name string) bool {
+	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
 	return b.refService.Exists(targetRef)
 }
 
-func validateBranchName(branch string) error {
-	if strings.HasPrefix(branch, "-") {
-		return errors.New("branch name cannot start with '-'")
-	}
-	if strings.Contains(branch, "..") {
-		return errors.New("branch name cannot contain '..'")
-	}
-	if strings.HasSuffix(branch, "/") {
-		return errors.New("branch name cannot end with '/'")
+func validateBranchName(name string) error {
+	switch {
+	case strings.HasPrefix(name, "-"):
+		return fmt.Errorf("must not start with '-': %w", ErrInvalidBranchName)
+	case strings.Contains(name, ".."):
+		return fmt.Errorf("must not contain '..': %w", ErrInvalidBranchName)
+	case strings.HasSuffix(name, "/"):
+		return fmt.Errorf("must not end with '/': %w", ErrInvalidBranchName)
 	}
 	return nil
 }

@@ -53,8 +53,9 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 			return "", err
 		}
 	}
+
 	if !s.branchService.Exists(branch) {
-		return "", fmt.Errorf("branch '%s' does not exist", branch)
+		return "", fmt.Errorf("'%s': %w", branch, ErrBranchNotFound)
 	}
 
 	targetCommitHash, err := s.refService.Read(targetRef)
@@ -108,10 +109,10 @@ func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash st
 			}
 			dir := filepath.Dir(targetPath)
 			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
-				return err
+				return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 			}
 			if err := os.WriteFile(targetPath, blob.Body(), workspace.FilePermission); err != nil {
-				return err
+				return fmt.Errorf("failed to write file '%s': %w", targetPath, err)
 			}
 		}
 	}
@@ -119,7 +120,7 @@ func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash st
 	for currentPath := range currentEntries {
 		if _, existsInTarget := targetEntries[currentPath]; !existsInTarget {
 			if err := os.RemoveAll(currentPath); err != nil {
-				return err
+				return fmt.Errorf("failed to remove file '%s': %w", currentPath, err)
 			}
 		}
 	}
@@ -139,7 +140,7 @@ func (s *SwitchService) checkForUncommittedChanges() error {
 	for _, indexEntry := range indexEntries {
 		headHash, inHead := headEntries[indexEntry.Path]
 		if !inHead || indexEntry.Hash != headHash {
-			return fmt.Errorf("uncommitted changes in '%s'", indexEntry.Path)
+			return fmt.Errorf("'%s': %w", indexEntry.Path, ErrUncommittedChanges)
 		}
 	}
 	return nil
