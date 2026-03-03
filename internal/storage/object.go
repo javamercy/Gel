@@ -2,6 +2,7 @@ package storage
 
 import (
 	"Gel/internal/workspace"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,7 +45,7 @@ func (o *ObjectStorage) Exists(hash string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
 	return false, fmt.Errorf("failed to check object '%s' existence: %w", hash, err)

@@ -2,6 +2,7 @@ package core
 
 import (
 	"Gel/internal/workspace"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,7 +24,7 @@ func (r *RefService) ReadSymbolic(name string) (string, error) {
 	refPath := filepath.Join(ws.GelDir, name)
 	contentBytes, err := os.ReadFile(refPath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", fmt.Errorf("'%s': %w", name, ErrRefNotFound)
 		}
 		return "", fmt.Errorf("ref: failed to read '%s': %w", name, err)
@@ -62,7 +63,7 @@ func (r *RefService) Read(ref string) (string, error) {
 	absPath := filepath.Join(ws.GelDir, ref)
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return "", fmt.Errorf("'%s': %w", ref, ErrRefNotFound)
 		}
 		return "", fmt.Errorf("ref: failed to read '%s': %w", ref, err)

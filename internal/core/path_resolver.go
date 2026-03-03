@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,7 +147,7 @@ func classifyPathspec(pathspec string) PathspecType {
 	}
 
 	fileInfo, err := os.Stat(pathspec)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return NonExistent
 	}
 	if fileInfo.IsDir() {

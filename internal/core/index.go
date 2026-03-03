@@ -4,7 +4,7 @@ import (
 	"Gel/domain"
 	"Gel/internal/storage"
 	"errors"
-	"io/fs"
+	"os"
 )
 
 type IndexService struct {
@@ -19,7 +19,7 @@ func NewIndexService(indexStorage *storage.IndexStorage) *IndexService {
 
 func (i *IndexService) Read() (*domain.Index, error) {
 	data, err := i.indexStorage.Read()
-	if errors.Is(err, fs.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) {
 		return domain.NewEmptyIndex(), nil
 	}
 	if err != nil {
