@@ -1,8 +1,6 @@
 package core
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type UpdateRefService struct {
 	refService *RefService
@@ -27,7 +25,7 @@ func (u *UpdateRefService) updateSafe(ref string, newHash, oldHash string) error
 		return err
 	}
 	if currentHash != oldHash {
-		return fmt.Errorf("cannot update ref '%s' because it is not pointing to '%s'", ref, oldHash)
+		return fmt.Errorf("'%s': %w", ref, ErrRefUpdateConflict)
 	}
 	return u.refService.Write(ref, newHash)
 }
@@ -45,7 +43,7 @@ func (u *UpdateRefService) deleteSafe(ref, oldHash string) error {
 		return err
 	}
 	if currentHash != oldHash {
-		return fmt.Errorf("cannot update ref '%s' because it is not pointing to '%s'", ref, oldHash)
+		return fmt.Errorf("'%s': %w", ref, ErrRefUpdateConflict)
 	}
 	return u.refService.Delete(ref)
 }

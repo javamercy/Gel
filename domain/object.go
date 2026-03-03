@@ -46,9 +46,10 @@ func DeserializeObject(data []byte) (Object, error) {
 
 	case ObjectTypeCommit:
 		return NewCommit(body)
+
+	default:
+		return nil, ErrUnknownObjectType
 	}
-	// code will never reach here due to earlier validation
-	return nil, nil
 }
 
 func deserializeObjectHeader(data []byte) (ObjectType, int, error) {

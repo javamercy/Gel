@@ -67,7 +67,7 @@ func (r *RestoreService) Restore(paths []string, options RestoreOptions) error {
 		}
 		return r.restoreCommitVsIndex(commitHash, paths)
 	default:
-		return errors.New("invalid restore mode")
+		return ErrInvalidRestoreMode
 	}
 }
 
@@ -164,7 +164,7 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash string, paths []string)
 
 	for _, path := range paths {
 		treeEntry, err := r.treeResolver.LookupPathInTree(commit.TreeHash, path)
-		if err != nil && !errors.Is(err, core.PathNotFoundInTreeError) {
+		if err != nil && !errors.Is(err, core.ErrPathNotFoundInTree) {
 			return err
 		}
 

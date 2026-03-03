@@ -1,13 +1,14 @@
 package workspace
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 var (
-	ErrNotAGelRepository = fmt.Errorf("not a Gel repository (%s not found)", GelDirName)
+	ErrNotAGelRepository = errors.New("not a Gel repository")
 )
 
 type Provider struct {
@@ -57,7 +58,11 @@ func findGelDir(startPath string) (string, error) {
 	for {
 		gelPath := filepath.Join(currentPath, GelDirName)
 		info, err := os.Stat(gelPath)
-		if err == nil && info.IsDir() {
+
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("failed to stat '%s': %w", gelPath, err)
+		}
+		if info.IsDir() {
 			return gelPath, nil
 		}
 

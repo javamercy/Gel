@@ -48,7 +48,7 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 	}
 
 	headTreeEntries, err := s.treeResolver.ResolveHEAD()
-	if err != nil && errors.Is(err, core.ErrRefNotFound) {
+	if err != nil && !errors.Is(err, core.ErrRefNotFound) {
 		return err
 	}
 	workingTreeEntries, err := s.treeResolver.ResolveWorkingTree()

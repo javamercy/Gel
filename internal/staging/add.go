@@ -97,9 +97,7 @@ func collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
 		}
 
 		if len(resolved.NormalizedPaths) == 0 && len(indexEntries) == 0 {
-			return nil, nil, fmt.Errorf(
-				"pathspec '%s' did not match any files", resolved.NormalizedScope,
-			)
+			return nil, nil, fmt.Errorf("'%s': %w", resolved.NormalizedScope, ErrPathDidNotMatch)
 		}
 
 	}
@@ -109,12 +107,12 @@ func collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
 func addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []string) error {
 	for _, path := range pathsToAdd {
 		if _, err := writer.Write([]byte(fmt.Sprintf("add '%s'\n", path))); err != nil {
-			return err
+			return fmt.Errorf("failed to write add message for '%s': %w", path, err)
 		}
 	}
 	for _, path := range pathsToRemove {
 		if _, err := writer.Write([]byte(fmt.Sprintf("remove '%s'\n", path))); err != nil {
-			return err
+			return fmt.Errorf("failed to write remove message for '%s': %w", path, err)
 		}
 	}
 	return nil

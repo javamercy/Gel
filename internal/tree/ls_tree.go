@@ -25,7 +25,7 @@ func (l *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTre
 		}
 		if nameOnly {
 			if _, err := fmt.Fprintln(writer, entry.Name); err != nil {
-				return err
+				return fmt.Errorf("failed to write entry name: %w", err)
 			}
 		} else {
 			if _, err := fmt.Fprintf(
@@ -36,7 +36,7 @@ func (l *LsTreeService) LsTree(writer io.Writer, hash string, recursive, showTre
 				entry.Hash,
 				relPath,
 			); err != nil {
-				return err
+				return fmt.Errorf("failed to write entry: %w", err)
 			}
 		}
 		return nil

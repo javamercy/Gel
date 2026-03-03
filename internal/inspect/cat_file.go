@@ -19,8 +19,12 @@ func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 
 func (c *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
 	if exists {
-		if !c.objectService.Exists(hash) {
-			return fmt.Errorf("object %s does not exist", hash)
+		ok, err := c.objectService.Exists(hash)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("'%s': %w", hash, ErrObjectNotFound)
 		}
 		return nil
 	}

@@ -24,7 +24,7 @@ func (h *HashObjectService) HashObjects(writer io.Writer, paths []string, write 
 			return err
 		}
 		if _, err := fmt.Fprintf(writer, "%s\n", hash); err != nil {
-			return err
+			return fmt.Errorf("failed to write ")
 		}
 	}
 	return nil
@@ -33,7 +33,7 @@ func (h *HashObjectService) HashObjects(writer io.Writer, paths []string, write 
 func (h *HashObjectService) HashObject(path string, write bool) (string, []byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	blob := domain.NewBlob(data)

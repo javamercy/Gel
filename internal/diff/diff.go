@@ -136,7 +136,7 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 			workingTreeEntries, indexEntries, d.LoadFileContent, d.LoadBlobContent,
 		)
 	default:
-		return fmt.Errorf("unsupported diff mode: %d", options.Mode)
+		return fmt.Errorf("'%d': %w", options.Mode, ErrUnsupportedDiffMode)
 	}
 	if resultsErr != nil {
 		return resultsErr

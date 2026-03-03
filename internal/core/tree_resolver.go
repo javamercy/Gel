@@ -3,12 +3,7 @@ package core
 import (
 	"Gel/domain"
 	"Gel/internal/workspace"
-	"errors"
 	"strings"
-)
-
-var (
-	PathNotFoundInTreeError = errors.New("path not found")
 )
 
 type TreeResolver struct {
@@ -134,5 +129,5 @@ func (t *TreeResolver) lookupPathInTreeRecursive(treeHash string, segments []str
 			return t.lookupPathInTreeRecursive(entry.Hash, segments[1:])
 		}
 	}
-	return domain.TreeEntry{}, PathNotFoundInTreeError
+	return domain.TreeEntry{}, ErrPathNotFoundInTree
 }

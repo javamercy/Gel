@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"strings"
 )
 
@@ -24,8 +23,11 @@ func NewLogService(refService *core.RefService, objectService *core.ObjectServic
 
 func (l *LogService) Log(writer io.Writer, name string, limit int, oneline bool) error {
 	hash, err := l.refService.Resolve(name)
-	if errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("current branch '%s' does not have any commits", name)
+	if errors.Is(err, core.ErrRefNotFound) {
+		return fmt.Errorf("'%s': %w", name, ErrNoCommitsYet)
+	}
+	if err != nil {
+		return err
 	}
 
 	count := 0

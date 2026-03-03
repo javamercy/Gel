@@ -56,7 +56,7 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 		}
 		return s.showCommit(writer, objectRef, s.trimBranchName(headRef))
 	default:
-		return fmt.Errorf("unsupported object type: %s", object.Type())
+		return fmt.Errorf("'%s': %w", object.Type(), ErrUnsupportedObjectType)
 	}
 }
 

@@ -53,7 +53,7 @@ func (c *CommitService) Commit(message string) error {
 			return err
 		}
 		if parentCommit.TreeHash == treeHash {
-			return errors.New("nothing to commit")
+			return ErrNothingToCommit
 		}
 	}
 

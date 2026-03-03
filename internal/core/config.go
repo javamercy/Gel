@@ -29,15 +29,15 @@ func NewConfigService(configStorage *storage.ConfigStorage) *ConfigService {
 func (c *ConfigService) GetUserInfo() (string, string, error) {
 	config, err := c.Read()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decode config: %w", err)
+		return "", "", fmt.Errorf("config: failed to read: %w", err)
 	}
 	name, ok := config.Get(ConfigSectionUser, ConfigKeyName)
 	if !ok {
-		return "", "", fmt.Errorf("failed to get user name: %w", err)
+		return "", "", fmt.Errorf("config: user.name is not set")
 	}
 	email, ok := config.Get(ConfigSectionUser, ConfigKeyEmail)
 	if !ok {
-		return "", "", fmt.Errorf("failed to get user email: %w", err)
+		return "", "", fmt.Errorf("config: user.email is not set")
 	}
 	return name, email, nil
 }
@@ -45,18 +45,19 @@ func (c *ConfigService) GetUserInfo() (string, string, error) {
 func (c *ConfigService) Set(section, key, value string) error {
 	config, err := c.Read()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("config: failed to read: %w", err)
 	}
 	config.Set(section, key, value)
 	return c.Write(config)
 }
 
-func (c *ConfigService) Get(section, key string) (string, bool) {
+func (c *ConfigService) Get(section, key string) (string, bool, error) {
 	config, err := c.Read()
 	if err != nil {
-		panic(err)
+		return "", false, fmt.Errorf("config: failed to read: %w", err)
 	}
-	return config.Get(section, key)
+	v, ok := config.Get(section, key)
+	return v, ok, nil
 }
 
 func (c *ConfigService) List(writer io.Writer) error {

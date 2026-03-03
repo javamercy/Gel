@@ -110,6 +110,6 @@ func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain
 	return treeEntries, nil
 }
 
-func (o *ObjectService) Exists(hash string) bool {
+func (o *ObjectService) Exists(hash string) (bool, error) {
 	return o.objectStorage.Exists(hash)
 }

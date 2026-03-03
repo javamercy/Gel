@@ -59,7 +59,11 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 
 	data := tree.Serialize()
 	hash := core.ComputeSHA256(data)
-	if w.objectService.Exists(hash) {
+	ok, err := w.objectService.Exists(hash)
+	if err != nil {
+		return "", err
+	}
+	if ok {
 		return hash, nil
 	}
 

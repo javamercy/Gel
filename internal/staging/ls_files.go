@@ -3,6 +3,7 @@ package staging
 import (
 	"Gel/domain"
 	"Gel/internal/core"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -72,7 +73,7 @@ func (l *LsFilesService) LsFilesWithStage(writer io.Writer, entries []*domain.In
 			entry.GetStage(),
 			entry.Path,
 		); err != nil {
-			return err
+			return fmt.Errorf("failed to write entry: %w", err)
 		}
 	}
 	return nil
@@ -81,7 +82,7 @@ func (l *LsFilesService) LsFilesWithStage(writer io.Writer, entries []*domain.In
 func (l *LsFilesService) LsFilesWithCache(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-			return err
+			return fmt.Errorf("failed to write entry: %w", err)
 		}
 	}
 	return nil
@@ -96,7 +97,7 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 		}
 		if changeResult.IsModified {
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-				return err
+				return fmt.Errorf("failed to write entry: %w", err)
 			}
 		}
 	}
@@ -106,10 +107,13 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 func (l *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
 		_, err := os.Stat(entry.Path)
-		if err != nil {
+		switch {
+		case errors.Is(err, os.ErrNotExist):
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-				return err
+				return fmt.Errorf("failed to write entry: %w", err)
 			}
+		case err != nil:
+			return fmt.Errorf("failed to stat file '%s': %w", entry.Path, err)
 		}
 	}
 	return nil

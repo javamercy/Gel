@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,10 +32,6 @@ func (t PathspecType) String() string {
 	}
 	return "unknown"
 }
-
-var (
-	ErrUnknownPathspecType = errors.New("unknown pathspec type")
-)
 
 type ResolvedPath struct {
 	Type            PathspecType
