@@ -64,11 +64,15 @@ func (t *TreeResolver) ResolveCommit(hash string) (map[string]string, error) {
 
 func (t *TreeResolver) ResolveIndex() (map[string]string, error) {
 	entries, err := t.indexService.GetEntries()
+	if err != nil {
+		return nil, err
+	}
+
 	entriesMap := make(map[string]string)
 	for _, entry := range entries {
 		entriesMap[entry.Path] = entry.Hash
 	}
-	return entriesMap, err
+	return entriesMap, nil
 }
 
 func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
