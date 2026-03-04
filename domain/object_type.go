@@ -1,12 +1,6 @@
 package domain
 
-import "errors"
-
 type ObjectType string
-
-var (
-	ErrInvalidObjectType = errors.New("invalid object type")
-)
 
 const (
 	ObjectTypeBlob   ObjectType = "blob"

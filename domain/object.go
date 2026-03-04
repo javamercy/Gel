@@ -1,16 +1,7 @@
 package domain
 
 import (
-	"errors"
 	"strconv"
-)
-
-var (
-	ErrNoNullByteFound    = errors.New("invalid object format: header must be terminated with null byte")
-	ErrObjectSizeMismatch = errors.New("invalid object format: data size does not match header size")
-	ErrNoSpaceInHeader    = errors.New("invalid object header: type and size must be separated by space")
-	ErrUnknownObjectType  = errors.New("invalid object header: unknown object type (expected 'blob' or 'tree')")
-	ErrInvalidSizeFormat  = errors.New("invalid object header: size must be a valid integer")
 )
 
 type Object interface {

@@ -4,21 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-)
-
-var (
-	ErrIndexTooShort         = errors.New("index file is too short: minimum 12 bytes required for header")
-	ErrInvalidIndexSignature = errors.New("invalid index signature: expected 'DIRC', file may be corrupted")
-	ErrTruncatedEntryData    = errors.New("index file truncated: not enough data to read all entries")
-	ErrIncorrectChecksumSize = errors.New("invalid index checksum: expected 32 bytes at end of file")
-	ErrChecksumMismatch      = errors.New("index checksum verification failed: file may be corrupted")
-	ErrEntryDataTooShort     = errors.New("index entry is incomplete: minimum 74 bytes required")
-	ErrPathNotNullTerminated = errors.New("index entry path is malformed: missing null terminator")
 )
 
 const (

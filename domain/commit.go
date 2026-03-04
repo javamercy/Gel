@@ -2,13 +2,7 @@ package domain
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-)
-
-var (
-	ErrInvalidCommitFormat = errors.New("invalid commit format")
-	ErrInvalidCommitField  = errors.New("invalid commit field")
 )
 
 const (

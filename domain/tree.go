@@ -3,7 +3,6 @@ package domain
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 )
 
@@ -98,13 +97,13 @@ func (t *Tree) Deserialize() ([]TreeEntry, error) {
 			i++
 		}
 		if i >= len(body) {
-			return nil, errors.New("invalid tree format: missing null byte after name")
+			return nil, ErrTreeMissingNullByte
 		}
 		name := string(body[nameStart:i])
 		i++
 
 		if i+32 > len(body) {
-			return nil, errors.New("invalid tree format: truncated hash")
+			return nil, ErrTreeTruncatedHash
 		}
 		hashBytes := body[i : i+32]
 		hash := hex.EncodeToString(hashBytes)

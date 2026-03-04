@@ -1,9 +1,5 @@
 package domain
 
-import "errors"
-
-var ErrInvalidFileMode = errors.New("invalid file mode")
-
 type FileMode uint32
 
 const (
