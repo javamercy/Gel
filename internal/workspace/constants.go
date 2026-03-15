@@ -5,15 +5,18 @@ import (
 )
 
 const (
-	GelDirName     = ".gel"
-	ObjectsDirName = "objects"
-	RefsDirName    = "refs"
-	HeadFileName   = "HEAD"
-	TagsDirName    = "tags"
-	HeadsDirName   = "heads"
-	IndexFileName  = "index"
-	ConfigFileName = "config.toml"
-	MainBranchName = "main"
+	GelDirName     string = ".gel"
+	ObjectsDirName string = "objects"
+	RefsDirName    string = "refs"
+	HeadFileName   string = "HEAD"
+	HeadsDirName   string = "heads"
+	IndexFileName  string = "index"
+	ConfigFileName string = "config.toml"
+	MainBranchName string = "main"
+)
+
+const (
+	MainRef string = "refs/heads/main"
 )
 
 const (
