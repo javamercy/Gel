@@ -83,7 +83,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				stat.UpdatedTime,
 			)
 		} else {
-			hash, _, err := u.hashObjectService.HashObject(path, true)
+			hash, _, err := u.hashObjectService.ComputeObjectHash(path)
 			if err != nil {
 				return nil, err
 			}

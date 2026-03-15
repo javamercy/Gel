@@ -103,7 +103,7 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
 					results[path] = changeResult.NewHash
 				}
 			} else {
-				hash, _, err := t.hashObjectService.HashObject(path, false)
+				hash, _, err := t.hashObjectService.ComputeObjectHash(path)
 				if err != nil {
 					return nil, err
 				}

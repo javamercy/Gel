@@ -25,7 +25,7 @@ func (c *ChangeDetector) DetectFileChange(
 	var err error
 
 	if !matches {
-		newHash, _, err = c.hashObjectService.HashObject(entry.Path, false)
+		newHash, _, err = c.hashObjectService.ComputeObjectHash(entry.Path)
 	}
 	if err != nil {
 		return ChangeResult{}, err

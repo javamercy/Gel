@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/internal/core"
+
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +14,9 @@ var hashObjectCmd = &cobra.Command{
 	Short: "Compute the hash of a file",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return hashObjectService.HashObjects(cmd.OutOrStdout(), args, hashObjectWriteFlag)
+		return hashObjectService.HashObjectsAndOutput(
+			cmd.OutOrStdout(), args, core.HashObjectOptions{Write: hashObjectWriteFlag},
+		)
 	},
 }
 
