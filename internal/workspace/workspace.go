@@ -58,8 +58,15 @@ func findGelDir(startPath string) (string, error) {
 	for {
 		gelPath := filepath.Join(currentPath, GelDirName)
 		info, err := os.Stat(gelPath)
-
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				parentPath := filepath.Dir(currentPath)
+				if parentPath == currentPath {
+					break
+				}
+				currentPath = parentPath
+				continue
+			}
 			return "", fmt.Errorf("failed to stat '%s': %w", gelPath, err)
 		}
 		if info.IsDir() {
