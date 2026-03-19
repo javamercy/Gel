@@ -33,11 +33,11 @@ func NewTreeResolver(
 	}
 }
 
-func (t *TreeResolver) ResolveHEAD() (map[string]string, error) {
+func (t *TreeResolver) ResolveHEAD() (map[string]domain.Hash, error) {
 	return t.ResolveRef(workspace.HeadFileName)
 }
 
-func (t *TreeResolver) ResolveRef(refName string) (map[string]string, error) {
+func (t *TreeResolver) ResolveRef(refName string) (map[string]domain.Hash, error) {
 	commitHash, err := t.refService.Resolve(refName)
 	if err != nil {
 		return nil, err
@@ -45,13 +45,13 @@ func (t *TreeResolver) ResolveRef(refName string) (map[string]string, error) {
 	return t.ResolveCommit(commitHash)
 }
 
-func (t *TreeResolver) ResolveCommit(hash string) (map[string]string, error) {
+func (t *TreeResolver) ResolveCommit(hash domain.Hash) (map[string]domain.Hash, error) {
 	commit, err := t.objectService.ReadCommit(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	entries := make(map[string]string)
+	entries := make(map[string]domain.Hash)
 	walker := NewTreeWalker(t.objectService, WalkOptions{Recursive: true})
 	err = walker.Walk(
 		commit.TreeHash, "", func(e domain.TreeEntry, relPath string) error {
@@ -62,20 +62,20 @@ func (t *TreeResolver) ResolveCommit(hash string) (map[string]string, error) {
 	return entries, err
 }
 
-func (t *TreeResolver) ResolveIndex() (map[string]string, error) {
+func (t *TreeResolver) ResolveIndex() (map[string]domain.Hash, error) {
 	entries, err := t.indexService.GetEntries()
 	if err != nil {
 		return nil, err
 	}
 
-	entriesMap := make(map[string]string)
+	entriesMap := make(map[string]domain.Hash, len(entries))
 	for _, entry := range entries {
 		entriesMap[entry.Path] = entry.Hash
 	}
 	return entriesMap, nil
 }
 
-func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
+func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 	resolvedPaths, err := t.pathResolver.Resolve([]string{"."})
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
 		return nil, err
 	}
 
-	results := make(map[string]string)
+	results := make(map[string]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
 			fileStat := domain.GetFileStatFromPath(path)
@@ -115,12 +115,12 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]string, error) {
 	return results, nil
 }
 
-func (t *TreeResolver) LookupPathInTree(treeHash, path string) (domain.TreeEntry, error) {
+func (t *TreeResolver) LookupPathInTree(treeHash domain.Hash, path string) (domain.TreeEntry, error) {
 	segments := strings.Split(path, "/")
 	return t.lookupPathInTreeRecursive(treeHash, segments)
 }
 
-func (t *TreeResolver) lookupPathInTreeRecursive(treeHash string, segments []string) (domain.TreeEntry, error) {
+func (t *TreeResolver) lookupPathInTreeRecursive(treeHash domain.Hash, segments []string) (domain.TreeEntry, error) {
 	entries, err := t.objectService.ReadTreeAndDeserializeEntries(treeHash)
 	if err != nil {
 		return domain.TreeEntry{}, err

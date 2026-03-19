@@ -18,15 +18,17 @@ func NewCommitTreeService(objectService *core.ObjectService, configService *core
 	}
 }
 
-func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes []string) (string, error) {
+func (c *CommitTreeService) CommitTree(hash domain.Hash, message string, parentHashes []domain.Hash) (
+	domain.Hash, error,
+) {
 	_, err := c.objectService.ReadTree(hash)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 
 	name, email, err := c.configService.GetUserInfo()
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 
 	now := time.Now()
@@ -46,10 +48,13 @@ func (c *CommitTreeService) CommitTree(hash string, message string, parentHashes
 	}
 	commit := domain.NewCommitFromFields(commitFields)
 	serializedData := commit.Serialize()
-	commitHash := core.ComputeSHA256(serializedData)
-	err = c.objectService.Write(commitHash, serializedData)
+	hexCommitHash := core.ComputeSHA256(serializedData)
+	commitHash, err := domain.NewHash(hexCommitHash)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
+	}
+	if err := c.objectService.Write(commitHash, serializedData); err != nil {
+		return domain.Hash{}, err
 	}
 	return commitHash, nil
 }

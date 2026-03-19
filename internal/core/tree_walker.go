@@ -25,7 +25,7 @@ func NewTreeWalker(objectService *ObjectService, options WalkOptions) *TreeWalke
 	}
 }
 
-func (w *TreeWalker) Walk(hash, prefix string, processor Processor) error {
+func (w *TreeWalker) Walk(hash domain.Hash, prefix string, processor Processor) error {
 	entries, err := w.objectService.ReadTreeAndDeserializeEntries(hash)
 	if err != nil {
 		return err

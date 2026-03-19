@@ -1,6 +1,7 @@
 package core
 
 import (
+	"Gel/domain"
 	"Gel/internal/workspace"
 	"errors"
 	"fmt"
@@ -55,27 +56,31 @@ func (r *RefService) WriteSymbolic(name, ref string) error {
 	return nil
 }
 
-func (r *RefService) Read(ref string) (string, error) {
+func (r *RefService) Read(ref string) (domain.Hash, error) {
 	if !strings.HasPrefix(ref, "refs/") {
-		return "", fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+		return domain.Hash{}, fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
 	}
 	ws := r.workspaceProvider.GetWorkspace()
 	absPath := filepath.Join(ws.GelDir, ref)
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", fmt.Errorf("'%s': %w", ref, ErrRefNotFound)
+			return domain.Hash{}, fmt.Errorf("'%s': %w", ref, ErrRefNotFound)
 		}
-		return "", fmt.Errorf("ref: failed to read '%s': %w", ref, err)
+		return domain.Hash{}, fmt.Errorf("ref: failed to read '%s': %w", ref, err)
 	}
 	if len(contentBytes) == 0 {
-		return "", nil
+		return domain.Hash{}, nil
 	}
-	hash := strings.TrimSpace(string(contentBytes))
+	hexHash := strings.TrimSpace(string(contentBytes))
+	hash, err := domain.NewHash(hexHash)
+	if err != nil {
+		return domain.Hash{}, fmt.Errorf("ref: failed to parse hash: %w", err)
+	}
 	return hash, nil
 }
 
-func (r *RefService) Write(ref, hash string) error {
+func (r *RefService) Write(ref string, hash domain.Hash) error {
 	if !strings.HasPrefix(ref, "refs/") {
 		return fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
 	}
@@ -113,10 +118,10 @@ func (r *RefService) Exists(ref string) bool {
 	return err == nil
 }
 
-func (r *RefService) Resolve(name string) (string, error) {
+func (r *RefService) Resolve(name string) (domain.Hash, error) {
 	ref, err := r.ReadSymbolic(name)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	return r.Read(ref)
 }

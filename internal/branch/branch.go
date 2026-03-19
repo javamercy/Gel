@@ -1,6 +1,7 @@
 package branch
 
 import (
+	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/workspace"
 	"fmt"
@@ -105,11 +106,14 @@ func (b *BranchService) Create(name string, startPoint string) error {
 		return b.refService.Write(ref, commitHash)
 	}
 
-	_, err := b.objectService.ReadCommit(startPoint)
+	startHash, err := domain.NewHash(startPoint)
 	if err != nil {
 		return err
 	}
-	return b.refService.Write(ref, startPoint)
+	if _, err := b.objectService.ReadCommit(startHash); err != nil {
+		return err
+	}
+	return b.refService.Write(ref, startHash)
 }
 
 func (b *BranchService) Delete(name string) error {

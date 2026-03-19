@@ -60,7 +60,7 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 
 type IndexEntry struct {
 	Path        string
-	Hash        string
+	Hash        Hash
 	Size        uint32
 	Mode        uint32
 	Device      uint32
@@ -72,7 +72,7 @@ type IndexEntry struct {
 	UpdatedTime time.Time
 }
 
-func NewEmptyIndexEntry(path, hash string, mode uint32) *IndexEntry {
+func NewEmptyIndexEntry(path string, hash Hash, mode uint32) *IndexEntry {
 	return &IndexEntry{
 		Path:        path,
 		Hash:        hash,
@@ -90,7 +90,7 @@ func NewEmptyIndexEntry(path, hash string, mode uint32) *IndexEntry {
 
 func NewIndexEntry(
 	path string,
-	hash string,
+	hash Hash,
 	size uint32,
 	mode uint32,
 	device uint32,
@@ -102,17 +102,17 @@ func NewIndexEntry(
 	updatedTime time.Time,
 ) *IndexEntry {
 	entry := IndexEntry{
-		path,
-		hash,
-		size,
-		mode,
-		device,
-		inode,
-		userId,
-		groupId,
-		flags,
-		createdTime,
-		updatedTime,
+		Path:        path,
+		Hash:        hash,
+		Size:        size,
+		Mode:        mode,
+		Device:      device,
+		Inode:       inode,
+		UserId:      userId,
+		GroupId:     groupId,
+		Flags:       flags,
+		CreatedTime: createdTime,
+		UpdatedTime: updatedTime,
 	}
 	return &entry
 }
@@ -128,17 +128,12 @@ func (e *IndexEntry) serialize() ([]byte, error) {
 	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
 	totalBytes += padding
 
-	hashBytes, err := hex.DecodeString(e.Hash)
-	if err != nil {
-		return nil, err
-	}
-
 	var buffer bytes.Buffer
 	buffer.Grow(totalBytes)
 	if err := writeIndexEntryFields(&buffer, e); err != nil {
 		return nil, err
 	}
-	if _, err := buffer.Write(hashBytes); err != nil {
+	if _, err := buffer.Write(e.Hash[:]); err != nil {
 		return nil, err
 	}
 	if err := binary.Write(&buffer, binary.BigEndian, e.Flags); err != nil {
@@ -400,7 +395,12 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 	if _, err := reader.Read(hashBytes); err != nil {
 		return nil, 0, err
 	}
-	entry.Hash = hex.EncodeToString(hashBytes)
+
+	hash, err := NewHash(hex.EncodeToString(hashBytes))
+	if err != nil {
+		return nil, 0, err
+	}
+	entry.Hash = hash
 
 	if err := binary.Read(reader, binary.BigEndian, &entry.Flags); err != nil {
 		return nil, 0, err

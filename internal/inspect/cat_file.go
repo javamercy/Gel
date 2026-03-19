@@ -17,7 +17,7 @@ func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 	}
 }
 
-func (c *CatFileService) CatFile(writer io.Writer, hash string, objectType, pretty, size, exists bool) error {
+func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, objectType, pretty, size, exists bool) error {
 	if exists {
 		ok, err := c.objectService.Exists(hash)
 		if err != nil {

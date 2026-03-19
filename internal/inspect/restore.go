@@ -115,7 +115,7 @@ func (r *RestoreService) restoreHEADVsIndex(paths []string) error {
 	return r.restoreCommitVsIndex(commitHash, paths)
 }
 
-func (r *RestoreService) restoreCommitVsWorkingTree(commitHash string, paths []string) error {
+func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, paths []string) error {
 	commitEntries, err := r.treeResolver.ResolveCommit(commitHash)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash string, paths []s
 	return nil
 }
 
-func (r *RestoreService) restoreCommitVsIndex(commitHash string, paths []string) error {
+func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []string) error {
 	commit, err := r.objectService.ReadCommit(commitHash)
 	if err != nil {
 		return err
@@ -188,8 +188,8 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash string, paths []string)
 	return r.indexService.Write(index)
 }
 
-func (r *RestoreService) resolveSource(source string) (string, error) {
-	var commitHash string
+func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
+	var commitHash domain.Hash
 	var err error
 
 	switch source {
@@ -198,10 +198,10 @@ func (r *RestoreService) resolveSource(source string) (string, error) {
 	case workspace.MainBranchName:
 		commitHash, err = r.refService.Read("refs/heads/main")
 	default:
-		commitHash = source
+		commitHash, err = domain.NewHash(source)
 	}
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	return commitHash, nil
 }

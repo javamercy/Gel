@@ -31,7 +31,7 @@ func (l *LogService) Log(writer io.Writer, name string, limit int, oneline bool)
 	}
 
 	count := 0
-	for hash != "" {
+	for {
 		if limit > 0 && count >= limit {
 			break
 		}
@@ -59,7 +59,7 @@ func (l *LogService) Log(writer io.Writer, name string, limit int, oneline bool)
 	return nil
 }
 
-func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.Commit) error {
+func (l *LogService) printCommit(writer io.Writer, hash domain.Hash, commit *domain.Commit) error {
 	t, err := domain.FormatCommitDate(commit.Author.Timestamp, commit.Author.Timezone)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (l *LogService) printCommit(writer io.Writer, hash string, commit *domain.C
 	return nil
 }
 
-func (l *LogService) printCommitOneline(writer io.Writer, hash string, commit *domain.Commit) error {
+func (l *LogService) printCommitOneline(writer io.Writer, hash domain.Hash, commit *domain.Commit) error {
 	shortHash := hash[:7]
 	commitPrefix := core.ColorGreen
 	commitSuffix := core.ColorReset

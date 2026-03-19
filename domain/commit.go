@@ -2,7 +2,6 @@ package domain
 
 import (
 	"bytes"
-	"fmt"
 )
 
 const (
@@ -13,8 +12,8 @@ const (
 )
 
 type CommitFields struct {
-	TreeHash     string
-	ParentHashes []string
+	TreeHash     Hash
+	ParentHashes []Hash
 	Author       Identity
 	Committer    Identity
 	Message      string
@@ -61,13 +60,13 @@ func SerializeBody(fields CommitFields) []byte {
 	var buffer bytes.Buffer
 	buffer.WriteString(CommitFieldTree)
 	buffer.WriteString(" ")
-	buffer.WriteString(fields.TreeHash)
+	buffer.WriteString(fields.TreeHash.ToHexString())
 	buffer.WriteString("\n")
 
 	for _, parentHash := range fields.ParentHashes {
 		buffer.WriteString(CommitFieldParent)
 		buffer.WriteString(" ")
-		buffer.WriteString(parentHash)
+		buffer.WriteString(parentHash.ToHexString())
 		buffer.WriteString("\n")
 	}
 	buffer.WriteString(CommitFieldAuthor)
@@ -105,19 +104,19 @@ func DeserializeCommit(data []byte) (*Commit, error) {
 		i = nextI
 		switch fieldStr {
 		case CommitFieldTree:
-			hexHash, nextI, err := deserializeTreeOrParent(data, i)
+			hash, nextI, err := deserializeTreeOrParent(data, i)
 			if err != nil {
 				return nil, err
 			}
-			fields.TreeHash = hexHash
+			fields.TreeHash = hash
 			hasTree = true
 			i = nextI
 		case CommitFieldParent:
-			hexHash, nextI, err := deserializeTreeOrParent(data, i)
+			hash, nextI, err := deserializeTreeOrParent(data, i)
 			if err != nil {
 				return nil, err
 			}
-			fields.ParentHashes = append(fields.ParentHashes, hexHash)
+			fields.ParentHashes = append(fields.ParentHashes, hash)
 			i = nextI
 		case CommitFieldAuthor:
 			author, nextI, err := deserializeIdentity(data, i)
@@ -160,27 +159,21 @@ func deserializeFieldStr(data []byte, start int) (string, int, error) {
 	return fieldStr, i + 1, nil
 }
 
-func deserializeTreeOrParent(data []byte, start int) (string, int, error) {
+func deserializeTreeOrParent(data []byte, start int) (Hash, int, error) {
 	i := start
 	for i < len(data) && data[i] != '\n' {
 		i++
 	}
 	if i >= len(data) {
-		return "", i, ErrInvalidCommitFormat
+		return Hash{}, i, ErrInvalidCommitFormat
 	}
+
 	hexHash := string(data[start:i])
-
-	// TODO: refactor here to use a common validator
-	if len(hexHash) != SHA256HexLength {
-		return "", i, fmt.Errorf("invalid hash length: got %d, expected %d", len(hexHash), SHA256HexLength)
+	hash, err := NewHash(hexHash)
+	if err != nil {
+		return Hash{}, i, err
 	}
-	for _, c := range hexHash {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-			return "", i, fmt.Errorf("invalid hash character: '%c'", c)
-		}
-	}
-
-	return hexHash, i + 1, nil
+	return hash, i + 1, nil
 }
 
 func deserializeIdentity(data []byte, start int) (Identity, int, error) {

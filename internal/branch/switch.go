@@ -1,6 +1,7 @@
 package branch
 
 import (
+	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
@@ -48,8 +49,9 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		return "", err
 	}
 
+	// TODO: startPoint should be hash, fix here later!!!
 	if create {
-		if err := s.branchService.Create(branch, currentCommitHash); err != nil {
+		if err := s.branchService.Create(branch, ""); err != nil {
 			return "", err
 		}
 	}
@@ -91,7 +93,7 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 	return fmt.Sprintf("Switched to branch '%s'", branch), nil
 }
 
-func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash string) error {
+func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash domain.Hash) error {
 	currentEntries, err := s.treeResolver.ResolveCommit(currentCommitHash)
 	if err != nil {
 		return err

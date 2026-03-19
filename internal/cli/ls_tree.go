@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/domain"
+
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +16,10 @@ var lsTreeCmd = &cobra.Command{
 	Short: "List the contents of a tree",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hash := args[0]
+		hash, err := domain.NewHash(args[0])
+		if err != nil {
+			return err
+		}
 		return lsTreeService.LsTree(
 			cmd.OutOrStdout(), hash, lsTreeRecursiveFlag, lsTreeShowTreesFlag, lsTreeNameOnlyFlag,
 		)

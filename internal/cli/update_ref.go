@@ -1,6 +1,10 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"Gel/domain"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	updateRefDeleteFlag bool
@@ -12,14 +16,21 @@ var updateRefCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ref := args[0]
-
+		newHash, err := domain.NewHash(args[1])
+		if err != nil {
+			return err
+		}
 		if updateRefDeleteFlag {
-			return updateRefService.Delete(ref, args[1])
+			return updateRefService.Delete(ref, newHash)
 		}
 		if len(args) == 2 {
-			return updateRefService.Update(ref, args[1], "")
+			return updateRefService.Update(ref, newHash, domain.Hash{})
 		}
-		return updateRefService.Update(ref, args[1], args[2])
+		oldHash, err := domain.NewHash(args[2])
+		if err != nil {
+			return err
+		}
+		return updateRefService.Update(ref, newHash, oldHash)
 	},
 }
 

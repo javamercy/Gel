@@ -15,7 +15,7 @@ func NewObjectService(objectStorage *storage.ObjectStorage) *ObjectService {
 	}
 }
 
-func (o *ObjectService) GetObjectSize(hash string) (uint32, error) {
+func (o *ObjectService) GetObjectSize(hash domain.Hash) (uint32, error) {
 	compressedData, err := o.objectStorage.Read(hash)
 	if err != nil {
 		return 0, err
@@ -33,7 +33,7 @@ func (o *ObjectService) GetObjectSize(hash string) (uint32, error) {
 	return uint32(object.Size()), nil
 }
 
-func (o *ObjectService) Write(hash string, data []byte) error {
+func (o *ObjectService) Write(hash domain.Hash, data []byte) error {
 	compressedData, err := Compress(data)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (o *ObjectService) Write(hash string, data []byte) error {
 	return o.objectStorage.Write(hash, compressedData)
 }
 
-func (o *ObjectService) Read(hash string) (domain.Object, error) {
+func (o *ObjectService) Read(hash domain.Hash) (domain.Object, error) {
 	compressedData, err := o.objectStorage.Read(hash)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (o *ObjectService) Read(hash string) (domain.Object, error) {
 	return object, nil
 }
 
-func (o *ObjectService) ReadBlob(hash string) (*domain.Blob, error) {
+func (o *ObjectService) ReadBlob(hash domain.Hash) (*domain.Blob, error) {
 	object, err := o.Read(hash)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (o *ObjectService) ReadBlob(hash string) (*domain.Blob, error) {
 	return blob, nil
 }
 
-func (o *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
+func (o *ObjectService) ReadTree(hash domain.Hash) (*domain.Tree, error) {
 	object, err := o.Read(hash)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (o *ObjectService) ReadTree(hash string) (*domain.Tree, error) {
 	return tree, nil
 }
 
-func (o *ObjectService) ReadCommit(hash string) (*domain.Commit, error) {
+func (o *ObjectService) ReadCommit(hash domain.Hash) (*domain.Commit, error) {
 	object, err := o.Read(hash)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (o *ObjectService) ReadCommit(hash string) (*domain.Commit, error) {
 	return commit, nil
 }
 
-func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain.TreeEntry, error) {
+func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash domain.Hash) ([]domain.TreeEntry, error) {
 	tree, err := o.ReadTree(treeHash)
 	if err != nil {
 		return nil, err
@@ -110,6 +110,6 @@ func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash string) ([]domain
 	return treeEntries, nil
 }
 
-func (o *ObjectService) Exists(hash string) (bool, error) {
+func (o *ObjectService) Exists(hash domain.Hash) (bool, error) {
 	return o.objectStorage.Exists(hash)
 }

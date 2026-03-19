@@ -41,8 +41,8 @@ func (h *HashObjectService) HashObjectAndOutput(writer io.Writer, path string, o
 	return nil
 }
 
-func (h *HashObjectService) HashObjects(paths []string, options HashObjectOptions) (map[string]string, error) {
-	hashes := make(map[string]string, len(paths))
+func (h *HashObjectService) HashObjects(paths []string, options HashObjectOptions) (map[string]domain.Hash, error) {
+	hashes := make(map[string]domain.Hash, len(paths))
 	for _, path := range paths {
 		hash, err := h.HashObject(path, options)
 		if err != nil {
@@ -53,27 +53,31 @@ func (h *HashObjectService) HashObjects(paths []string, options HashObjectOption
 	return hashes, nil
 }
 
-func (h *HashObjectService) HashObject(path string, options HashObjectOptions) (string, error) {
+func (h *HashObjectService) HashObject(path string, options HashObjectOptions) (domain.Hash, error) {
 	hash, serializedData, err := h.ComputeObjectHash(path)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	if options.Write {
 		if err := h.objectService.Write(hash, serializedData); err != nil {
-			return "", fmt.Errorf("hash object: failed to write object to database: %w", err)
+			return domain.Hash{}, fmt.Errorf("hash object: failed to write object to database: %w", err)
 		}
 	}
 	return hash, nil
 }
 
-func (h *HashObjectService) ComputeObjectHash(path string) (string, []byte, error) {
+func (h *HashObjectService) ComputeObjectHash(path string) (domain.Hash, []byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", nil, fmt.Errorf("hash object: failed to read file at '%s': %w", path, err)
+		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to read file at '%s': %w", path, err)
 	}
 
 	blob := domain.NewBlob(data)
 	serializedData := blob.Serialize()
-	hash := ComputeSHA256(serializedData)
+	hexHash := ComputeSHA256(serializedData)
+	hash, err := domain.NewHash(hexHash)
+	if err != nil {
+		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to compute hash: %w", err)
+	}
 	return hash, serializedData, nil
 }

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Gel/domain"
 	"Gel/internal/diff"
 	"Gel/internal/workspace"
 
@@ -25,13 +26,28 @@ var diffCmd = &cobra.Command{
 			if arg == workspace.HeadFileName {
 				return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsHEAD})
 			}
+			baseCommitHash, err := domain.NewHash(arg)
+			if err != nil {
+				return err
+			}
 			return diffService.Diff(
-				cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeCommitVsWorkingTree, BaseCommitHash: arg},
+				cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeCommitVsWorkingTree, BaseCommitHash: baseCommitHash},
 			)
+		}
+
+		baseCommitHash, err := domain.NewHash(args[0])
+		if err != nil {
+			return err
+		}
+		targetCommitHash, err := domain.NewHash(args[1])
+		if err != nil {
+			return err
 		}
 		return diffService.Diff(
 			cmd.OutOrStdout(),
-			diff.DiffOptions{Mode: diff.ModeCommitVsCommit, BaseCommitHash: args[0], TargetCommitHash: args[1]},
+			diff.DiffOptions{
+				Mode: diff.ModeCommitVsCommit, BaseCommitHash: baseCommitHash, TargetCommitHash: targetCommitHash,
+			},
 		)
 	},
 }

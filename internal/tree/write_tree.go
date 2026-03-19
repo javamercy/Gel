@@ -19,27 +19,27 @@ func NewWriteTreeService(indexService *core.IndexService, objectService *core.Ob
 	}
 }
 
-func (w *WriteTreeService) WriteTree() (string, error) {
+func (w *WriteTreeService) WriteTree() (domain.Hash, error) {
 	entries, err := w.indexService.GetEntries()
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 
 	root := buildRootTree(entries)
 	rootHash, err := w.writeTreeRecursive(root)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	return rootHash, nil
 }
 
-func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, error) {
+func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash, error) {
 	var entries []domain.TreeEntry
 
 	for _, childDir := range root.children {
 		subTreeHash, err := w.writeTreeRecursive(childDir)
 		if err != nil {
-			return "", err
+			return domain.Hash{}, err
 		}
 		entry := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
 		entries = append(entries, entry)
@@ -54,14 +54,19 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 
 	tree, err := domain.NewTreeFromEntries(entries)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 
 	data := tree.Serialize()
-	hash := core.ComputeSHA256(data)
+	hexHash := core.ComputeSHA256(data)
+	hash, err := domain.NewHash(hexHash)
+	if err != nil {
+		return domain.Hash{}, err
+	}
+
 	ok, err := w.objectService.Exists(hash)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	if ok {
 		return hash, nil
@@ -69,7 +74,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (string, erro
 
 	err = w.objectService.Write(hash, data)
 	if err != nil {
-		return "", err
+		return domain.Hash{}, err
 	}
 	return hash, nil
 }
@@ -131,7 +136,7 @@ func sortTreeEntries(entries []domain.TreeEntry) {
 
 type fileNode struct {
 	mode domain.FileMode
-	hash string
+	hash domain.Hash
 	name string
 }
 type directoryNode struct {

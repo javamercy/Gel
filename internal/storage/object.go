@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"Gel/domain"
 	"Gel/internal/workspace"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ func NewObjectStorage(workspaceProvider *workspace.Provider) *ObjectStorage {
 	}
 }
 
-func (o *ObjectStorage) Write(hash string, data []byte) error {
+func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
 	objectPath := o.objectPath(hash)
 	dir := filepath.Dir(objectPath)
 	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
@@ -30,7 +31,7 @@ func (o *ObjectStorage) Write(hash string, data []byte) error {
 	return nil
 }
 
-func (o *ObjectStorage) Read(hash string) ([]byte, error) {
+func (o *ObjectStorage) Read(hash domain.Hash) ([]byte, error) {
 	objectPath := o.objectPath(hash)
 	data, err := os.ReadFile(objectPath)
 	if err != nil {
@@ -39,7 +40,7 @@ func (o *ObjectStorage) Read(hash string) ([]byte, error) {
 	return data, nil
 }
 
-func (o *ObjectStorage) Exists(hash string) (bool, error) {
+func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
 	objectPath := o.objectPath(hash)
 	_, err := os.Stat(objectPath)
 	if err == nil {
@@ -51,9 +52,10 @@ func (o *ObjectStorage) Exists(hash string) (bool, error) {
 	return false, fmt.Errorf("failed to check object '%s' existence: %w", hash, err)
 }
 
-func (o *ObjectStorage) objectPath(hash string) string {
+func (o *ObjectStorage) objectPath(hash domain.Hash) string {
 	w := o.workspaceProvider.GetWorkspace()
-	dir := hash[:2]
-	file := hash[2:]
+	hexHash := hash.ToHexString()
+	dir := hexHash[:2]
+	file := hexHash[2:]
 	return filepath.Join(w.ObjectsDir, dir, file)
 }

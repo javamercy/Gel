@@ -12,20 +12,20 @@ import (
 type DiffMode int
 
 const (
-	ModeWorkingTreeVsIndex  DiffMode = iota // default: gel diff
-	ModeWorkingTreeVsHEAD                   // gel diff HEAD
-	ModeIndexVsHEAD                         // gel diff --staged
-	ModeCommitVsWorkingTree                 // gel diff <commit>
-	ModeCommitVsCommit                      // gel diff <commit1> <commit2>
+	ModeWorkingTreeVsIndex DiffMode = iota
+	ModeWorkingTreeVsHEAD
+	ModeIndexVsHEAD
+	ModeCommitVsWorkingTree
+	ModeCommitVsCommit
 )
 
 type DiffOptions struct {
 	Mode             DiffMode
-	BaseCommitHash   string
-	TargetCommitHash string
+	BaseCommitHash   domain.Hash
+	TargetCommitHash domain.Hash
 }
 
-type ContentLoaderFunc func(path, hash string) (string, error)
+type ContentLoaderFunc func(path string, hash domain.Hash) (string, error)
 
 type DiffStatus int
 
@@ -40,8 +40,8 @@ type DiffResult struct {
 	Status  DiffStatus
 	OldPath string
 	NewPath string
-	OldHash string
-	NewHash string
+	OldHash domain.Hash
+	NewHash domain.Hash
 }
 type DiffService struct {
 	objectService *core.ObjectService
@@ -93,9 +93,9 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 			indexEntries, headEntries, d.LoadBlobContent, d.LoadBlobContent,
 		)
 	case ModeCommitVsCommit:
-		var baseCommitEntries map[string]string
-		if options.BaseCommitHash == "" {
-			baseCommitEntries = make(map[string]string)
+		var baseCommitEntries map[string]domain.Hash
+		if options.BaseCommitHash.IsEmpty() {
+			baseCommitEntries = make(map[string]domain.Hash)
 		} else {
 			var err error
 			baseCommitEntries, err = d.treeResolver.ResolveCommit(options.BaseCommitHash)
@@ -145,7 +145,7 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 }
 
 func (d *DiffService) ComputeDiffResults(
-	newEntries, oldEntries map[string]string,
+	newEntries, oldEntries map[string]domain.Hash,
 	newContentLoader, oldContentLoader ContentLoaderFunc,
 ) ([]*DiffResult, error) {
 	var results []*DiffResult
@@ -164,7 +164,7 @@ func (d *DiffService) ComputeDiffResults(
 			results = append(
 				results, &DiffResult{
 					hunks, DiffStatusAdded, newPath,
-					newPath, "", newHash,
+					newPath, domain.Hash{}, newHash,
 				},
 			)
 		} else if newHash != oldHash {
@@ -200,7 +200,7 @@ func (d *DiffService) ComputeDiffResults(
 			results = append(
 				results, &DiffResult{
 					hunks, DiffStatusDeleted, oldPath,
-					"", oldHash, "",
+					"", oldHash, domain.Hash{},
 				},
 			)
 		}
@@ -208,7 +208,7 @@ func (d *DiffService) ComputeDiffResults(
 	return results, nil
 }
 
-func (d *DiffService) LoadBlobContent(_, hash string) (string, error) {
+func (d *DiffService) LoadBlobContent(_ string, hash domain.Hash) (string, error) {
 	blob, err := d.objectService.ReadBlob(hash)
 	if err != nil {
 		return "", err
@@ -216,7 +216,7 @@ func (d *DiffService) LoadBlobContent(_, hash string) (string, error) {
 	return string(blob.Body()), nil
 }
 
-func (d *DiffService) LoadFileContent(path, _ string) (string, error) {
+func (d *DiffService) LoadFileContent(path string, _ domain.Hash) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -229,14 +229,22 @@ func (d *DiffService) PrintResults(writer io.Writer, results []*DiffResult) erro
 		var err error
 		switch result.Status {
 		case DiffStatusAdded:
-			err = d.PrintAddedFileHeader(writer, result.OldPath, result.NewPath, result.NewHash[:7])
+			err = d.PrintAddedFileHeader(
+				writer, result.OldPath, result.NewPath,
+				result.NewHash.ToHexString()[:7],
+			)
 
 		case DiffStatusModified:
 			err = d.PrintModifiedFileHeader(
-				writer, result.OldPath, result.NewPath, result.OldHash[:7], result.NewHash[:7],
+				writer, result.OldPath, result.NewPath,
+				result.OldHash.ToHexString()[:7],
+				result.NewHash.ToHexString()[:7],
 			)
 		case DiffStatusDeleted:
-			err = d.PrintDeletedFileHeader(writer, result.OldPath, result.OldHash[:7])
+			err = d.PrintDeletedFileHeader(
+				writer, result.OldPath,
+				result.OldHash.ToHexString()[:7],
+			)
 		}
 		if err != nil {
 			return err

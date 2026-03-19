@@ -18,7 +18,7 @@ func NewReadTreeService(indexService *core.IndexService, objectService *core.Obj
 	}
 }
 
-func (readTreeService *ReadTreeService) ReadTree(hash string) error {
+func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, relPath string) error {
 		indexEntry := domain.NewIndexEntry(

@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/domain"
+
 	"github.com/spf13/cobra"
 )
 
@@ -9,7 +11,10 @@ var readTreeCmd = &cobra.Command{
 	Short: "Read tree objects into the index",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hash := args[0]
+		hash, err := domain.NewHash(args[0])
+		if err != nil {
+			return err
+		}
 		return readTreeService.ReadTree(hash)
 
 	},

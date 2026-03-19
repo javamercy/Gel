@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/domain"
+
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +15,19 @@ var commitTreeCmd = &cobra.Command{
 	Short: "Create a new commit object from a tree object",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		commitHash, err := commitTreeService.CommitTree(args[0], commitTreeMessageFlag, commitTreeParentsFlag)
+		hash, err := domain.NewHash(args[0])
+		if err != nil {
+			return err
+		}
+		var parentHashes []domain.Hash
+		for _, parent := range commitTreeParentsFlag {
+			parentHash, err := domain.NewHash(parent)
+			if err != nil {
+				return err
+			}
+			parentHashes = append(parentHashes, parentHash)
+		}
+		commitHash, err := commitTreeService.CommitTree(hash, commitTreeMessageFlag, parentHashes)
 		if err != nil {
 			return err
 		}

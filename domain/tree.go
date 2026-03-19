@@ -8,17 +8,16 @@ import (
 
 type TreeEntry struct {
 	Mode FileMode
-	Hash string
+	Hash Hash
 	Name string
 }
 
-func NewTreeEntry(mode FileMode, hash, name string) TreeEntry {
-	entry := TreeEntry{
+func NewTreeEntry(mode FileMode, hash Hash, name string) TreeEntry {
+	return TreeEntry{
 		Mode: mode,
 		Hash: hash,
 		Name: name,
 	}
-	return entry
 }
 
 type Tree struct {
@@ -44,15 +43,9 @@ func NewTree(body []byte) (*Tree, error) {
 
 func NewTreeFromEntries(entries []TreeEntry) (*Tree, error) {
 	var buffer bytes.Buffer
-
 	for _, entry := range entries {
-		hashBytes, err := hex.DecodeString(entry.Hash)
-		if err != nil {
-			return nil, err
-		}
-
 		buffer.Write([]byte(fmt.Sprintf("%s %s\x00", entry.Mode, entry.Name)))
-		buffer.Write(hashBytes)
+		buffer.Write(entry.Hash[:])
 	}
 	return &Tree{
 		body:    buffer.Bytes(),
@@ -105,8 +98,13 @@ func (t *Tree) Deserialize() ([]TreeEntry, error) {
 		if i+32 > len(body) {
 			return nil, ErrTreeTruncatedHash
 		}
+
 		hashBytes := body[i : i+32]
-		hash := hex.EncodeToString(hashBytes)
+		hash, err := NewHash(hex.EncodeToString(hashBytes))
+		if err != nil {
+			return nil, err
+		}
+
 		i += 32
 		entry := NewTreeEntry(mode, hash, name)
 		entries = append(entries, entry)

@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/domain"
+
 	"github.com/spf13/cobra"
 )
 
@@ -15,8 +17,13 @@ var catFileCmd = &cobra.Command{
 	Short: "Display the content of a Git object",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hash := args[0]
-		return catFileService.CatFile(cmd.OutOrStdout(), hash, catFileTypeFlag, catFilePrettyFlag, catFileSizeFlag, catFileExistsFlag)
+		hash, err := domain.NewHash(args[0])
+		if err != nil {
+			return err
+		}
+		return catFileService.CatFile(
+			cmd.OutOrStdout(), hash, catFileTypeFlag, catFilePrettyFlag, catFileSizeFlag, catFileExistsFlag,
+		)
 	},
 }
 

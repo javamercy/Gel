@@ -38,8 +38,11 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 	if branchExists := s.refService.Exists(ref); branchExists {
 		return s.showBranch(writer, ref)
 	}
-
-	object, err := s.objectService.Read(objectRef)
+	hash, err := domain.NewHash(objectRef)
+	if err != nil {
+		return err
+	}
+	object, err := s.objectService.Read(hash)
 	if err != nil {
 		return err
 	}
@@ -54,7 +57,11 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 		if err != nil {
 			return err
 		}
-		return s.showCommit(writer, objectRef, s.trimBranchName(headRef))
+		hash, err := domain.NewHash(objectRef)
+		if err != nil {
+			return err
+		}
+		return s.showCommit(writer, hash, s.trimBranchName(headRef))
 	default:
 		return fmt.Errorf("'%s': %w", object.Type(), ErrUnsupportedObjectType)
 	}
@@ -81,13 +88,13 @@ func (s *ShowService) showBranch(writer io.Writer, ref string) error {
 	return s.showCommit(writer, commitHash, s.trimBranchName(ref))
 }
 
-func (s *ShowService) showCommit(writer io.Writer, commitHash string, branchName string) error {
+func (s *ShowService) showCommit(writer io.Writer, commitHash domain.Hash, branchName string) error {
 	commit, err := s.objectService.ReadCommit(commitHash)
 	if err != nil {
 		return err
 	}
 
-	parentCommitHash := ""
+	var parentCommitHash domain.Hash
 	if len(commit.ParentHashes) > 0 {
 		parentCommitHash = commit.ParentHashes[0]
 	}

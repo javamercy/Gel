@@ -1,6 +1,9 @@
 package core
 
-import "fmt"
+import (
+	"Gel/domain"
+	"fmt"
+)
 
 type UpdateRefService struct {
 	refService *RefService
@@ -12,14 +15,14 @@ func NewUpdateRefService(refService *RefService) *UpdateRefService {
 	}
 }
 
-func (u *UpdateRefService) Update(ref string, newHash, oldHash string) error {
-	if oldHash == "" {
+func (u *UpdateRefService) Update(ref string, newHash, oldHash domain.Hash) error {
+	if len(oldHash[:]) == 0 {
 		return u.refService.Write(ref, newHash)
 	}
 	return u.updateSafe(ref, newHash, oldHash)
 }
 
-func (u *UpdateRefService) updateSafe(ref string, newHash, oldHash string) error {
+func (u *UpdateRefService) updateSafe(ref string, newHash, oldHash domain.Hash) error {
 	currentHash, err := u.refService.Read(ref)
 	if err != nil {
 		return err
@@ -30,14 +33,14 @@ func (u *UpdateRefService) updateSafe(ref string, newHash, oldHash string) error
 	return u.refService.Write(ref, newHash)
 }
 
-func (u *UpdateRefService) Delete(ref string, oldHash string) error {
-	if oldHash == "" {
+func (u *UpdateRefService) Delete(ref string, oldHash domain.Hash) error {
+	if len(oldHash[:]) == 0 {
 		return u.refService.Delete(ref)
 	}
 	return u.deleteSafe(ref, oldHash)
 }
 
-func (u *UpdateRefService) deleteSafe(ref, oldHash string) error {
+func (u *UpdateRefService) deleteSafe(ref string, oldHash domain.Hash) error {
 	currentHash, err := u.refService.Read(ref)
 	if err != nil {
 		return err

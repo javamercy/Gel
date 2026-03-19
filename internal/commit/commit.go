@@ -1,6 +1,7 @@
 package commit
 
 import (
+	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/tree"
 	"Gel/internal/workspace"
@@ -34,7 +35,7 @@ func (c *CommitService) Commit(message string) error {
 		return err
 	}
 
-	var parentHashes []string
+	var parentHashes []domain.Hash
 	headRef, err := c.refService.ReadSymbolic(workspace.HeadFileName)
 	if err != nil {
 		return err
@@ -46,7 +47,7 @@ func (c *CommitService) Commit(message string) error {
 		return err
 	}
 
-	if parentHash != "" {
+	if parentHash.IsEmpty() {
 		parentHashes = append(parentHashes, parentHash)
 		parentCommit, err := c.objectService.ReadCommit(parentHash)
 		if err != nil {
