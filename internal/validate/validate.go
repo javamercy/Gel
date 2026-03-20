@@ -17,6 +17,22 @@ func PathMustExist(path string) error {
 	return nil
 }
 
+func PathMustBeFile(path string) error {
+	err := PathMustExist(path)
+	if err != nil {
+		return err
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("path %s is not a file", path)
+	}
+	return nil
+}
+
 func StringMustNotBeEmpty(s string) error {
 	if len(s) == 0 {
 		return errors.New("string must not be empty")

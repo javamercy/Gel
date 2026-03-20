@@ -2,6 +2,8 @@ package core
 
 import (
 	"Gel/domain"
+	"Gel/internal/validate"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,7 +23,14 @@ func NewHashObjectService(objectService *ObjectService) *HashObjectService {
 }
 
 func (h *HashObjectService) HashObjectsAndOutput(writer io.Writer, paths []string, options HashObjectOptions) error {
+	if len(paths) == 0 {
+		return errors.New("no paths provided")
+	}
+
 	for _, path := range paths {
+		if err := validate.PathMustBeFile(path); err != nil {
+			return fmt.Errorf("hash object: %w", err)
+		}
 		if err := h.HashObjectAndOutput(writer, path, options); err != nil {
 			return err
 		}
