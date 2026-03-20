@@ -1,8 +1,9 @@
 package internal
 
 import (
+	"Gel/internal/pathutil"
+	"Gel/internal/validate"
 	"Gel/internal/workspace"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,14 +27,20 @@ func (i *InitService) InitAndOutput(writer io.Writer, path string) error {
 }
 
 func (i *InitService) Init(path string) (string, error) {
-	repoPath := filepath.Join(path, workspace.GelDirName)
+	if err := validate.StringMustNotBeEmpty(path); err != nil {
+		return "", fmt.Errorf("init: invalid path '%s': %w", path, err)
+	}
+	if err := validate.PathMustExist(path); err != nil {
+		return "", fmt.Errorf("init: invalid path '%s': %w", path, err)
+	}
 
+	repoPath := filepath.Join(path, workspace.GelDirName)
 	objectsPath := filepath.Join(repoPath, workspace.ObjectsDirName)
 	headsPath := filepath.Join(repoPath, workspace.RefsDirName, workspace.HeadsDirName)
-	headPath := filepath.Join(headsPath, workspace.HeadFileName)
+	headPath := filepath.Join(repoPath, workspace.HeadFileName)
 	configPath := filepath.Join(repoPath, workspace.ConfigFileName)
 
-	gelExists, err := i.exists(repoPath)
+	gelExists, err := pathutil.Exists(repoPath)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +52,7 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", fmt.Errorf("init: failed to create heads directory at '%s': %w", headsPath, err)
 	}
 
-	headExists, err := i.exists(headPath)
+	headExists, err := pathutil.Exists(headPath)
 	if err != nil {
 		return "", err
 	}
@@ -56,7 +63,7 @@ func (i *InitService) Init(path string) (string, error) {
 		}
 	}
 
-	configExists, err := i.exists(configPath)
+	configExists, err := pathutil.Exists(configPath)
 	if err != nil {
 		return "", err
 	}
@@ -75,14 +82,4 @@ func (i *InitService) Init(path string) (string, error) {
 		return fmt.Sprintf("Reinitialized existing Gel repository in %v", absPath), nil
 	}
 	return fmt.Sprintf("Initialized empty Gel repository in %v", absPath), nil
-}
-func (i *InitService) exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return false, nil
-		}
-		return false, fmt.Errorf("init: failed to stat '%s': %w", path, err)
-	}
-	return true, nil
 }
