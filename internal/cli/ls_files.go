@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/internal/staging"
+
 	"github.com/spf13/cobra"
 )
 
@@ -23,8 +25,14 @@ var lsFilesCmd = &cobra.Command{
 			lsFilesCachedFlag = true
 		}
 		return lsFilesService.LsFiles(
-			cmd.OutOrStdout(), pathspec, lsFilesCachedFlag, lsFilesStageFlag,
-			lsFilesModifiedFlag, lsFilesDeletedFlag,
+			cmd.OutOrStdout(),
+			pathspec,
+			staging.LsFilesOptions{
+				Cached:   lsFilesCachedFlag,
+				Stage:    lsFilesStageFlag,
+				Modified: lsFilesModifiedFlag,
+				Deleted:  lsFilesDeletedFlag,
+			},
 		)
 	},
 }
