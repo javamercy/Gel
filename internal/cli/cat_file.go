@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Gel/domain"
+	"Gel/internal/inspect"
 
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ var (
 	catFileSizeFlag   bool
 	catFileExistsFlag bool
 )
+
 var catFileCmd = &cobra.Command{
 	Use:   "cat-file <hash>",
 	Short: "Display the content of a Git object",
@@ -22,7 +24,14 @@ var catFileCmd = &cobra.Command{
 			return err
 		}
 		return catFileService.CatFile(
-			cmd.OutOrStdout(), hash, catFileTypeFlag, catFilePrettyFlag, catFileSizeFlag, catFileExistsFlag,
+			cmd.OutOrStdout(),
+			hash,
+			inspect.CatFileOptions{
+				ObjectType: catFileTypeFlag,
+				Pretty:     catFilePrettyFlag,
+				Size:       catFileSizeFlag,
+				Exists:     catFileExistsFlag,
+			},
 		)
 	},
 }

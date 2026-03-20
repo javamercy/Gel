@@ -55,7 +55,6 @@ _Understanding repository state_
 
 _Moving through commit history_
 
-- [ ] **checkout** - Detached HEAD mode, checkout specific commits
 - [ ] **reset** - Reset current HEAD to a specified state
 - [ ] **reflog** - Manage reflog information
 

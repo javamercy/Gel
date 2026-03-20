@@ -3,10 +3,17 @@ package inspect
 import (
 	"Gel/domain"
 	"Gel/internal/core"
+	"errors"
 	"fmt"
 	"io"
 )
 
+type CatFileOptions struct {
+	ObjectType bool
+	Pretty     bool
+	Size       bool
+	Exists     bool
+}
 type CatFileService struct {
 	objectService *core.ObjectService
 }
@@ -17,34 +24,36 @@ func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 	}
 }
 
-func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, objectType, pretty, size, exists bool) error {
-	if exists {
+func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, options CatFileOptions) error {
+	if !options.ObjectType && !options.Pretty && !options.Size && !options.Exists {
+		return errors.New("cat-file: specify at least one of -t, -p, -s, -e")
+	}
+	if options.Exists {
 		ok, err := c.objectService.Exists(hash)
 		if err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 		if !ok {
-			return fmt.Errorf("'%s': %w", hash, ErrObjectNotFound)
+			return fmt.Errorf("cat file: object '%s' does not exist", hash)
 		}
 		return nil
 	}
 
 	object, err := c.objectService.Read(hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("cat file: %w", err)
 	}
-
-	if objectType {
+	if options.ObjectType {
 		if _, err := fmt.Fprintf(writer, "%s\n", object.Type()); err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 	}
-	if size {
+	if options.Size {
 		if _, err := fmt.Fprintf(writer, "%d\n", object.Size()); err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 	}
-	if pretty {
+	if options.Pretty {
 		return catFileWithPretty(writer, object)
 	}
 	return nil
@@ -55,17 +64,17 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 	case domain.ObjectTypeTree:
 		tree, ok := object.(*domain.Tree)
 		if !ok {
-			return domain.ErrInvalidObjectType
+			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
 		}
 
 		treeEntries, err := tree.Deserialize()
 		if err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 		for _, entry := range treeEntries {
 			objectType, err := entry.Mode.ObjectType()
 			if err != nil {
-				return err
+				return fmt.Errorf("cat file: %w", err)
 			}
 			if _, err := fmt.Fprintf(
 				writer,
@@ -75,21 +84,21 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 				entry.Hash,
 				entry.Name,
 			); err != nil {
-				return err
+				return fmt.Errorf("cat file: %w", err)
 			}
 		}
 	case domain.ObjectTypeBlob:
 		blob, ok := object.(*domain.Blob)
 		if !ok {
-			return domain.ErrInvalidObjectType
+			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
 		}
 		if _, err := writer.Write(blob.Body()); err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 	case domain.ObjectTypeCommit:
 		commit, ok := object.(*domain.Commit)
 		if !ok {
-			return domain.ErrInvalidObjectType
+			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
 		}
 		if _, err := fmt.Fprintf(
 			writer,
@@ -97,7 +106,7 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 			domain.CommitFieldTree,
 			commit.TreeHash,
 		); err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 		for _, parentHash := range commit.ParentHashes {
 			if _, err := fmt.Fprintf(
@@ -106,7 +115,7 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 				domain.CommitFieldParent,
 				parentHash,
 			); err != nil {
-				return err
+				return fmt.Errorf("cat file: %w", err)
 			}
 		}
 		if _, err := fmt.Fprintf(
@@ -126,7 +135,7 @@ func catFileWithPretty(writer io.Writer, object domain.Object) error {
 			commit.Committer.Timezone,
 			commit.Message,
 		); err != nil {
-			return err
+			return fmt.Errorf("cat file: %w", err)
 		}
 	}
 	return nil
