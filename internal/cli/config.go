@@ -30,14 +30,7 @@ var ConfigCmd = &cobra.Command{
 		}
 		section, key := segments[0], segments[1]
 		if len(args) == 1 {
-			value, ok, err := configService.Get(section, key)
-			if err != nil {
-				return err
-			}
-			if ok {
-				cmd.Println(value)
-			}
-			return nil
+			return configService.GetAndOutput(cmd.OutOrStdout(), section, key)
 		} else if len(args) == 2 {
 			return configService.Set(section, key, args[1])
 		}
