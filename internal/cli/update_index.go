@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"fmt"
+	"Gel/internal/staging"
 
 	"github.com/spf13/cobra"
 )
@@ -15,15 +15,14 @@ var updateIndexCmd = &cobra.Command{
 	Short: "Update the index with the current state of the working directory",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return fmt.Errorf("no paths specified")
-		}
-
-		if !updateIndexAddFlag && !updateIndexRemoveFlag {
-			return fmt.Errorf("must specify either --add or --remove")
-		}
-
-		_, err := updateIndexService.UpdateIndex(args, updateIndexAddFlag, updateIndexRemoveFlag, true)
+		_, err := updateIndexService.UpdateIndex(
+			args,
+			staging.UpdateIndexOptions{
+				Add:    updateIndexAddFlag,
+				Remove: updateIndexRemoveFlag,
+				Write:  true,
+			},
+		)
 		return err
 	},
 }

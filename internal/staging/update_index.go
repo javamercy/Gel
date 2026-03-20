@@ -3,8 +3,16 @@ package staging
 import (
 	"Gel/domain"
 	"Gel/internal/core"
+	"Gel/internal/validate"
+	"errors"
+	"fmt"
 )
 
+type UpdateIndexOptions struct {
+	Add    bool
+	Remove bool
+	Write  bool
+}
 type UpdateIndexService struct {
 	indexService      *core.IndexService
 	objectService     *core.ObjectService
@@ -26,37 +34,40 @@ func NewUpdateIndexService(
 	}
 }
 
-func (u *UpdateIndexService) UpdateIndex(paths []string, add, remove, write bool) (
-	[]string, error,
-) {
+func (u *UpdateIndexService) UpdateIndex(paths []string, options UpdateIndexOptions) ([]string, error) {
+	if !options.Add && !options.Remove {
+		return nil, errors.New("update-index: must specify --add or --remove")
+	}
+
 	index, err := u.indexService.Read()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update index: %w", err)
 	}
 
 	switch {
-	case add:
-		return u.updateIndexWithAdd(index, paths, write)
-	case remove:
-		return u.updateIndexWithRemove(index, paths, write)
+	case options.Add:
+		return u.updateIndexWithAdd(index, paths, options.Write)
+	case options.Remove:
+		return u.updateIndexWithRemove(index, paths, options.Write)
 	default:
 		return nil, nil
 	}
 }
 
-func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string, write bool) (
-	[]string, error,
-) {
+func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string, write bool) ([]string, error) {
 	var addedPaths []string
 	for _, path := range paths {
-		stat := domain.GetFileStatFromPath(path)
-		entry, _ := index.FindEntry(path)
+		if err := validate.PathMustBeFile(path); err != nil {
+			return nil, fmt.Errorf("update index: %w", err)
+		}
 
 		var newEntry *domain.IndexEntry
+		stat := domain.GetFileStatFromPath(path)
+		entry, _ := index.FindEntry(path)
 		if entry != nil {
 			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("update index: %w", err)
 			}
 
 			if !changeResult.IsModified {
@@ -85,7 +96,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 		} else {
 			hash, _, err := u.hashObjectService.ComputeObjectHash(path)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("update index: %w", err)
 			}
 			newEntry = domain.NewIndexEntry(
 				path,
@@ -106,7 +117,12 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 	if !write {
 		return addedPaths, nil
 	}
-	return addedPaths, u.indexService.Write(index)
+
+	err := u.indexService.Write(index)
+	if err != nil {
+		return nil, fmt.Errorf("update index: %w", err)
+	}
+	return addedPaths, nil
 }
 
 func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string, write bool) (
@@ -123,7 +139,7 @@ func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []
 		return removedPaths, nil
 	}
 	if err := u.indexService.Write(index); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update index: %w", err)
 	}
 	return removedPaths, nil
 }
