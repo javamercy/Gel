@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"Gel/internal/staging"
+
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +15,14 @@ var addCmd = &cobra.Command{
 	Short: "Add file contents to the index",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return addService.Add(cmd.OutOrStdout(), args, addDryRunFlag, addVerboseFlag)
+		return addService.Add(
+			cmd.OutOrStdout(),
+			args,
+			staging.AddOptions{
+				Verbose: addVerboseFlag,
+				DryRun:  addDryRunFlag,
+			},
+		)
 	},
 }
 

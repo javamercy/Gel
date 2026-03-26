@@ -7,6 +7,10 @@ import (
 	"io"
 )
 
+type AddOptions struct {
+	DryRun  bool
+	Verbose bool
+}
 type AddService struct {
 	indexService       *core.IndexService
 	updateIndexService *UpdateIndexService
@@ -25,18 +29,18 @@ func NewAddService(
 	}
 }
 
-func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose bool) error {
+func (a *AddService) Add(writer io.Writer, pathspecs []string, options AddOptions) error {
 	index, err := a.indexService.Read()
 	if err != nil {
-		return err
+		return fmt.Errorf("add: %w", err)
 	}
 
 	resolvedPaths, err := a.pathResolver.Resolve(pathspecs)
 	if err != nil {
-		return err
+		return fmt.Errorf("add: %w", err)
 	}
 
-	pathsToAdd, pathsToRemove, err := collectPaths(index, resolvedPaths)
+	pathsToAdd, pathsToRemove, err := a.collectPaths(index, resolvedPaths)
 	if err != nil {
 		return err
 	}
@@ -45,33 +49,31 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, dryRun, verbose b
 		pathsToAdd, UpdateIndexOptions{
 			Add:    true,
 			Remove: false,
-			Write:  !dryRun,
+			Write:  !options.DryRun,
 		},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("add: %w", err)
 	}
 
 	removedFiles, err := a.updateIndexService.UpdateIndex(
 		pathsToRemove, UpdateIndexOptions{
 			Add:    false,
 			Remove: true,
-			Write:  !dryRun,
+			Write:  !options.DryRun,
 		},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("add: %w", err)
 	}
 
-	if verbose || dryRun {
-		return addWithDryRun(writer, addedFiles, removedFiles)
+	if options.Verbose || options.DryRun {
+		return a.addWithDryRun(writer, addedFiles, removedFiles)
 	}
 	return nil
 }
 
-func collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
-	[]string, []string, error,
-) {
+func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) ([]string, []string, error) {
 	var pathsToAdd []string
 	var pathsToRemove []string
 
@@ -117,7 +119,7 @@ func collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
 	return pathsToAdd, pathsToRemove, nil
 }
 
-func addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []string) error {
+func (a *AddService) addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []string) error {
 	for _, path := range pathsToAdd {
 		if _, err := writer.Write([]byte(fmt.Sprintf("add '%s'\n", path))); err != nil {
 			return fmt.Errorf("failed to write add message for '%s': %w", path, err)
