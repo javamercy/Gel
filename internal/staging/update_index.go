@@ -80,6 +80,10 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				continue
 			}
 
+			if _, err := u.hashObjectService.HashObject(path, core.HashObjectOptions{Write: true}); err != nil {
+				return nil, fmt.Errorf("update index: %w", err)
+			}
+
 			newEntry = domain.NewIndexEntry(
 				path,
 				changeResult.NewHash,
@@ -98,6 +102,17 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 			if err != nil {
 				return nil, fmt.Errorf("update index: %w", err)
 			}
+
+			addedPaths = append(addedPaths, path)
+
+			if !write {
+				continue
+			}
+
+			if _, err := u.hashObjectService.HashObject(path, core.HashObjectOptions{Write: true}); err != nil {
+				return nil, fmt.Errorf("update index: %w", err)
+			}
+
 			newEntry = domain.NewIndexEntry(
 				path,
 				hash,
