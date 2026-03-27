@@ -39,7 +39,7 @@ func NewLsFilesService(
 }
 
 func (l *LsFilesService) LsFiles(writer io.Writer, pathspec string, options LsFilesOptions) error {
-	if !options.Stage || !options.Cached || !options.Modified || !options.Deleted {
+	if !options.Stage && !options.Cached && !options.Modified && !options.Deleted {
 		return fmt.Errorf("ls-files: must specify --stage, --cached, --modified, or --deleted")
 	}
 
