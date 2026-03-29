@@ -140,7 +140,7 @@ func (s *SwitchService) checkForUncommittedChanges() error {
 	}
 
 	for _, indexEntry := range indexEntries {
-		headHash, inHead := headEntries[indexEntry.Path]
+		headHash, inHead := headEntries[indexEntry.Path.String()]
 		if !inHead || indexEntry.Hash != headHash {
 			return fmt.Errorf("'%s': %w", indexEntry.Path, ErrUncommittedChanges)
 		}

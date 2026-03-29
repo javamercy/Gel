@@ -11,7 +11,10 @@ type ReadTreeService struct {
 	objectService *core.ObjectService
 }
 
-func NewReadTreeService(indexService *core.IndexService, objectService *core.ObjectService) *ReadTreeService {
+func NewReadTreeService(
+	indexService *core.IndexService,
+	objectService *core.ObjectService,
+) *ReadTreeService {
 	return &ReadTreeService{
 		indexService:  indexService,
 		objectService: objectService,
@@ -20,9 +23,13 @@ func NewReadTreeService(indexService *core.IndexService, objectService *core.Obj
 
 func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 	var indexEntries []*domain.IndexEntry
-	processor := func(entry domain.TreeEntry, relPath string) error {
+	processor := func(entry domain.TreeEntry, path string) error {
+		normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
+		if err != nil {
+			return err
+		}
 		indexEntry := domain.NewIndexEntry(
-			relPath,
+			normalizedPath,
 			entry.Hash,
 			0,
 			entry.Mode.Uint32(),
@@ -30,7 +37,7 @@ func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 			0,
 			0,
 			0,
-			domain.ComputeIndexFlags(relPath, 0),
+			domain.ComputeIndexFlags(normalizedPath.String(), 0),
 			time.Time{},
 			time.Time{},
 		)

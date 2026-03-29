@@ -17,12 +17,18 @@ func PathMustExist(path string) error {
 	return nil
 }
 
-func PathMustBeFile(path string) error {
-	err := PathMustExist(path)
+func PathMustBeDirectory(path string) error {
+	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
+	if !info.Mode().IsDir() {
+		return fmt.Errorf("path %s is not a directory", path)
+	}
+	return nil
+}
 
+func PathMustBeFile(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err

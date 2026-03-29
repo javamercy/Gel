@@ -99,7 +99,7 @@ func (l *LsFilesService) LsFilesWithCached(writer io.Writer, entries []*domain.I
 
 func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		stat := domain.GetFileStatFromPath(entry.Path)
+		stat := domain.GetFileStatFromPath(entry.Path.ToAbsolutePath())
 		changeResult, err := l.changeDetector.DetectFileChange(entry, stat)
 		if err != nil {
 			return err
@@ -115,7 +115,7 @@ func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain
 
 func (l *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
 	for _, entry := range entries {
-		_, err := os.Stat(entry.Path)
+		_, err := os.Stat(entry.Path.ToAbsolutePath().String())
 		switch {
 		case errors.Is(err, os.ErrNotExist):
 			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {

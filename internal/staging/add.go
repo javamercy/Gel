@@ -79,7 +79,7 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			pathsToAdd = append(pathsToAdd, path)
+			pathsToAdd = append(pathsToAdd, path.String())
 		}
 
 		var indexEntries []*domain.IndexEntry
@@ -107,7 +107,7 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 
 		for _, entry := range indexEntries {
 			if !resolved.NormalizedPaths[entry.Path] {
-				pathsToRemove = append(pathsToRemove, entry.Path)
+				pathsToRemove = append(pathsToRemove, entry.Path.String())
 			}
 		}
 

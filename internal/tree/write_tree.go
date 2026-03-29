@@ -88,7 +88,7 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 
 	for _, entry := range entries {
 		parentDir := root
-		names := strings.Split(entry.Path, "/")
+		names := strings.Split(entry.Path.String(), "/")
 
 		for i, name := range names {
 			if i == len(names)-1 {

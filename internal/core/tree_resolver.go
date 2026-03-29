@@ -7,12 +7,11 @@ import (
 )
 
 type TreeResolver struct {
-	objectService     *ObjectService
-	indexService      *IndexService
-	refService        *RefService
-	pathResolver      *PathResolver
-	hashObjectService *HashObjectService
-	changeDetector    *ChangeDetector
+	objectService  *ObjectService
+	indexService   *IndexService
+	refService     *RefService
+	pathResolver   *PathResolver
+	changeDetector *ChangeDetector
 }
 
 func NewTreeResolver(
@@ -20,16 +19,14 @@ func NewTreeResolver(
 	indexService *IndexService,
 	refService *RefService,
 	pathResolver *PathResolver,
-	hashObjectService *HashObjectService,
 	changeDetector *ChangeDetector,
 ) *TreeResolver {
 	return &TreeResolver{
-		objectService:     objectService,
-		indexService:      indexService,
-		refService:        refService,
-		pathResolver:      pathResolver,
-		hashObjectService: hashObjectService,
-		changeDetector:    changeDetector,
+		objectService:  objectService,
+		indexService:   indexService,
+		refService:     refService,
+		pathResolver:   pathResolver,
+		changeDetector: changeDetector,
 	}
 }
 
@@ -70,7 +67,7 @@ func (t *TreeResolver) ResolveIndex() (map[string]domain.Hash, error) {
 
 	entriesMap := make(map[string]domain.Hash, len(entries))
 	for _, entry := range entries {
-		entriesMap[entry.Path] = entry.Hash
+		entriesMap[entry.Path.String()] = entry.Hash
 	}
 	return entriesMap, nil
 }
@@ -89,8 +86,8 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 	results := make(map[string]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			fileStat := domain.GetFileStatFromPath(path)
-			entry, _ := index.FindEntry(path)
+			fileStat := domain.GetFileStatFromPath(path.ToAbsolutePath())
+			entry, _ := index.FindEntry(path.String())
 
 			if entry != nil {
 				changeResult, err := t.changeDetector.DetectFileChange(entry, fileStat)
@@ -98,18 +95,17 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 					return nil, err
 				}
 				if !changeResult.IsModified {
-					results[path] = entry.Hash
+					results[path.String()] = entry.Hash
 				} else {
-					results[path] = changeResult.NewHash
+					results[path.String()] = changeResult.NewHash
 				}
 			} else {
-				hash, _, err := t.hashObjectService.ComputeObjectHash(path)
+				hash, _, err := t.objectService.ComputeObjectHash(path.ToAbsolutePath())
 				if err != nil {
 					return nil, err
 				}
-				results[path] = hash
+				results[path.String()] = hash
 			}
-
 		}
 	}
 	return results, nil

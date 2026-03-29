@@ -5,6 +5,7 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/workspace"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -78,7 +79,11 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 	}
 
 	for _, path := range paths {
-		stat := domain.GetFileStatFromPath(path)
+		absPath, err := domain.NewAbsolutePath(path)
+		if err != nil {
+			return fmt.Errorf("restore: %w", err)
+		}
+		stat := domain.GetFileStatFromPath(absPath)
 		entry, _ := index.FindEntry(path)
 		if entry == nil {
 			continue
@@ -178,7 +183,11 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 		case inCommit && inIndex && indexEntry.Hash == treeEntry.Hash:
 			continue
 		case inCommit:
-			newIndexEntry := domain.NewEmptyIndexEntry(path, treeEntry.Hash, treeEntry.Mode.Uint32())
+			normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
+			if err != nil {
+				return fmt.Errorf("restore: %w", err)
+			}
+			newIndexEntry := domain.NewEmptyIndexEntry(normalizedPath, treeEntry.Hash, treeEntry.Mode.Uint32())
 			index.SetEntry(newIndexEntry)
 		default:
 			index.RemoveEntry(path)

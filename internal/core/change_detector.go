@@ -1,6 +1,8 @@
 package core
 
-import "Gel/domain"
+import (
+	"Gel/domain"
+)
 
 type ChangeResult struct {
 	IsModified bool
@@ -8,24 +10,22 @@ type ChangeResult struct {
 }
 
 type ChangeDetector struct {
-	hashObjectService *HashObjectService
+	objectService *ObjectService
 }
 
-func NewChangeDetector(hashObjectService *HashObjectService) *ChangeDetector {
+func NewChangeDetector(objectService *ObjectService) *ChangeDetector {
 	return &ChangeDetector{
-		hashObjectService: hashObjectService,
+		objectService: objectService,
 	}
 }
 
-func (c *ChangeDetector) DetectFileChange(
-	entry *domain.IndexEntry, fileStat domain.FileStat,
-) (ChangeResult, error) {
+func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry, fileStat domain.FileStat) (ChangeResult, error) {
 	matches := entry.MatchesStat(fileStat)
 	var newHash domain.Hash
 	var err error
 
 	if !matches {
-		newHash, _, err = c.hashObjectService.ComputeObjectHash(entry.Path)
+		newHash, _, err = c.objectService.ComputeObjectHash(entry.Path.ToAbsolutePath())
 	}
 	if err != nil {
 		return ChangeResult{}, err

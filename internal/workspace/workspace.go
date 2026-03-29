@@ -16,7 +16,7 @@ type Provider struct {
 }
 
 func NewProvider(path string) (*Provider, error) {
-	workspace, err := NewWorkspaceFromPath(path)
+	workspace, err := newWorkspaceFromPath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -25,8 +25,8 @@ func NewProvider(path string) (*Provider, error) {
 	}, nil
 }
 
-func (provider *Provider) GetWorkspace() *Workspace {
-	return provider.workspace
+func (p *Provider) GetWorkspace() *Workspace {
+	return p.workspace
 }
 
 type Workspace struct {
@@ -38,7 +38,7 @@ type Workspace struct {
 	ConfigPath string
 }
 
-func NewWorkspaceFromPath(path string) (*Workspace, error) {
+func newWorkspaceFromPath(path string) (*Workspace, error) {
 	gelDir, err := findGelDir(path)
 	if err != nil {
 		return nil, err

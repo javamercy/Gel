@@ -1,6 +1,7 @@
 package core
 
 import (
+	"Gel/domain"
 	"errors"
 	"os"
 	"path/filepath"
@@ -37,7 +38,7 @@ func (t PathspecType) String() string {
 type ResolvedPath struct {
 	Type            PathspecType
 	NormalizedScope string
-	NormalizedPaths map[string]bool
+	NormalizedPaths map[domain.NormalizedPath]bool
 }
 
 type PathResolver struct {
@@ -67,12 +68,14 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 		var err error
 
 		pathspecType := classifyPathspec(pathspec)
-		normalizedScope, err := p.normalizePath(pathspec)
-		if normalizedScope == "." {
-			normalizedScope = ""
-		}
+		normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(pathspec)
 		if err != nil {
 			return nil, err
+		}
+
+		var normalizedScope string
+		if normalizedPath == "." {
+			normalizedScope = ""
 		}
 
 		switch pathspecType {
@@ -92,14 +95,14 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 			return nil, err
 		}
 
-		normalizedPaths := make(map[string]bool)
+		normalizedPaths := make(map[domain.NormalizedPath]bool)
 		for _, path := range paths {
-			normalizedPath, err := p.normalizePath(path)
+			normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
 			if err != nil {
 				return nil, err
 			}
 			// TODO: implement gelignore.
-			if p.shouldIgnore(normalizedPath) || normalizedPaths[normalizedPath] {
+			if p.shouldIgnore(normalizedPath.String()) || normalizedPaths[normalizedPath] {
 				continue
 			}
 			normalizedPaths[normalizedPath] = true
@@ -115,19 +118,6 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 	}
 
 	return resolvedPaths, nil
-}
-
-func (p *PathResolver) normalizePath(path string) (string, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-
-	relPath, err := filepath.Rel(p.repositoryDir, absPath)
-	if err != nil {
-		return "", err
-	}
-	return filepath.ToSlash(relPath), nil
 }
 
 func (p *PathResolver) shouldIgnore(path string) bool {

@@ -100,16 +100,18 @@ func initializeServices() error {
 	configService = core.NewConfigService(configStorage)
 	refService = core.NewRefService(workspaceProvider)
 	hashObjectService = core.NewHashObjectService(objectService)
-	pathResolver = core.NewPathResolver(cwd, nil)
-	changeDetector = core.NewChangeDetector(hashObjectService)
+	pathResolver = core.NewPathResolver(workspaceProvider.GetWorkspace().RepoDir, nil)
+	changeDetector = core.NewChangeDetector(objectService)
 	treeResolver = core.NewTreeResolver(
-		objectService, indexService, refService, pathResolver, hashObjectService, changeDetector,
+		objectService, indexService, refService, pathResolver, changeDetector,
 	)
 	symbolicRefService = core.NewSymbolicRefService(refService)
 	updateRefService = core.NewUpdateRefService(refService)
 
 	catFileService = inspect.NewCatFileService(objectService)
-	updateIndexService = staging.NewUpdateIndexService(indexService, objectService, hashObjectService, changeDetector)
+	updateIndexService = staging.NewUpdateIndexService(
+		indexService, objectService, hashObjectService, changeDetector, workspaceProvider,
+	)
 	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
 	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector)
 	writeTreeService = tree.NewWriteTreeService(indexService, objectService)

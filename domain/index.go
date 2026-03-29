@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -59,7 +60,7 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 }
 
 type IndexEntry struct {
-	Path        string
+	Path        NormalizedPath
 	Hash        Hash
 	Size        uint32
 	Mode        uint32
@@ -72,7 +73,7 @@ type IndexEntry struct {
 	UpdatedTime time.Time
 }
 
-func NewEmptyIndexEntry(path string, hash Hash, mode uint32) *IndexEntry {
+func NewEmptyIndexEntry(path NormalizedPath, hash Hash, mode uint32) *IndexEntry {
 	return &IndexEntry{
 		Path:        path,
 		Hash:        hash,
@@ -89,7 +90,7 @@ func NewEmptyIndexEntry(path string, hash Hash, mode uint32) *IndexEntry {
 }
 
 func NewIndexEntry(
-	path string,
+	path NormalizedPath,
 	hash Hash,
 	size uint32,
 	mode uint32,
@@ -139,7 +140,7 @@ func (e *IndexEntry) serialize() ([]byte, error) {
 	if err := binary.Write(&buffer, binary.BigEndian, e.Flags); err != nil {
 		return nil, err
 	}
-	if _, err := buffer.WriteString(e.Path); err != nil {
+	if _, err := buffer.WriteString(e.Path.String()); err != nil {
 		return nil, err
 	}
 	buffer.WriteByte(0)
@@ -196,7 +197,7 @@ func (idx *Index) AddEntry(entry *IndexEntry) {
 }
 
 func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
-	prevEntry, i := idx.FindEntry(entry.Path)
+	prevEntry, i := idx.FindEntry(entry.Path.String())
 	if prevEntry == nil {
 		return false
 	}
@@ -220,10 +221,10 @@ func (idx *Index) RemoveEntry(path string) {
 func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
 	i := sort.Search(
 		len(idx.Entries), func(i int) bool {
-			return idx.Entries[i].Path >= path
+			return idx.Entries[i].Path.String() >= path
 		},
 	)
-	if i < len(idx.Entries) && idx.Entries[i].Path == path {
+	if i < len(idx.Entries) && idx.Entries[i].Path.String() == path {
 		return idx.Entries[i], i
 	}
 	return nil, 0
@@ -232,7 +233,7 @@ func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
 func (idx *Index) FindEntriesByPathPrefix(prefix string) []*IndexEntry {
 	var result []*IndexEntry
 	for _, entry := range idx.Entries {
-		if strings.HasPrefix(entry.Path, prefix) {
+		if strings.HasPrefix(entry.Path.String(), prefix) {
 			result = append(result, entry)
 		}
 	}
@@ -242,7 +243,7 @@ func (idx *Index) FindEntriesByPathPrefix(prefix string) []*IndexEntry {
 func (idx *Index) FindEntriesByPathPattern(pattern string) []*IndexEntry {
 	var result []*IndexEntry
 	for _, entry := range idx.Entries {
-		if match, _ := filepath.Match(pattern, entry.Path); match {
+		if match, _ := filepath.Match(pattern, entry.Path.String()); match {
 			result = append(result, entry)
 		}
 	}
@@ -412,7 +413,12 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, ErrPathNotNullTerminated
 	}
 
-	entry.Path = string(data[offset : offset+pathEnd])
+	normalizedPath, err := NewNormalizedPath(string(data[offset : offset+pathEnd]))
+	if err != nil {
+		return nil, 0, fmt.Errorf("invalid path in index entry: %w", err)
+	}
+
+	entry.Path = normalizedPath
 	offset += pathEnd + IndexEntryPathNullTerminateSize
 	padding := (PaddingAlignment - (offset % PaddingAlignment)) % PaddingAlignment
 	totalSize := offset + padding

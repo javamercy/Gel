@@ -18,9 +18,9 @@ type FileStat struct {
 }
 
 // GetFileStatFromPath retrieves file system metadata for the given path.
-func GetFileStatFromPath(path string) FileStat {
+func GetFileStatFromPath(path AbsolutePath) FileStat {
 	var stat syscall.Stat_t
-	if err := syscall.Stat(path, &stat); err != nil {
+	if err := syscall.Stat(path.String(), &stat); err != nil {
 		return FileStat{
 			Device:      0,
 			Inode:       0,

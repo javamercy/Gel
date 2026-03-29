@@ -1,11 +1,10 @@
 package internal
 
 import (
-	"Gel/internal/pathutil"
+	"Gel/internal/core"
 	"Gel/internal/validate"
 	"Gel/internal/workspace"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 )
@@ -17,30 +16,38 @@ func NewInitService() *InitService {
 	return &InitService{}
 }
 
-func (i *InitService) InitAndOutput(writer io.Writer, path string) error {
-	message, err := i.Init(path)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(writer, "%s\n", message)
-	return err
-}
-
 func (i *InitService) Init(path string) (string, error) {
 	if err := validate.StringMustNotBeEmpty(path); err != nil {
 		return "", fmt.Errorf("init: invalid path '%s': %w", path, err)
 	}
-	if err := validate.PathMustExist(path); err != nil {
-		return "", fmt.Errorf("init: invalid path '%s': %w", path, err)
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("init: %w", err)
 	}
 
-	repoPath := filepath.Join(path, workspace.GelDirName)
-	objectsPath := filepath.Join(repoPath, workspace.ObjectsDirName)
-	headsPath := filepath.Join(repoPath, workspace.RefsDirName, workspace.HeadsDirName)
-	headPath := filepath.Join(repoPath, workspace.HeadFileName)
-	configPath := filepath.Join(repoPath, workspace.ConfigFileName)
+	repoExists, err := core.Exists(absPath)
+	if err != nil {
+		return "", fmt.Errorf("init: %w", err)
+	}
 
-	gelExists, err := pathutil.Exists(repoPath)
+	if repoExists {
+		if err := validate.PathMustBeDirectory(absPath); err != nil {
+			return "", fmt.Errorf("init: %w", err)
+		}
+	} else {
+		if err := os.MkdirAll(absPath, workspace.DirPermission); err != nil {
+			return "", fmt.Errorf("init: failed to create directory '%s': %w", absPath, err)
+		}
+	}
+
+	gelPath := filepath.Join(absPath, workspace.GelDirName)
+	objectsPath := filepath.Join(gelPath, workspace.ObjectsDirName)
+	headsPath := filepath.Join(gelPath, workspace.RefsDirName, workspace.HeadsDirName)
+	headPath := filepath.Join(gelPath, workspace.HeadFileName)
+	configPath := filepath.Join(gelPath, workspace.ConfigFileName)
+
+	gelExists, err := core.Exists(gelPath)
 	if err != nil {
 		return "", err
 	}
@@ -52,7 +59,7 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", fmt.Errorf("init: failed to create heads directory at '%s': %w", headsPath, err)
 	}
 
-	headExists, err := pathutil.Exists(headPath)
+	headExists, err := core.Exists(headPath)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +70,7 @@ func (i *InitService) Init(path string) (string, error) {
 		}
 	}
 
-	configExists, err := pathutil.Exists(configPath)
+	configExists, err := core.Exists(configPath)
 	if err != nil {
 		return "", err
 	}
@@ -73,13 +80,8 @@ func (i *InitService) Init(path string) (string, error) {
 		}
 	}
 
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("init: failed to get absolute path of '%s': %w", path, err)
-	}
-
 	if gelExists {
-		return fmt.Sprintf("Reinitialized existing Gel repository in %v", absPath), nil
+		return fmt.Sprintf("Reinitialized existing Gel repository in %v", gelPath), nil
 	}
-	return fmt.Sprintf("Initialized empty Gel repository in %v", absPath), nil
+	return fmt.Sprintf("Initialized empty Gel repository in %v", gelPath), nil
 }

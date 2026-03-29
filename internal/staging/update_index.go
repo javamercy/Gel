@@ -4,6 +4,7 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/validate"
+	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 )
@@ -18,6 +19,7 @@ type UpdateIndexService struct {
 	objectService     *core.ObjectService
 	hashObjectService *core.HashObjectService
 	changeDetector    *core.ChangeDetector
+	workspaceProvider *workspace.Provider
 }
 
 func NewUpdateIndexService(
@@ -25,12 +27,14 @@ func NewUpdateIndexService(
 	objectService *core.ObjectService,
 	hashObjectService *core.HashObjectService,
 	changeDetector *core.ChangeDetector,
+	workspaceProvider *workspace.Provider,
 ) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,
 		objectService:     objectService,
 		hashObjectService: hashObjectService,
 		changeDetector:    changeDetector,
+		workspaceProvider: workspaceProvider,
 	}
 }
 
@@ -62,7 +66,11 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 		}
 
 		var newEntry *domain.IndexEntry
-		stat := domain.GetFileStatFromPath(path)
+		absPath, err := domain.NewAbsolutePath(path)
+		if err != nil {
+			return nil, fmt.Errorf("update-index: %w", err)
+		}
+		stat := domain.GetFileStatFromPath(absPath)
 		entry, _ := index.FindEntry(path)
 		if entry != nil {
 			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
@@ -84,8 +92,13 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				return nil, fmt.Errorf("update index: %w", err)
 			}
 
+			normalizedPath, err := absPath.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			if err != nil {
+				return nil, fmt.Errorf("update index: %w", err)
+			}
+			index.RemoveEntry(normalizedPath.String())
 			newEntry = domain.NewIndexEntry(
-				path,
+				normalizedPath,
 				changeResult.NewHash,
 				stat.Size,
 				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
@@ -98,7 +111,11 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				stat.UpdatedTime,
 			)
 		} else {
-			hash, _, err := u.hashObjectService.ComputeObjectHash(path)
+			absPath, err := domain.NewAbsolutePath(path)
+			if err != nil {
+				return nil, fmt.Errorf("update-index: %w", err)
+			}
+			hash, _, err := u.objectService.ComputeObjectHash(absPath)
 			if err != nil {
 				return nil, fmt.Errorf("update index: %w", err)
 			}
@@ -113,8 +130,12 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				return nil, fmt.Errorf("update index: %w", err)
 			}
 
+			normalizedPath, err := absPath.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			if err != nil {
+				return nil, fmt.Errorf("update index: %w", err)
+			}
 			newEntry = domain.NewIndexEntry(
-				path,
+				normalizedPath,
 				hash,
 				stat.Size,
 				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),

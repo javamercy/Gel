@@ -24,8 +24,12 @@ var initCmd = &cobra.Command{
 		}
 
 		initService := internal.NewInitService()
-		return initService.InitAndOutput(cmd.OutOrStdout(), path)
-
+		message, err := initService.Init(path)
+		if err != nil {
+			return err
+		}
+		cmd.Printf("%s\n", message)
+		return nil
 	},
 }
 

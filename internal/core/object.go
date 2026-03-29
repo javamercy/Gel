@@ -3,6 +3,8 @@ package core
 import (
 	"Gel/domain"
 	"Gel/internal/storage"
+	"fmt"
+	"os"
 )
 
 type ObjectService struct {
@@ -112,4 +114,20 @@ func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash domain.Hash) ([]d
 
 func (o *ObjectService) Exists(hash domain.Hash) (bool, error) {
 	return o.objectStorage.Exists(hash)
+}
+
+func (o *ObjectService) ComputeObjectHash(path domain.AbsolutePath) (domain.Hash, []byte, error) {
+	data, err := os.ReadFile(path.String())
+	if err != nil {
+		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to read file at '%s': %w", path, err)
+	}
+
+	blob := domain.NewBlob(data)
+	serializedData := blob.Serialize()
+	hexHash := ComputeSHA256(serializedData)
+	hash, err := domain.NewHash(hexHash)
+	if err != nil {
+		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to compute hash: %w", err)
+	}
+	return hash, serializedData, nil
 }
