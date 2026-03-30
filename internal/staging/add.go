@@ -73,13 +73,19 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, options AddOption
 	return nil
 }
 
-func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) ([]string, []string, error) {
-	var pathsToAdd []string
-	var pathsToRemove []string
+func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
+	[]domain.AbsolutePath, []domain.AbsolutePath, error,
+) {
+	var pathsToAdd []domain.AbsolutePath
+	var pathsToRemove []domain.AbsolutePath
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			pathsToAdd = append(pathsToAdd, path.String())
+			absolutePath, err := path.ToAbsolutePath()
+			if err != nil {
+				return nil, nil, fmt.Errorf("add: %w", err)
+			}
+			pathsToAdd = append(pathsToAdd, absolutePath)
 		}
 
 		var indexEntries []*domain.IndexEntry
@@ -107,7 +113,11 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 
 		for _, entry := range indexEntries {
 			if !resolved.NormalizedPaths[entry.Path] {
-				pathsToRemove = append(pathsToRemove, entry.Path.String())
+				absolutePath, err := entry.Path.ToAbsolutePath()
+				if err != nil {
+					return nil, nil, fmt.Errorf("add: %w", err)
+				}
+				pathsToRemove = append(pathsToRemove, absolutePath)
 			}
 		}
 
@@ -119,7 +129,7 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 	return pathsToAdd, pathsToRemove, nil
 }
 
-func (a *AddService) addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []string) error {
+func (a *AddService) addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []domain.AbsolutePath) error {
 	for _, path := range pathsToAdd {
 		if _, err := writer.Write([]byte(fmt.Sprintf("add '%s'\n", path))); err != nil {
 			return fmt.Errorf("failed to write add message for '%s': %w", path, err)

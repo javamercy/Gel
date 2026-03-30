@@ -44,8 +44,8 @@ func validateNormalizedFormat(path string) error {
 	return nil
 }
 
-func (p NormalizedPath) ToAbsolutePath() AbsolutePath {
-	return AbsolutePath(filepath.FromSlash(p.String()))
+func (p NormalizedPath) ToAbsolutePath() (AbsolutePath, error) {
+	return NewAbsolutePath(p.String())
 }
 
 func (p NormalizedPath) String() string {

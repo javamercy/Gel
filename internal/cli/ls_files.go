@@ -24,8 +24,7 @@ var lsFilesCmd = &cobra.Command{
 		if !lsFilesStageFlag && !lsFilesModifiedFlag && !lsFilesDeletedFlag {
 			lsFilesCachedFlag = true
 		}
-		return lsFilesService.LsFiles(
-			cmd.OutOrStdout(),
+		files, err := lsFilesService.LsFiles(
 			pathspec,
 			staging.LsFilesOptions{
 				Cached:   lsFilesCachedFlag,
@@ -34,6 +33,13 @@ var lsFilesCmd = &cobra.Command{
 				Deleted:  lsFilesDeletedFlag,
 			},
 		)
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			cmd.Println(file)
+		}
+		return nil
 	},
 }
 

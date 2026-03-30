@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Gel/domain"
 	"Gel/internal/staging"
 
 	"github.com/spf13/cobra"
@@ -15,8 +16,17 @@ var updateIndexCmd = &cobra.Command{
 	Short: "Update the index with the current state of the working directory",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		absolutePaths := make([]domain.AbsolutePath, len(args))
+		for i, path := range args {
+			absolutePath, err := domain.NewAbsolutePath(path)
+			if err != nil {
+				return err
+			}
+			absolutePaths[i] = absolutePath
+		}
+
 		_, err := updateIndexService.UpdateIndex(
-			args,
+			absolutePaths,
 			staging.UpdateIndexOptions{
 				Add:    updateIndexAddFlag,
 				Remove: updateIndexRemoveFlag,

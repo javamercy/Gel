@@ -22,13 +22,16 @@ func NewChangeDetector(objectService *ObjectService) *ChangeDetector {
 func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry, fileStat domain.FileStat) (ChangeResult, error) {
 	matches := entry.MatchesStat(fileStat)
 	var newHash domain.Hash
-	var err error
 
 	if !matches {
-		newHash, _, err = c.objectService.ComputeObjectHash(entry.Path.ToAbsolutePath())
-	}
-	if err != nil {
-		return ChangeResult{}, err
+		absolutePath, err := entry.Path.ToAbsolutePath()
+		if err != nil {
+			return ChangeResult{}, err
+		}
+		newHash, _, err = c.objectService.ComputeObjectHash(absolutePath)
+		if err != nil {
+			return ChangeResult{}, err
+		}
 	}
 	return ChangeResult{
 		IsModified: !matches,

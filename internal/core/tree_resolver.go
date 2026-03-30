@@ -86,7 +86,11 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 	results := make(map[string]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			fileStat := domain.GetFileStatFromPath(path.ToAbsolutePath())
+			absolutePath, err := path.ToAbsolutePath()
+			if err != nil {
+				return nil, err
+			}
+			fileStat := domain.GetFileStatFromPath(absolutePath)
 			entry, _ := index.FindEntry(path.String())
 
 			if entry != nil {
@@ -100,7 +104,11 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 					results[path.String()] = changeResult.NewHash
 				}
 			} else {
-				hash, _, err := t.objectService.ComputeObjectHash(path.ToAbsolutePath())
+				absolutePath, err := path.ToAbsolutePath()
+				if err != nil {
+					return nil, err
+				}
+				hash, _, err := t.objectService.ComputeObjectHash(absolutePath)
 				if err != nil {
 					return nil, err
 				}

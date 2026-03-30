@@ -20,14 +20,16 @@ func NewHashObjectService(objectService *ObjectService) *HashObjectService {
 	}
 }
 
-func (h *HashObjectService) HashObjects(paths []string, options HashObjectOptions) (map[string]domain.Hash, error) {
+func (h *HashObjectService) HashObjects(paths []domain.AbsolutePath, options HashObjectOptions) (
+	map[domain.AbsolutePath]domain.Hash, error,
+) {
 	if len(paths) == 0 {
 		return nil, errors.New("no paths provided")
 	}
 
-	hashes := make(map[string]domain.Hash, len(paths))
+	hashes := make(map[domain.AbsolutePath]domain.Hash, len(paths))
 	for _, path := range paths {
-		if err := validate.PathMustBeFile(path); err != nil {
+		if err := validate.PathMustBeFile(path.String()); err != nil {
 			return nil, fmt.Errorf("hash-object: %w", err)
 		}
 
@@ -41,13 +43,8 @@ func (h *HashObjectService) HashObjects(paths []string, options HashObjectOption
 	return hashes, nil
 }
 
-func (h *HashObjectService) HashObject(path string, options HashObjectOptions) (domain.Hash, error) {
-	absPath, err := domain.NewAbsolutePath(path)
-	if err != nil {
-		return domain.Hash{}, fmt.Errorf("hash-object: %w", err)
-	}
-
-	hash, serializedData, err := h.objectService.ComputeObjectHash(absPath)
+func (h *HashObjectService) HashObject(path domain.AbsolutePath, options HashObjectOptions) (domain.Hash, error) {
+	hash, serializedData, err := h.objectService.ComputeObjectHash(path)
 	if err != nil {
 		return domain.Hash{}, err
 	}

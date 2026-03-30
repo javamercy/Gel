@@ -38,14 +38,17 @@ func NewUpdateIndexService(
 	}
 }
 
-func (u *UpdateIndexService) UpdateIndex(paths []string, options UpdateIndexOptions) ([]string, error) {
+func (u *UpdateIndexService) UpdateIndex(
+	paths []domain.AbsolutePath,
+	options UpdateIndexOptions,
+) ([]domain.AbsolutePath, error) {
 	if !options.Add && !options.Remove {
 		return nil, errors.New("update-index: must specify --add or --remove")
 	}
 
 	index, err := u.indexService.Read()
 	if err != nil {
-		return nil, fmt.Errorf("update index: %w", err)
+		return nil, fmt.Errorf("update-index: %w", err)
 	}
 
 	switch {
@@ -58,24 +61,26 @@ func (u *UpdateIndexService) UpdateIndex(paths []string, options UpdateIndexOpti
 	}
 }
 
-func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []string, write bool) ([]string, error) {
-	var addedPaths []string
+func (u *UpdateIndexService) updateIndexWithAdd(
+	index *domain.Index,
+	paths []domain.AbsolutePath,
+	write bool,
+) (
+	[]domain.AbsolutePath, error,
+) {
+	var addedPaths []domain.AbsolutePath
 	for _, path := range paths {
-		if err := validate.PathMustBeFile(path); err != nil {
-			return nil, fmt.Errorf("update index: %w", err)
+		if err := validate.PathMustBeFile(path.String()); err != nil {
+			return nil, fmt.Errorf("update-index: %w", err)
 		}
 
 		var newEntry *domain.IndexEntry
-		absPath, err := domain.NewAbsolutePath(path)
-		if err != nil {
-			return nil, fmt.Errorf("update-index: %w", err)
-		}
-		stat := domain.GetFileStatFromPath(absPath)
-		entry, _ := index.FindEntry(path)
+		stat := domain.GetFileStatFromPath(path)
+		entry, _ := index.FindEntry(path.String())
 		if entry != nil {
 			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
 			if err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
+				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
 			if !changeResult.IsModified {
@@ -88,13 +93,15 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				continue
 			}
 
-			if _, err := u.hashObjectService.HashObject(path, core.HashObjectOptions{Write: true}); err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
+			if _, err := u.hashObjectService.HashObject(
+				path, core.HashObjectOptions{Write: true},
+			); err != nil {
+				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			normalizedPath, err := absPath.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
 			if err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
+				return nil, fmt.Errorf("update-index: %w", err)
 			}
 			index.RemoveEntry(normalizedPath.String())
 			newEntry = domain.NewIndexEntry(
@@ -106,18 +113,14 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				stat.Inode,
 				stat.UserId,
 				stat.GroupId,
-				domain.ComputeIndexFlags(path, 0),
+				domain.ComputeIndexFlags(path.String(), 0),
 				stat.CreatedTime,
 				stat.UpdatedTime,
 			)
 		} else {
-			absPath, err := domain.NewAbsolutePath(path)
+			hash, _, err := u.objectService.ComputeObjectHash(path)
 			if err != nil {
 				return nil, fmt.Errorf("update-index: %w", err)
-			}
-			hash, _, err := u.objectService.ComputeObjectHash(absPath)
-			if err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
 			}
 
 			addedPaths = append(addedPaths, path)
@@ -126,13 +129,15 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				continue
 			}
 
-			if _, err := u.hashObjectService.HashObject(path, core.HashObjectOptions{Write: true}); err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
+			if _, err := u.hashObjectService.HashObject(
+				path, core.HashObjectOptions{Write: true},
+			); err != nil {
+				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			normalizedPath, err := absPath.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
 			if err != nil {
-				return nil, fmt.Errorf("update index: %w", err)
+				return nil, fmt.Errorf("update-index: %w", err)
 			}
 			newEntry = domain.NewIndexEntry(
 				normalizedPath,
@@ -143,7 +148,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 				stat.Inode,
 				stat.UserId,
 				stat.GroupId,
-				domain.ComputeIndexFlags(path, 0),
+				domain.ComputeIndexFlags(path.String(), 0),
 				stat.CreatedTime,
 				stat.UpdatedTime,
 			)
@@ -156,26 +161,30 @@ func (u *UpdateIndexService) updateIndexWithAdd(index *domain.Index, paths []str
 
 	err := u.indexService.Write(index)
 	if err != nil {
-		return nil, fmt.Errorf("update index: %w", err)
+		return nil, fmt.Errorf("update-index: %w", err)
 	}
 	return addedPaths, nil
 }
 
-func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []string, write bool) (
-	[]string, error,
+func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []domain.AbsolutePath, write bool) (
+	[]domain.AbsolutePath, error,
 ) {
-	var removedPaths []string
+	var removedPaths []domain.AbsolutePath
 	for _, path := range paths {
-		if index.HasEntry(path) {
+		normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+		if err != nil {
+			return nil, fmt.Errorf("update-index: %w", err)
+		}
+		if index.HasEntry(normalizedPath.String()) {
 			removedPaths = append(removedPaths, path)
 		}
-		index.RemoveEntry(path)
+		index.RemoveEntry(normalizedPath.String())
 	}
 	if !write {
 		return removedPaths, nil
 	}
 	if err := u.indexService.Write(index); err != nil {
-		return nil, fmt.Errorf("update index: %w", err)
+		return nil, fmt.Errorf("update-index: %w", err)
 	}
 	return removedPaths, nil
 }

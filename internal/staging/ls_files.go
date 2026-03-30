@@ -5,7 +5,6 @@ import (
 	"Gel/internal/core"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -38,14 +37,14 @@ func NewLsFilesService(
 	}
 }
 
-func (l *LsFilesService) LsFiles(writer io.Writer, pathspec string, options LsFilesOptions) error {
+func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]string, error) {
 	if !options.Stage && !options.Cached && !options.Modified && !options.Deleted {
-		return fmt.Errorf("ls-files: must specify --stage, --cached, --modified, or --deleted")
+		return nil, fmt.Errorf("ls-files: must specify --stage, --cached, --modified, or --deleted")
 	}
 
 	index, err := l.indexService.Read()
 	if err != nil {
-		return fmt.Errorf("ls-files: %w", err)
+		return nil, fmt.Errorf("ls-files: %w", err)
 	}
 
 	var entries []*domain.IndexEntry
@@ -61,69 +60,72 @@ func (l *LsFilesService) LsFiles(writer io.Writer, pathspec string, options LsFi
 
 	switch {
 	case options.Stage:
-		return l.LsFilesWithStage(writer, entries)
+		return l.LsFilesWithStage(entries), nil
 	case options.Cached:
-		return l.LsFilesWithCached(writer, entries)
+		return l.LsFilesWithCached(entries), nil
 	case options.Modified:
-		return l.LsFilesWithModified(writer, entries)
+		return l.LsFilesWithModified(entries)
 	case options.Deleted:
-		return l.LsFilesWithDeleted(writer, entries)
+		return l.LsFilesWithDeleted(entries)
 	}
-	return nil
+	return nil, nil
 }
 
-func (l *LsFilesService) LsFilesWithStage(writer io.Writer, entries []*domain.IndexEntry) error {
-	for _, entry := range entries {
-		if _, err := fmt.Fprintf(
-			writer,
-			"%s %s %d\t%s\n",
+func (l *LsFilesService) LsFilesWithStage(entries []*domain.IndexEntry) []string {
+	files := make([]string, len(entries))
+	for i, entry := range entries {
+		files[i] = fmt.Sprintf(
+			"%s %s %d\t%s",
 			domain.ParseFileMode(entry.Mode),
 			entry.Hash,
 			entry.GetStage(),
 			entry.Path,
-		); err != nil {
-			return fmt.Errorf("ls-files: failed to write entry: %w", err)
-		}
+		)
 	}
-	return nil
+	return files
 }
 
-func (l *LsFilesService) LsFilesWithCached(writer io.Writer, entries []*domain.IndexEntry) error {
-	for _, entry := range entries {
-		if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-			return fmt.Errorf("ls-files: failed to write entry: %w", err)
-		}
+func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []string {
+	files := make([]string, len(entries))
+	for i, entry := range entries {
+		files[i] = entry.Path.String()
 	}
-	return nil
+	return files
 }
 
-func (l *LsFilesService) LsFilesWithModified(writer io.Writer, entries []*domain.IndexEntry) error {
+func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]string, error) {
+	files := make([]string, 0)
 	for _, entry := range entries {
-		stat := domain.GetFileStatFromPath(entry.Path.ToAbsolutePath())
+		absolutePath, err := entry.Path.ToAbsolutePath()
+		if err != nil {
+			return nil, fmt.Errorf("ls-files: %w", err)
+		}
+		stat := domain.GetFileStatFromPath(absolutePath)
 		changeResult, err := l.changeDetector.DetectFileChange(entry, stat)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if changeResult.IsModified {
-			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-				return fmt.Errorf("ls-files: failed to write entry: %w", err)
-			}
+			files = append(files, entry.Path.String())
 		}
 	}
-	return nil
+	return files, nil
 }
 
-func (l *LsFilesService) LsFilesWithDeleted(writer io.Writer, entries []*domain.IndexEntry) error {
+func (l *LsFilesService) LsFilesWithDeleted(entries []*domain.IndexEntry) ([]string, error) {
+	files := make([]string, 0)
 	for _, entry := range entries {
-		_, err := os.Stat(entry.Path.ToAbsolutePath().String())
+		absolutePath, err := entry.Path.ToAbsolutePath()
+		if err != nil {
+			return nil, fmt.Errorf("ls-files: %w", err)
+		}
+		_, err = os.Stat(absolutePath.String())
 		switch {
 		case errors.Is(err, os.ErrNotExist):
-			if _, err := fmt.Fprintf(writer, "%s\n", entry.Path); err != nil {
-				return fmt.Errorf("ls-files: failed to write entry: %w", err)
-			}
+			files = append(files, entry.Path.String())
 		case err != nil:
-			return fmt.Errorf("ls-files: failed to stat file '%s': %w", entry.Path, err)
+			return nil, fmt.Errorf("ls-files: failed to stat file '%s': %w", entry.Path, err)
 		}
 	}
-	return nil
+	return files, nil
 }
