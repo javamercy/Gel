@@ -4,7 +4,6 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/tree"
-	"Gel/internal/workspace"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,8 +42,8 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 			return "", err
 		}
 	}
-	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, branch)
-	currentCommitHash, err := s.refService.Resolve(workspace.HeadFileName)
+	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, branch)
+	currentCommitHash, err := s.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +66,7 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 
 	if currentCommitHash == targetCommitHash {
 		return fmt.Sprintf("Switched to branch '%s'", branch),
-			s.refService.WriteSymbolic(workspace.HeadFileName, targetRef)
+			s.refService.WriteSymbolic(domain.HeadFileName, targetRef)
 	}
 
 	// TODO: Could we use Restore Service here?
@@ -82,11 +81,11 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 	if err := s.readTreeService.ReadTree(targetCommit.TreeHash); err != nil {
 		return "", err
 	}
-	if err := s.refService.WriteSymbolic(workspace.HeadFileName, targetRef); err != nil {
+	if err := s.refService.WriteSymbolic(domain.HeadFileName, targetRef); err != nil {
 		return "", err
 	}
 
-	headRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, workspace.HeadFileName)
+	headRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, domain.HeadFileName)
 	if err := s.refService.Write(headRef, targetCommitHash); err != nil {
 		return "", err
 	}
@@ -110,10 +109,10 @@ func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash do
 				return err
 			}
 			dir := filepath.Dir(targetPath)
-			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 				return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 			}
-			if err := os.WriteFile(targetPath, blob.Body(), workspace.FilePermission); err != nil {
+			if err := os.WriteFile(targetPath, blob.Body(), domain.FilePermission); err != nil {
 				return fmt.Errorf("failed to write file '%s': %w", targetPath, err)
 			}
 		}

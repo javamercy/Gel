@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	File PathspecType = iota
-	Directory
-	GlobPattern
-	NonExistent
+	PathspecTypeFile PathspecType = iota
+	PathspecTypeDirectory
+	PathspecTypeGlobPattern
+	PathspecTypeNonExistent
 )
 
 const (
@@ -23,13 +23,13 @@ type PathspecType int
 
 func (t PathspecType) String() string {
 	switch t {
-	case File:
+	case PathspecTypeFile:
 		return "file"
-	case Directory:
+	case PathspecTypeDirectory:
 		return "directory"
-	case GlobPattern:
+	case PathspecTypeGlobPattern:
 		return "glob pattern"
-	case NonExistent:
+	case PathspecTypeNonExistent:
 		return "non-existent"
 	}
 	return "unknown"
@@ -42,11 +42,11 @@ type ResolvedPath struct {
 }
 
 type PathResolver struct {
-	repositoryDir   string
+	repoDir         string
 	ignoredPatterns map[string]bool
 }
 
-func NewPathResolver(repositoryDir string, ignoredPatterns map[string]bool) *PathResolver {
+func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResolver {
 	if ignoredPatterns == nil {
 		ignoredPatterns = map[string]bool{
 			".gel":  true,
@@ -55,7 +55,7 @@ func NewPathResolver(repositoryDir string, ignoredPatterns map[string]bool) *Pat
 		}
 	}
 	return &PathResolver{
-		repositoryDir:   repositoryDir,
+		repoDir:         repoDir,
 		ignoredPatterns: ignoredPatterns,
 	}
 }
@@ -67,25 +67,32 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 		var paths []string
 		var err error
 
-		pathspecType := classifyPathspec(pathspec)
-		normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(pathspec)
+		pathspecType, err := classifyPathspec(pathspec)
+		if err != nil {
+			return nil, err
+		}
+		absPathspec, err := domain.NewAbsolutePath(pathspec)
 		if err != nil {
 			return nil, err
 		}
 
-		var normalizedScope string
-		if normalizedPath == "." {
-			normalizedScope = ""
+		normalizedPath, err := absPathspec.ToNormalizedPath(p.repoDir)
+		if err != nil {
+			return nil, err
 		}
 
+		normalizedScope := normalizedPath.String()
+		if normalizedScope == "." {
+			normalizedScope = ""
+		}
 		switch pathspecType {
-		case File:
+		case PathspecTypeFile:
 			paths = []string{pathspec}
-		case Directory:
+		case PathspecTypeDirectory:
 			paths, err = expandDirectory(pathspec)
-		case GlobPattern:
+		case PathspecTypeGlobPattern:
 			paths, err = expandGlobPattern(pathspec)
-		case NonExistent:
+		case PathspecTypeNonExistent:
 			paths = []string{}
 		default:
 			return nil, ErrUnknownPathspecType
@@ -97,7 +104,7 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 
 		normalizedPaths := make(map[domain.NormalizedPath]bool)
 		for _, path := range paths {
-			normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
+			normalizedPath, err := domain.NewNormalizedPath(p.repoDir, path)
 			if err != nil {
 				return nil, err
 			}
@@ -116,7 +123,6 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 			},
 		)
 	}
-
 	return resolvedPaths, nil
 }
 
@@ -131,19 +137,21 @@ func (p *PathResolver) shouldIgnore(path string) bool {
 	return false
 }
 
-func classifyPathspec(pathspec string) PathspecType {
+func classifyPathspec(pathspec string) (PathspecType, error) {
 	if strings.ContainsAny(pathspec, globPatterns) {
-		return GlobPattern
+		return PathspecTypeGlobPattern, nil
 	}
 
 	fileInfo, err := os.Stat(pathspec)
 	if errors.Is(err, os.ErrNotExist) {
-		return NonExistent
+		return PathspecTypeNonExistent, nil
+	} else if err != nil {
+		return PathspecTypeNonExistent, err
 	}
 	if fileInfo.IsDir() {
-		return Directory
+		return PathspecTypeDirectory, nil
 	}
-	return File
+	return PathspecTypeFile, nil
 }
 
 func expandDirectory(path string) ([]string, error) {
@@ -167,7 +175,6 @@ func expandDirectory(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return files, nil
 }
 

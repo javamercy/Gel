@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Gel/domain"
 	"Gel/internal/branch"
 	"Gel/internal/commit"
 	"Gel/internal/core"
@@ -9,7 +10,6 @@ import (
 	"Gel/internal/staging"
 	"Gel/internal/storage"
 	"Gel/internal/tree"
-	"Gel/internal/workspace"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -86,21 +86,21 @@ func initializeServices() error {
 		return err
 	}
 
-	workspaceProvider, err := workspace.NewProvider(cwd)
+	workspace, err := domain.NewWorkspace(cwd)
 	if err != nil {
 		return err
 	}
 
-	objectStorage := storage.NewObjectStorage(workspaceProvider)
-	indexStorage := storage.NewIndexStorage(workspaceProvider)
-	configStorage := storage.NewConfigStorage(workspaceProvider)
+	objectStorage := storage.NewObjectStorage(workspace)
+	indexStorage := storage.NewIndexStorage(workspace)
+	configStorage := storage.NewConfigStorage(workspace)
 
 	objectService = core.NewObjectService(objectStorage)
 	indexService = core.NewIndexService(indexStorage)
 	configService = core.NewConfigService(configStorage)
-	refService = core.NewRefService(workspaceProvider)
+	refService = core.NewRefService(workspace)
 	hashObjectService = core.NewHashObjectService(objectService)
-	pathResolver = core.NewPathResolver(workspaceProvider.GetWorkspace().RepoDir, nil)
+	pathResolver = core.NewPathResolver(workspace.RepoDir, nil)
 	changeDetector = core.NewChangeDetector(objectService)
 	treeResolver = core.NewTreeResolver(
 		objectService, indexService, refService, pathResolver, changeDetector,
@@ -110,7 +110,7 @@ func initializeServices() error {
 
 	catFileService = inspect.NewCatFileService(objectService)
 	updateIndexService = staging.NewUpdateIndexService(
-		indexService, objectService, hashObjectService, changeDetector, workspaceProvider,
+		indexService, objectService, hashObjectService, changeDetector, workspace,
 	)
 	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
 	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector)
@@ -120,7 +120,7 @@ func initializeServices() error {
 	commitTreeService = commit.NewCommitTreeService(objectService, configService)
 	commitService = commit.NewCommitService(writeTreeService, commitTreeService, refService, objectService)
 	logService = commit.NewLogService(refService, objectService)
-	branchService = branch.NewBranchService(refService, objectService, workspaceProvider)
+	branchService = branch.NewBranchService(refService, objectService, workspace)
 	switchService = branch.NewSwitchService(
 		indexService, refService, branchService, objectService, readTreeService, treeResolver,
 	)

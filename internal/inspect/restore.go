@@ -3,7 +3,6 @@ package inspect
 import (
 	"Gel/domain"
 	"Gel/internal/core"
-	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 	"os"
@@ -102,10 +101,10 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 			return err
 		}
 		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+		if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, blob.Body(), workspace.FilePermission); err != nil {
+		if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
 			return err
 		}
 	}
@@ -113,7 +112,7 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 }
 
 func (r *RestoreService) restoreHEADVsIndex(paths []string) error {
-	commitHash, err := r.refService.Resolve(workspace.HeadFileName)
+	commitHash, err := r.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
@@ -145,10 +144,10 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, path
 				return err
 			}
 			dir := filepath.Dir(path)
-			if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, blob.Body(), workspace.FilePermission); err != nil {
+			if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
 				return err
 			}
 		}
@@ -183,7 +182,8 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 		case inCommit && inIndex && indexEntry.Hash == treeEntry.Hash:
 			continue
 		case inCommit:
-			normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
+			// TODO: fix here later
+			normalizedPath, err := domain.NewNormalizedPath("", path)
 			if err != nil {
 				return fmt.Errorf("restore: %w", err)
 			}
@@ -202,9 +202,9 @@ func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
 	var err error
 
 	switch source {
-	case workspace.HeadFileName:
+	case domain.HeadFileName:
 		commitHash, err = r.refService.Resolve(source)
-	case workspace.MainBranchName:
+	case domain.MainBranchName:
 		commitHash, err = r.refService.Read("refs/heads/main")
 	default:
 		commitHash, err = domain.NewHash(source)

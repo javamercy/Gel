@@ -1,8 +1,8 @@
 package inspect
 
 import (
+	"Gel/domain"
 	"Gel/internal/core"
-	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 	"io"
@@ -85,7 +85,7 @@ func (s *StatusService) Status(writer io.Writer, short bool) error {
 		}
 	}
 
-	currentBranch, err := s.symbolicRefService.Read(workspace.HeadFileName, true)
+	currentBranch, err := s.symbolicRefService.Read(domain.HeadFileName, true)
 	if err != nil {
 		return err
 	}

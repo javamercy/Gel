@@ -3,7 +3,6 @@ package branch
 import (
 	"Gel/domain"
 	"Gel/internal/core"
-	"Gel/internal/workspace"
 	"fmt"
 	"io"
 	"os"
@@ -13,28 +12,27 @@ import (
 )
 
 type BranchService struct {
-	refService        *core.RefService
-	objectService     *core.ObjectService
-	workspaceProvider *workspace.Provider
+	refService    *core.RefService
+	objectService *core.ObjectService
+	workspace     *domain.Workspace
 }
 
 func NewBranchService(
 	refService *core.RefService,
 	objectService *core.ObjectService,
-	workspaceProvider *workspace.Provider,
+	workspace *domain.Workspace,
 ) *BranchService {
 	return &BranchService{
-		refService:        refService,
-		objectService:     objectService,
-		workspaceProvider: workspaceProvider,
+		refService:    refService,
+		objectService: objectService,
+		workspace:     workspace,
 	}
 }
 
 func (b *BranchService) List(writer io.Writer) error {
-	ws := b.workspaceProvider.GetWorkspace()
-	headsDir := filepath.Join(ws.GelDir, workspace.RefsDirName, workspace.HeadsDirName)
+	headsDir := filepath.Join(b.workspace.GelDir, domain.RefsDirName, domain.HeadsDirName)
 
-	currentBranch, err := b.refService.ReadSymbolic(workspace.HeadFileName)
+	currentBranch, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return fmt.Errorf("branch: failed to read symbolic ref: %w", err)
 	}
@@ -51,7 +49,7 @@ func (b *BranchService) List(writer io.Writer) error {
 
 			// TODO: Ensure the branch is valid
 
-			ref := strings.TrimPrefix(p, ws.GelDir+"/")
+			ref := strings.TrimPrefix(p, b.workspace.GelDir+"/")
 			name := strings.TrimPrefix(p, headsDir+"/")
 			isCurrent := ref == currentBranch
 			branches[name] = isCurrent
@@ -92,16 +90,16 @@ func (b *BranchService) Create(name string, startPoint string) error {
 		return fmt.Errorf("'%s': %w", name, ErrBranchAlreadyExists)
 	}
 
-	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if startPoint == "" {
-		commitHash, err := b.refService.Resolve(workspace.HeadFileName)
+		commitHash, err := b.refService.Resolve(domain.HeadFileName)
 		if err != nil {
 			return err
 		}
 		return b.refService.Write(ref, commitHash)
 	}
 
-	startBranchRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, startPoint)
+	startBranchRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, startPoint)
 	if commitHash, err := b.refService.Read(startBranchRef); err == nil {
 		return b.refService.Write(ref, commitHash)
 	}
@@ -121,12 +119,12 @@ func (b *BranchService) Delete(name string) error {
 		return fmt.Errorf("'%s': %w", name, err)
 	}
 
-	currRef, err := b.refService.ReadSymbolic(workspace.HeadFileName)
+	currRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
 
-	refToDelete := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	refToDelete := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if refToDelete == currRef {
 		return fmt.Errorf("'%s': %w", name, ErrDeleteCurrentBranch)
 	}
@@ -134,7 +132,7 @@ func (b *BranchService) Delete(name string) error {
 }
 
 func (b *BranchService) Exists(name string) bool {
-	targetRef := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, name)
+	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	return b.refService.Exists(targetRef)
 }
 

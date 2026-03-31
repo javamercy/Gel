@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"Gel/internal/workspace"
+	"Gel/domain"
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ var logCmd = &cobra.Command{
 	Short: "Show commit logs",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := workspace.HeadFileName
+		name := domain.HeadFileName
 		if len(args) > 0 {
 			name = args[0]
 		}

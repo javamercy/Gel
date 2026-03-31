@@ -4,12 +4,17 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"fmt"
-	"io"
 )
 
 type AddOptions struct {
 	DryRun  bool
 	Verbose bool
+}
+
+type AddResult struct {
+	Added   []domain.AbsolutePath
+	Removed []domain.AbsolutePath
+	Error   error
 }
 type AddService struct {
 	indexService       *core.IndexService
@@ -29,20 +34,24 @@ func NewAddService(
 	}
 }
 
-func (a *AddService) Add(writer io.Writer, pathspecs []string, options AddOptions) error {
+func (a *AddService) Add(pathspecs []string, options AddOptions) AddResult {
 	index, err := a.indexService.Read()
 	if err != nil {
-		return fmt.Errorf("add: %w", err)
+		return AddResult{Error: fmt.Errorf("add: %w", err)}
 	}
 
 	resolvedPaths, err := a.pathResolver.Resolve(pathspecs)
 	if err != nil {
-		return fmt.Errorf("add: %w", err)
+		return AddResult{Error: fmt.Errorf("add: %w", err)}
 	}
 
 	pathsToAdd, pathsToRemove, err := a.collectPaths(index, resolvedPaths)
 	if err != nil {
-		return err
+		return AddResult{Error: fmt.Errorf("add: %w", err)}
+	}
+
+	if options.DryRun {
+		return AddResult{Added: pathsToAdd, Removed: pathsToRemove}
 	}
 
 	addedFiles, err := a.updateIndexService.UpdateIndex(
@@ -53,7 +62,7 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, options AddOption
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("add: %w", err)
+		return AddResult{Error: fmt.Errorf("add: %w", err)}
 	}
 
 	removedFiles, err := a.updateIndexService.UpdateIndex(
@@ -64,13 +73,12 @@ func (a *AddService) Add(writer io.Writer, pathspecs []string, options AddOption
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("add: %w", err)
+		return AddResult{Error: fmt.Errorf("add: %w", err)}
 	}
-
-	if options.Verbose || options.DryRun {
-		return a.addWithDryRun(writer, addedFiles, removedFiles)
+	if options.Verbose {
+		return AddResult{Added: addedFiles, Removed: removedFiles}
 	}
-	return nil
+	return AddResult{}
 }
 
 func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
@@ -91,7 +99,7 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 		var indexEntries []*domain.IndexEntry
 
 		switch resolved.Type {
-		case core.File, core.NonExistent:
+		case core.PathspecTypeFile, core.PathspecTypeNonExistent:
 			if entry, _ := index.FindEntry(resolved.NormalizedScope); entry != nil {
 				indexEntries = []*domain.IndexEntry{entry}
 			} else {
@@ -101,13 +109,13 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 				}
 				indexEntries = index.FindEntriesByPathPrefix(prefix)
 			}
-		case core.Directory:
+		case core.PathspecTypeDirectory:
 			prefix := resolved.NormalizedScope
 			if prefix != "" {
 				prefix += "/"
 			}
 			indexEntries = index.FindEntriesByPathPrefix(prefix)
-		case core.GlobPattern:
+		case core.PathspecTypeGlobPattern:
 			indexEntries = index.FindEntriesByPathPattern(resolved.NormalizedScope)
 		}
 
@@ -127,18 +135,4 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 
 	}
 	return pathsToAdd, pathsToRemove, nil
-}
-
-func (a *AddService) addWithDryRun(writer io.Writer, pathsToAdd, pathsToRemove []domain.AbsolutePath) error {
-	for _, path := range pathsToAdd {
-		if _, err := writer.Write([]byte(fmt.Sprintf("add '%s'\n", path))); err != nil {
-			return fmt.Errorf("failed to write add message for '%s': %w", path, err)
-		}
-	}
-	for _, path := range pathsToRemove {
-		if _, err := writer.Write([]byte(fmt.Sprintf("remove '%s'\n", path))); err != nil {
-			return fmt.Errorf("failed to write remove message for '%s': %w", path, err)
-		}
-	}
-	return nil
 }

@@ -3,7 +3,6 @@ package cli
 import (
 	"Gel/domain"
 	"Gel/internal/diff"
-	"Gel/internal/workspace"
 
 	"github.com/spf13/cobra"
 )
@@ -23,7 +22,7 @@ var diffCmd = &cobra.Command{
 			return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsIndex})
 		} else if len(args) == 1 {
 			arg := args[0]
-			if arg == workspace.HeadFileName {
+			if arg == domain.HeadFileName {
 				return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsHEAD})
 			}
 			baseCommitHash, err := domain.NewHash(arg)

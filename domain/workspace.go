@@ -1,4 +1,4 @@
-package workspace
+package domain
 
 import (
 	"errors"
@@ -11,24 +11,6 @@ var (
 	ErrNotAGelRepository = errors.New("not a Gel repository")
 )
 
-type Provider struct {
-	workspace *Workspace
-}
-
-func NewProvider(path string) (*Provider, error) {
-	workspace, err := newWorkspaceFromPath(path)
-	if err != nil {
-		return nil, err
-	}
-	return &Provider{
-		workspace: workspace,
-	}, nil
-}
-
-func (p *Provider) GetWorkspace() *Workspace {
-	return p.workspace
-}
-
 type Workspace struct {
 	GelDir     string
 	ObjectsDir string
@@ -38,8 +20,8 @@ type Workspace struct {
 	ConfigPath string
 }
 
-func newWorkspaceFromPath(path string) (*Workspace, error) {
-	gelDir, err := findGelDir(path)
+func NewWorkspace(startPath string) (*Workspace, error) {
+	gelDir, err := findGelDir(startPath)
 	if err != nil {
 		return nil, err
 	}

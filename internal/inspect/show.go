@@ -4,7 +4,6 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/diff"
-	"Gel/internal/workspace"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -34,7 +33,7 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 		return s.showHEAD(writer)
 	}
 
-	ref := filepath.Join(workspace.RefsDirName, workspace.HeadsDirName, objectRef)
+	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, objectRef)
 	if branchExists := s.refService.Exists(ref); branchExists {
 		return s.showBranch(writer, ref)
 	}
@@ -53,7 +52,7 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 
 		return s.showTree(writer, object.(*domain.Tree), objectRef)
 	case domain.ObjectTypeCommit:
-		headRef, err := s.refService.ReadSymbolic(workspace.HeadFileName)
+		headRef, err := s.refService.ReadSymbolic(domain.HeadFileName)
 		if err != nil {
 			return err
 		}
@@ -68,11 +67,11 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 }
 
 func (s *ShowService) showHEAD(writer io.Writer) error {
-	commitHash, err := s.refService.Resolve(workspace.HeadFileName)
+	commitHash, err := s.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
-	ref, err := s.refService.ReadSymbolic(workspace.HeadFileName)
+	ref, err := s.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return err
 	}

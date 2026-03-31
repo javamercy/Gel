@@ -1,9 +1,9 @@
 package internal
 
 import (
+	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/validate"
-	"Gel/internal/workspace"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,26 +36,26 @@ func (i *InitService) Init(path string) (string, error) {
 			return "", fmt.Errorf("init: %w", err)
 		}
 	} else {
-		if err := os.MkdirAll(absPath, workspace.DirPermission); err != nil {
+		if err := os.MkdirAll(absPath, domain.DirPermission); err != nil {
 			return "", fmt.Errorf("init: failed to create directory '%s': %w", absPath, err)
 		}
 	}
 
-	gelPath := filepath.Join(absPath, workspace.GelDirName)
-	objectsPath := filepath.Join(gelPath, workspace.ObjectsDirName)
-	headsPath := filepath.Join(gelPath, workspace.RefsDirName, workspace.HeadsDirName)
-	headPath := filepath.Join(gelPath, workspace.HeadFileName)
-	configPath := filepath.Join(gelPath, workspace.ConfigFileName)
+	gelPath := filepath.Join(absPath, domain.GelDirName)
+	objectsPath := filepath.Join(gelPath, domain.ObjectsDirName)
+	headsPath := filepath.Join(gelPath, domain.RefsDirName, domain.HeadsDirName)
+	headPath := filepath.Join(gelPath, domain.HeadFileName)
+	configPath := filepath.Join(gelPath, domain.ConfigFileName)
 
 	gelExists, err := core.Exists(gelPath)
 	if err != nil {
 		return "", err
 	}
 
-	if err := os.MkdirAll(objectsPath, workspace.DirPermission); err != nil {
+	if err := os.MkdirAll(objectsPath, domain.DirPermission); err != nil {
 		return "", fmt.Errorf("init: failed to create objects directory at '%s': %w", objectsPath, err)
 	}
-	if err := os.MkdirAll(headsPath, workspace.DirPermission); err != nil {
+	if err := os.MkdirAll(headsPath, domain.DirPermission); err != nil {
 		return "", fmt.Errorf("init: failed to create heads directory at '%s': %w", headsPath, err)
 	}
 
@@ -64,8 +64,8 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", err
 	}
 	if !headExists {
-		headRef := fmt.Sprintf("ref: %s\n", workspace.MainRef)
-		if err := os.WriteFile(headPath, []byte(headRef), workspace.FilePermission); err != nil {
+		headRef := fmt.Sprintf("ref: %s\n", domain.MainRef)
+		if err := os.WriteFile(headPath, []byte(headRef), domain.FilePermission); err != nil {
 			return "", fmt.Errorf("init: failed to create head file at '%s': %w", headPath, err)
 		}
 	}
@@ -75,7 +75,7 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", err
 	}
 	if !configExists {
-		if err := os.WriteFile(configPath, nil, workspace.FilePermission); err != nil {
+		if err := os.WriteFile(configPath, nil, domain.FilePermission); err != nil {
 			return "", fmt.Errorf("init: failed to create config file at '%s': %w", configPath, err)
 		}
 	}

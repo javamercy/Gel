@@ -4,7 +4,6 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/tree"
-	"Gel/internal/workspace"
 	"errors"
 )
 
@@ -36,7 +35,7 @@ func (c *CommitService) Commit(message string) error {
 	}
 
 	var parentHashes []domain.Hash
-	headRef, err := c.refService.ReadSymbolic(workspace.HeadFileName)
+	headRef, err := c.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return err
 	}

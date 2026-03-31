@@ -15,14 +15,23 @@ var addCmd = &cobra.Command{
 	Short: "Add file contents to the index",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return addService.Add(
-			cmd.OutOrStdout(),
+		addResult := addService.Add(
 			args,
 			staging.AddOptions{
 				Verbose: addVerboseFlag,
 				DryRun:  addDryRunFlag,
 			},
 		)
+		if addResult.Error != nil {
+			return addResult.Error
+		}
+		for _, file := range addResult.Added {
+			cmd.Printf("A %s\n", file)
+		}
+		for _, file := range addResult.Removed {
+			cmd.Printf("D %s\n", file)
+		}
+		return nil
 	},
 }
 

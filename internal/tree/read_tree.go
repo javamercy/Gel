@@ -24,7 +24,8 @@ func NewReadTreeService(
 func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, path string) error {
-		normalizedPath, err := domain.NewNormalizedPathFromAbsolutePath(path)
+		// TODO: fix here later
+		normalizedPath, err := domain.NewNormalizedPath("", path)
 		if err != nil {
 			return err
 		}

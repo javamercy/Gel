@@ -2,7 +2,6 @@ package core
 
 import (
 	"Gel/domain"
-	"Gel/internal/workspace"
 	"strings"
 )
 
@@ -31,7 +30,7 @@ func NewTreeResolver(
 }
 
 func (t *TreeResolver) ResolveHEAD() (map[string]domain.Hash, error) {
-	return t.ResolveRef(workspace.HeadFileName)
+	return t.ResolveRef(domain.HeadFileName)
 }
 
 func (t *TreeResolver) ResolveRef(refName string) (map[string]domain.Hash, error) {

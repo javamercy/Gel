@@ -1,25 +1,24 @@
 package storage
 
 import (
-	"Gel/internal/workspace"
+	"Gel/domain"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 type ConfigStorage struct {
-	workspaceProvider *workspace.Provider
+	workspace *domain.Workspace
 }
 
-func NewConfigStorage(workspaceProvider *workspace.Provider) *ConfigStorage {
+func NewConfigStorage(workspace *domain.Workspace) *ConfigStorage {
 	return &ConfigStorage{
-		workspaceProvider: workspaceProvider,
+		workspace: workspace,
 	}
 }
 
 func (c *ConfigStorage) Read() ([]byte, error) {
-	ws := c.workspaceProvider.GetWorkspace()
-	data, err := os.ReadFile(ws.ConfigPath)
+	data, err := os.ReadFile(c.workspace.ConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("config: error reading config file: %w", err)
 	}
@@ -27,12 +26,11 @@ func (c *ConfigStorage) Read() ([]byte, error) {
 }
 
 func (c *ConfigStorage) Write(data []byte) error {
-	ws := c.workspaceProvider.GetWorkspace()
-	dir := filepath.Dir(ws.ConfigPath)
-	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+	dir := filepath.Dir(c.workspace.ConfigPath)
+	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 		return fmt.Errorf("config: failed to create directory '%s': %w", dir, err)
 	}
-	if err := os.WriteFile(ws.ConfigPath, data, workspace.FilePermission); err != nil {
+	if err := os.WriteFile(c.workspace.ConfigPath, data, domain.FilePermission); err != nil {
 		return fmt.Errorf("config: error writing config file: %w", err)
 	}
 	return nil

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"Gel/domain"
-	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 	"os"
@@ -10,12 +9,12 @@ import (
 )
 
 type ObjectStorage struct {
-	workspaceProvider *workspace.Provider
+	workspace *domain.Workspace
 }
 
-func NewObjectStorage(workspaceProvider *workspace.Provider) *ObjectStorage {
+func NewObjectStorage(workspace *domain.Workspace) *ObjectStorage {
 	return &ObjectStorage{
-		workspaceProvider: workspaceProvider,
+		workspace: workspace,
 	}
 }
 
@@ -25,10 +24,10 @@ func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
 		return err
 	}
 	dir := filepath.Dir(objectPath.String())
-	if err := os.MkdirAll(dir, workspace.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 		return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 	}
-	if err := os.WriteFile(objectPath.String(), data, workspace.FilePermission); err != nil {
+	if err := os.WriteFile(objectPath.String(), data, domain.FilePermission); err != nil {
 		return fmt.Errorf("failed to write object '%s': %w", hash, err)
 	}
 	return nil
@@ -62,12 +61,10 @@ func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
 }
 
 func (o *ObjectStorage) getObjectPath(hash domain.Hash) (domain.AbsolutePath, error) {
-	ws := o.workspaceProvider.GetWorkspace()
 	hexHash := hash.ToHexString()
 	dir := hexHash[:2]
 	file := hexHash[2:]
-	joined := filepath.Join(ws.ObjectsDir, dir, file)
-
+	joined := filepath.Join(o.workspace.ObjectsDir, dir, file)
 	absPath, err := domain.NewAbsolutePath(joined)
 	if err != nil {
 		return "", err

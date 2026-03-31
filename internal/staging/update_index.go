@@ -4,7 +4,6 @@ import (
 	"Gel/domain"
 	"Gel/internal/core"
 	"Gel/internal/validate"
-	"Gel/internal/workspace"
 	"errors"
 	"fmt"
 )
@@ -19,7 +18,7 @@ type UpdateIndexService struct {
 	objectService     *core.ObjectService
 	hashObjectService *core.HashObjectService
 	changeDetector    *core.ChangeDetector
-	workspaceProvider *workspace.Provider
+	workspace         *domain.Workspace
 }
 
 func NewUpdateIndexService(
@@ -27,14 +26,14 @@ func NewUpdateIndexService(
 	objectService *core.ObjectService,
 	hashObjectService *core.HashObjectService,
 	changeDetector *core.ChangeDetector,
-	workspaceProvider *workspace.Provider,
+	workspace *domain.Workspace,
 ) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,
 		objectService:     objectService,
 		hashObjectService: hashObjectService,
 		changeDetector:    changeDetector,
-		workspaceProvider: workspaceProvider,
+		workspace:         workspace,
 	}
 }
 
@@ -99,7 +98,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			normalizedPath, err := path.ToNormalizedPath(u.workspace.RepoDir)
 			if err != nil {
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
@@ -135,7 +134,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+			normalizedPath, err := path.ToNormalizedPath(u.workspace.RepoDir)
 			if err != nil {
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
@@ -171,7 +170,7 @@ func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []
 ) {
 	var removedPaths []domain.AbsolutePath
 	for _, path := range paths {
-		normalizedPath, err := path.ToNormalizedPath(u.workspaceProvider.GetWorkspace().RepoDir)
+		normalizedPath, err := path.ToNormalizedPath(u.workspace.RepoDir)
 		if err != nil {
 			return nil, fmt.Errorf("update-index: %w", err)
 		}

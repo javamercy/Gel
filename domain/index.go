@@ -413,7 +413,7 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, ErrPathNotNullTerminated
 	}
 
-	normalizedPath, err := NewNormalizedPath(string(data[offset : offset+pathEnd]))
+	normalizedPath, err := NewNormalizedPathUnchecked(string(data[offset : offset+pathEnd]))
 	if err != nil {
 		return nil, 0, fmt.Errorf("invalid path in index entry: %w", err)
 	}
