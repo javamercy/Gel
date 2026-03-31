@@ -119,7 +119,7 @@ func (o *ObjectService) Exists(hash domain.Hash) (bool, error) {
 func (o *ObjectService) ComputeObjectHash(path domain.AbsolutePath) (domain.Hash, []byte, error) {
 	data, err := os.ReadFile(path.String())
 	if err != nil {
-		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to read file at '%s': %w", path, err)
+		return domain.Hash{}, nil, fmt.Errorf("failed to read file at '%s': %w", path, err)
 	}
 
 	blob := domain.NewBlob(data)
@@ -127,7 +127,7 @@ func (o *ObjectService) ComputeObjectHash(path domain.AbsolutePath) (domain.Hash
 	hexHash := ComputeSHA256(serializedData)
 	hash, err := domain.NewHash(hexHash)
 	if err != nil {
-		return domain.Hash{}, nil, fmt.Errorf("hash object: failed to compute hash: %w", err)
+		return domain.Hash{}, nil, err
 	}
 	return hash, serializedData, nil
 }
