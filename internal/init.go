@@ -12,10 +12,24 @@ import (
 type InitService struct {
 }
 
+// NewInitService creates a stateless service for repository initialization.
+// The service only performs filesystem operations and keeps no in-memory state.
 func NewInitService() *InitService {
 	return &InitService{}
 }
 
+// Init bootstraps a Gel repository at the provided path.
+//
+// Behavior:
+//   - Validates that path is not empty and resolves it to an absolute path.
+//   - Creates the target directory if it does not exist.
+//   - Fails when the target exists but is not a directory.
+//   - Ensures .gel, .gel/objects, and .gel/refs/heads directories exist.
+//   - Creates .gel/HEAD with "ref: refs/heads/main" when missing.
+//   - Creates an empty .gel/config.toml when missing.
+//
+// Init is idempotent: running it repeatedly on an existing repository is valid
+// and returns a reinitialization message.
 func (i *InitService) Init(path string) (string, error) {
 	if err := validate.StringMustNotBeEmpty(path); err != nil {
 		return "", fmt.Errorf("init: invalid path '%s': %w", path, err)

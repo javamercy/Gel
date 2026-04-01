@@ -83,7 +83,8 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 			return fmt.Errorf("restore: %w", err)
 		}
 		stat := domain.GetFileStatFromPath(absPath)
-		entry, _ := index.FindEntry(path)
+		// TODO: fix here later
+		entry, _ := index.FindEntry(domain.NormalizedPath(path))
 		if entry == nil {
 			continue
 		}
@@ -173,7 +174,8 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 		}
 
 		inCommit := err == nil
-		indexEntry, _ := index.FindEntry(path)
+		// TODO: fix here later
+		indexEntry, _ := index.FindEntry(domain.NormalizedPath(path))
 		inIndex := indexEntry != nil
 
 		switch {
@@ -190,7 +192,8 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 			newIndexEntry := domain.NewEmptyIndexEntry(normalizedPath, treeEntry.Hash, treeEntry.Mode.Uint32())
 			index.SetEntry(newIndexEntry)
 		default:
-			index.RemoveEntry(path)
+			// TODO: fix here later
+			index.RemoveEntry(domain.NormalizedPath(path))
 
 		}
 	}

@@ -48,6 +48,7 @@ type PathResolver struct {
 
 func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResolver {
 	if ignoredPatterns == nil {
+		// TODO: implement gelignore.
 		ignoredPatterns = map[string]bool{
 			".gel":  true,
 			".git":  true,
@@ -62,42 +63,18 @@ func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResol
 
 func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 	resolvedPaths := make([]ResolvedPath, 0)
-
 	for _, pathspec := range pathspecs {
-		var paths []string
-		var err error
-
 		pathspecType, err := classifyPathspec(pathspec)
 		if err != nil {
 			return nil, err
 		}
-		absPathspec, err := domain.NewAbsolutePath(pathspec)
+
+		paths, err := p.expandPathspec(pathspec, pathspecType)
 		if err != nil {
 			return nil, err
 		}
 
-		normalizedPath, err := absPathspec.ToNormalizedPath(p.repoDir)
-		if err != nil {
-			return nil, err
-		}
-
-		normalizedScope := normalizedPath.String()
-		if normalizedScope == "." {
-			normalizedScope = ""
-		}
-		switch pathspecType {
-		case PathspecTypeFile:
-			paths = []string{pathspec}
-		case PathspecTypeDirectory:
-			paths, err = expandDirectory(pathspec)
-		case PathspecTypeGlobPattern:
-			paths, err = expandGlobPattern(pathspec)
-		case PathspecTypeNonExistent:
-			paths = []string{}
-		default:
-			return nil, ErrUnknownPathspecType
-		}
-
+		normalizedScope, err := p.normalizeScope(pathspec, pathspecType)
 		if err != nil {
 			return nil, err
 		}
@@ -108,13 +85,11 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 			if err != nil {
 				return nil, err
 			}
-			// TODO: implement gelignore.
 			if p.shouldIgnore(normalizedPath.String()) || normalizedPaths[normalizedPath] {
 				continue
 			}
 			normalizedPaths[normalizedPath] = true
 		}
-
 		resolvedPaths = append(
 			resolvedPaths, ResolvedPath{
 				Type:            pathspecType,
@@ -127,14 +102,46 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 }
 
 func (p *PathResolver) shouldIgnore(path string) bool {
-	segments := strings.Split(path, "/")
-
+	segments := strings.Split(filepath.ToSlash(path), "/")
 	for _, segment := range segments {
 		if p.ignoredPatterns[segment] {
 			return true
 		}
 	}
 	return false
+}
+
+func (p *PathResolver) expandPathspec(pathspec string, pathspecType PathspecType) ([]string, error) {
+	switch pathspecType {
+	case PathspecTypeFile:
+		return []string{pathspec}, nil
+	case PathspecTypeDirectory:
+		return p.expandDirectory(pathspec)
+	case PathspecTypeGlobPattern:
+		return p.expandGlobPattern(pathspec)
+	case PathspecTypeNonExistent:
+		return []string{}, nil
+	default:
+		return nil, ErrUnknownPathspecType
+	}
+}
+
+func (p *PathResolver) normalizeScope(pathspec string, pathspecType PathspecType) (string, error) {
+	var normalizedScope string
+	switch pathspecType {
+	case PathspecTypeFile, PathspecTypeNonExistent:
+		normalizedPath, err := domain.NewNormalizedPath(p.repoDir, pathspec)
+		if err != nil {
+			return "", err
+		}
+		normalizedScope = normalizedPath.String()
+	case PathspecTypeDirectory, PathspecTypeGlobPattern:
+		normalizedScope = pathspec
+	}
+	if normalizedScope == "." {
+		normalizedScope = ""
+	}
+	return normalizedScope, nil
 }
 
 func classifyPathspec(pathspec string) (PathspecType, error) {
@@ -154,9 +161,8 @@ func classifyPathspec(pathspec string) (PathspecType, error) {
 	return PathspecTypeFile, nil
 }
 
-func expandDirectory(path string) ([]string, error) {
+func (p *PathResolver) expandDirectory(path string) ([]string, error) {
 	var files []string
-
 	err := filepath.WalkDir(
 		path, func(p string, d os.DirEntry, err error) error {
 			if err != nil {
@@ -178,7 +184,7 @@ func expandDirectory(path string) ([]string, error) {
 	return files, nil
 }
 
-func expandGlobPattern(pattern string) ([]string, error) {
+func (p *PathResolver) expandGlobPattern(pattern string) ([]string, error) {
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
@@ -191,7 +197,7 @@ func expandGlobPattern(pattern string) ([]string, error) {
 			continue
 		}
 		if info.IsDir() {
-			files, err := expandDirectory(match)
+			files, err := p.expandDirectory(match)
 			if err != nil {
 				return nil, err
 			}

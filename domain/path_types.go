@@ -27,8 +27,9 @@ func NewNormalizedPathUnchecked(path string) (NormalizedPath, error) {
 	return NormalizedPath(path), nil
 }
 
-func (p NormalizedPath) ToAbsolutePath() (AbsolutePath, error) {
-	return NewAbsolutePath(p.String())
+func (p NormalizedPath) ToAbsolutePath(repoDir string) (AbsolutePath, error) {
+	absPath := filepath.Join(repoDir, filepath.FromSlash(p.String()))
+	return AbsolutePath(absPath), nil
 }
 
 func (p NormalizedPath) String() string {
@@ -38,9 +39,6 @@ func (p NormalizedPath) String() string {
 // validateNormalizedFormat ensures a path is in proper normalized format.
 // This provides defense against corrupted index files or malicious data.
 func validateNormalizedFormat(path string) error {
-	if path == "" {
-		return fmt.Errorf("path cannot be empty")
-	}
 	if strings.HasPrefix(path, "/") {
 		return fmt.Errorf("normalized path cannot be absolute: %s", path)
 	}
@@ -49,23 +47,6 @@ func validateNormalizedFormat(path string) error {
 	}
 	if strings.Contains(path, "\x00") {
 		return fmt.Errorf("normalized path cannot contain null bytes: %s", path)
-	}
-	for i, r := range path {
-		if r < 0x20 && r != '\t' {
-			return fmt.Errorf("normalized path contains control character at position %d: %s", i, path)
-		}
-	}
-	components := strings.Split(path, "/")
-	for i, comp := range components {
-		if comp == "" {
-			return fmt.Errorf("normalized path cannot contain empty components: %s", path)
-		}
-		if comp == "." || comp == ".." {
-			return fmt.Errorf("normalized path cannot contain %s: %s", comp, path)
-		}
-		if i == 0 && comp == GelDirName {
-			return fmt.Errorf("normalized path cannot start with %s: %s", GelDirName, path)
-		}
 	}
 	return nil
 }
@@ -86,7 +67,15 @@ func (p AbsolutePath) ToNormalizedPath(repoDir string) (NormalizedPath, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get relative path: %w", err)
 	}
-	return NormalizedPath(filepath.ToSlash(relPath)), nil
+
+	normalizedPath := filepath.ToSlash(relPath)
+	if normalizedPath == "." {
+		normalizedPath = ""
+	}
+	if err := validateNormalizedFormat(normalizedPath); err != nil {
+		return "", fmt.Errorf("path is outside repository or invalid: %w", err)
+	}
+	return NormalizedPath(normalizedPath), nil
 }
 
 func (p AbsolutePath) String() string {

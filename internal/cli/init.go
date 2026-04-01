@@ -12,6 +12,7 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a new Gel repository",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Default to the current working directory when no path is provided.
 		var path string
 		if len(args) > 0 {
 			path = args[0]

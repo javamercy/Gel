@@ -16,6 +16,9 @@ import (
 )
 
 var (
+	workspace *domain.Workspace
+)
+var (
 	objectService     *core.ObjectService
 	indexService      *core.IndexService
 	configService     *core.ConfigService
@@ -86,7 +89,7 @@ func initializeServices() error {
 		return err
 	}
 
-	workspace, err := domain.NewWorkspace(cwd)
+	workspace, err = domain.NewWorkspace(cwd)
 	if err != nil {
 		return err
 	}
@@ -101,9 +104,9 @@ func initializeServices() error {
 	refService = core.NewRefService(workspace)
 	hashObjectService = core.NewHashObjectService(objectService)
 	pathResolver = core.NewPathResolver(workspace.RepoDir, nil)
-	changeDetector = core.NewChangeDetector(objectService)
+	changeDetector = core.NewChangeDetector(objectService, workspace.RepoDir)
 	treeResolver = core.NewTreeResolver(
-		objectService, indexService, refService, pathResolver, changeDetector,
+		objectService, indexService, refService, pathResolver, changeDetector, workspace,
 	)
 	symbolicRefService = core.NewSymbolicRefService(refService)
 	updateRefService = core.NewUpdateRefService(refService)
@@ -112,8 +115,8 @@ func initializeServices() error {
 	updateIndexService = staging.NewUpdateIndexService(
 		indexService, objectService, hashObjectService, changeDetector, workspace,
 	)
-	addService = staging.NewAddService(indexService, updateIndexService, pathResolver)
-	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector)
+	addService = staging.NewAddService(indexService, updateIndexService, pathResolver, workspace)
+	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector, workspace)
 	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
 	readTreeService = tree.NewReadTreeService(indexService, objectService)
 	lsTreeService = tree.NewLsTreeService(objectService)

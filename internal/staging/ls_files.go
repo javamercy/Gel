@@ -23,17 +23,20 @@ type LsFilesService struct {
 	indexService   *core.IndexService
 	objectService  *core.ObjectService
 	changeDetector *core.ChangeDetector
+	workspace      *domain.Workspace
 }
 
 func NewLsFilesService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
 	changeDetector *core.ChangeDetector,
+	workspace *domain.Workspace,
 ) *LsFilesService {
 	return &LsFilesService{
 		indexService:   indexService,
 		objectService:  objectService,
 		changeDetector: changeDetector,
+		workspace:      workspace,
 	}
 }
 
@@ -96,7 +99,7 @@ func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []strin
 func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
-		absolutePath, err := entry.Path.ToAbsolutePath()
+		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)
 		if err != nil {
 			return nil, fmt.Errorf("ls-files: %w", err)
 		}
@@ -115,7 +118,7 @@ func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]st
 func (l *LsFilesService) LsFilesWithDeleted(entries []*domain.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
-		absolutePath, err := entry.Path.ToAbsolutePath()
+		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)
 		if err != nil {
 			return nil, fmt.Errorf("ls-files: %w", err)
 		}

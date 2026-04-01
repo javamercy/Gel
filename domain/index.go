@@ -197,7 +197,7 @@ func (idx *Index) AddEntry(entry *IndexEntry) {
 }
 
 func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
-	prevEntry, i := idx.FindEntry(entry.Path.String())
+	prevEntry, i := idx.FindEntry(entry.Path)
 	if prevEntry == nil {
 		return false
 	}
@@ -211,20 +211,20 @@ func (idx *Index) SetEntry(entry *IndexEntry) {
 	}
 }
 
-func (idx *Index) RemoveEntry(path string) {
+func (idx *Index) RemoveEntry(path NormalizedPath) {
 	if entry, i := idx.FindEntry(path); entry != nil {
 		idx.Entries = append(idx.Entries[:i], idx.Entries[i+1:]...)
 		idx.Header.NumEntries = uint32(len(idx.Entries))
 	}
 }
 
-func (idx *Index) FindEntry(path string) (*IndexEntry, int) {
+func (idx *Index) FindEntry(path NormalizedPath) (*IndexEntry, int) {
 	i := sort.Search(
 		len(idx.Entries), func(i int) bool {
-			return idx.Entries[i].Path.String() >= path
+			return idx.Entries[i].Path.String() >= path.String()
 		},
 	)
-	if i < len(idx.Entries) && idx.Entries[i].Path.String() == path {
+	if i < len(idx.Entries) && idx.Entries[i].Path.String() == path.String() {
 		return idx.Entries[i], i
 	}
 	return nil, 0
@@ -250,7 +250,7 @@ func (idx *Index) FindEntriesByPathPattern(pattern string) []*IndexEntry {
 	return result
 }
 
-func (idx *Index) HasEntry(path string) bool {
+func (idx *Index) HasEntry(path NormalizedPath) bool {
 	entry, _ := idx.FindEntry(path)
 	return entry != nil
 }

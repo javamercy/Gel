@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// PathMustExist returns an error when path does not exist.
 func PathMustExist(path string) error {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -17,6 +18,7 @@ func PathMustExist(path string) error {
 	return nil
 }
 
+// PathMustBeDirectory returns an error unless path exists and is a directory.
 func PathMustBeDirectory(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -28,6 +30,7 @@ func PathMustBeDirectory(path string) error {
 	return nil
 }
 
+// PathMustBeFile returns an error unless path exists and is a regular file.
 func PathMustBeFile(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -39,6 +42,7 @@ func PathMustBeFile(path string) error {
 	return nil
 }
 
+// StringMustNotBeEmpty returns an error when s is empty.
 func StringMustNotBeEmpty(s string) error {
 	if len(s) == 0 {
 		return errors.New("string must not be empty")

@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+// Exists reports whether path exists on disk.
+// It returns (false, nil) when the path is missing and wraps other stat errors.
 func Exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err != nil {

@@ -11,11 +11,13 @@ type ChangeResult struct {
 
 type ChangeDetector struct {
 	objectService *ObjectService
+	repoDir       string
 }
 
-func NewChangeDetector(objectService *ObjectService) *ChangeDetector {
+func NewChangeDetector(objectService *ObjectService, repoDir string) *ChangeDetector {
 	return &ChangeDetector{
 		objectService: objectService,
+		repoDir:       repoDir,
 	}
 }
 
@@ -24,7 +26,7 @@ func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry, fileStat dom
 	var newHash domain.Hash
 
 	if !matches {
-		absolutePath, err := entry.Path.ToAbsolutePath()
+		absolutePath, err := entry.Path.ToAbsolutePath(c.repoDir)
 		if err != nil {
 			return ChangeResult{}, err
 		}

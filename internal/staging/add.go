@@ -12,25 +12,28 @@ type AddOptions struct {
 }
 
 type AddResult struct {
-	Added   []domain.AbsolutePath
-	Removed []domain.AbsolutePath
+	Added   []domain.NormalizedPath
+	Removed []domain.NormalizedPath
 	Error   error
 }
 type AddService struct {
 	indexService       *core.IndexService
 	updateIndexService *UpdateIndexService
 	pathResolver       *core.PathResolver
+	workspace          *domain.Workspace
 }
 
 func NewAddService(
 	indexService *core.IndexService,
 	updateIndexService *UpdateIndexService,
 	pathResolver *core.PathResolver,
+	workspace *domain.Workspace,
 ) *AddService {
 	return &AddService{
 		indexService:       indexService,
 		updateIndexService: updateIndexService,
 		pathResolver:       pathResolver,
+		workspace:          workspace,
 	}
 }
 
@@ -81,26 +84,28 @@ func (a *AddService) Add(pathspecs []string, options AddOptions) AddResult {
 	return AddResult{}
 }
 
-func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.ResolvedPath) (
-	[]domain.AbsolutePath, []domain.AbsolutePath, error,
+func (a *AddService) collectPaths(
+	index *domain.Index,
+	resolvedPaths []core.ResolvedPath,
+) (
+	[]domain.NormalizedPath, []domain.NormalizedPath, error,
 ) {
-	var pathsToAdd []domain.AbsolutePath
-	var pathsToRemove []domain.AbsolutePath
+	var pathsToAdd []domain.NormalizedPath
+	var pathsToRemove []domain.NormalizedPath
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			absolutePath, err := path.ToAbsolutePath()
-			if err != nil {
-				return nil, nil, fmt.Errorf("add: %w", err)
-			}
-			pathsToAdd = append(pathsToAdd, absolutePath)
+			pathsToAdd = append(pathsToAdd, path)
 		}
 
 		var indexEntries []*domain.IndexEntry
-
 		switch resolved.Type {
 		case core.PathspecTypeFile, core.PathspecTypeNonExistent:
-			if entry, _ := index.FindEntry(resolved.NormalizedScope); entry != nil {
+			normalizedScope, err := domain.NewNormalizedPathUnchecked(resolved.NormalizedScope)
+			if err != nil {
+				return nil, nil, fmt.Errorf("add: %w", err)
+			}
+			if entry, _ := index.FindEntry(normalizedScope); entry != nil {
 				indexEntries = []*domain.IndexEntry{entry}
 			} else {
 				prefix := resolved.NormalizedScope
@@ -121,14 +126,9 @@ func (a *AddService) collectPaths(index *domain.Index, resolvedPaths []core.Reso
 
 		for _, entry := range indexEntries {
 			if !resolved.NormalizedPaths[entry.Path] {
-				absolutePath, err := entry.Path.ToAbsolutePath()
-				if err != nil {
-					return nil, nil, fmt.Errorf("add: %w", err)
-				}
-				pathsToRemove = append(pathsToRemove, absolutePath)
+				pathsToRemove = append(pathsToRemove, entry.Path)
 			}
 		}
-
 		if len(resolved.NormalizedPaths) == 0 && len(indexEntries) == 0 {
 			return nil, nil, fmt.Errorf("'%s': %w", resolved.NormalizedScope, ErrPathDidNotMatch)
 		}

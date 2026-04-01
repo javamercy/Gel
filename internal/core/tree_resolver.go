@@ -11,6 +11,7 @@ type TreeResolver struct {
 	refService     *RefService
 	pathResolver   *PathResolver
 	changeDetector *ChangeDetector
+	workspace      *domain.Workspace
 }
 
 func NewTreeResolver(
@@ -19,6 +20,7 @@ func NewTreeResolver(
 	refService *RefService,
 	pathResolver *PathResolver,
 	changeDetector *ChangeDetector,
+	workspace *domain.Workspace,
 ) *TreeResolver {
 	return &TreeResolver{
 		objectService:  objectService,
@@ -26,6 +28,7 @@ func NewTreeResolver(
 		refService:     refService,
 		pathResolver:   pathResolver,
 		changeDetector: changeDetector,
+		workspace:      workspace,
 	}
 }
 
@@ -85,12 +88,12 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 	results := make(map[string]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			absolutePath, err := path.ToAbsolutePath()
+			absolutePath, err := path.ToAbsolutePath(t.workspace.RepoDir)
 			if err != nil {
 				return nil, err
 			}
 			fileStat := domain.GetFileStatFromPath(absolutePath)
-			entry, _ := index.FindEntry(path.String())
+			entry, _ := index.FindEntry(path)
 
 			if entry != nil {
 				changeResult, err := t.changeDetector.DetectFileChange(entry, fileStat)
@@ -103,7 +106,7 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 					results[path.String()] = changeResult.NewHash
 				}
 			} else {
-				absolutePath, err := path.ToAbsolutePath()
+				absolutePath, err := path.ToAbsolutePath(t.workspace.RepoDir)
 				if err != nil {
 					return nil, err
 				}
