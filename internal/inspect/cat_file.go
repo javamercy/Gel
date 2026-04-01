@@ -8,22 +8,35 @@ import (
 	"io"
 )
 
+// CatFileOptions controls which cat-file outputs are produced.
 type CatFileOptions struct {
+	// ObjectType prints the object type (blob/tree/commit).
 	ObjectType bool
-	Pretty     bool
-	Size       bool
-	Exists     bool
+	// Pretty prints object content in a human-readable form.
+	Pretty bool
+	// Size prints object body size in bytes.
+	Size bool
+	// Exists only checks whether the object exists.
+	Exists bool
 }
+
+// CatFileService provides object inspection behavior for the cat-file command.
 type CatFileService struct {
 	objectService *core.ObjectService
 }
 
+// NewCatFileService creates a cat-file service backed by object storage reads.
 func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 	return &CatFileService{
 		objectService: objectService,
 	}
 }
 
+// CatFile executes cat-file behavior for a given object hash.
+//
+// At least one option must be enabled. Multiple options can be combined
+// (for example, printing type and size in sequence). When Exists is set, the
+// function only performs existence checking and does not read object content.
 func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, options CatFileOptions) error {
 	if !options.ObjectType && !options.Pretty && !options.Size && !options.Exists {
 		return errors.New("cat-file: specify at least one of -t, -p, -s, -e")
@@ -54,12 +67,15 @@ func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, options Cat
 		}
 	}
 	if options.Pretty {
-		return catFileWithPretty(writer, object)
+		return c.catFileWithPretty(writer, object)
 	}
 	return nil
 }
 
-func catFileWithPretty(writer io.Writer, object domain.Object) error {
+// catFileWithPretty writes object content in a format tailored to object type:
+// tree entries for tree objects, raw body for blobs, and structured commit
+// fields for commits.
+func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain.Object) error {
 	switch object.Type() {
 	case domain.ObjectTypeTree:
 		tree, ok := object.(*domain.Tree)

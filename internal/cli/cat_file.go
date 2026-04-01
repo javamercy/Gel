@@ -14,6 +14,7 @@ var (
 	catFileExistsFlag bool
 )
 
+// catFileCmd inspects objects in the repository object database by hash.
 var catFileCmd = &cobra.Command{
 	Use:   "cat-file <hash>",
 	Short: "Display the content of a Git object",
