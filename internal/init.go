@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	"Gel/internal/domain"
 	"Gel/internal/validate"
 	"fmt"
 	"os"

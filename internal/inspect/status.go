@@ -1,8 +1,8 @@
 package inspect
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	"Gel/internal/domain"
 	"errors"
 	"fmt"
 	"io"

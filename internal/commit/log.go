@@ -1,8 +1,8 @@
 package commit
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"errors"
 	"fmt"
 	"io"
@@ -59,8 +59,8 @@ func (l *LogService) Log(writer io.Writer, name string, limit int, oneline bool)
 	return nil
 }
 
-func (l *LogService) printCommit(writer io.Writer, hash domain.Hash, commit *domain.Commit) error {
-	t, err := domain.FormatCommitDate(commit.Author.Timestamp, commit.Author.Timezone)
+func (l *LogService) printCommit(writer io.Writer, hash domain2.Hash, commit *domain2.Commit) error {
+	t, err := domain2.FormatCommitDate(commit.Author.Timestamp, commit.Author.Timezone)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (l *LogService) printCommit(writer io.Writer, hash domain.Hash, commit *dom
 	return nil
 }
 
-func (l *LogService) printCommitOneline(writer io.Writer, hash domain.Hash, commit *domain.Commit) error {
+func (l *LogService) printCommitOneline(writer io.Writer, hash domain2.Hash, commit *domain2.Commit) error {
 	shortHash := hash[:7]
 	commitPrefix := core.ColorGreen
 	commitSuffix := core.ColorReset

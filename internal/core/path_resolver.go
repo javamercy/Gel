@@ -1,7 +1,7 @@
 package core
 
 import (
-	"Gel/domain"
+	"Gel/internal/domain"
 	"errors"
 	"os"
 	"path/filepath"

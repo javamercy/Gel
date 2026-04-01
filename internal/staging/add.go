@@ -1,8 +1,8 @@
 package staging
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"fmt"
 )
 
@@ -12,22 +12,22 @@ type AddOptions struct {
 }
 
 type AddResult struct {
-	Added   []domain.NormalizedPath
-	Removed []domain.NormalizedPath
+	Added   []domain2.NormalizedPath
+	Removed []domain2.NormalizedPath
 	Error   error
 }
 type AddService struct {
 	indexService       *core.IndexService
 	updateIndexService *UpdateIndexService
 	pathResolver       *core.PathResolver
-	workspace          *domain.Workspace
+	workspace          *domain2.Workspace
 }
 
 func NewAddService(
 	indexService *core.IndexService,
 	updateIndexService *UpdateIndexService,
 	pathResolver *core.PathResolver,
-	workspace *domain.Workspace,
+	workspace *domain2.Workspace,
 ) *AddService {
 	return &AddService{
 		indexService:       indexService,
@@ -85,28 +85,28 @@ func (a *AddService) Add(pathspecs []string, options AddOptions) AddResult {
 }
 
 func (a *AddService) collectPaths(
-	index *domain.Index,
+	index *domain2.Index,
 	resolvedPaths []core.ResolvedPath,
 ) (
-	[]domain.NormalizedPath, []domain.NormalizedPath, error,
+	[]domain2.NormalizedPath, []domain2.NormalizedPath, error,
 ) {
-	var pathsToAdd []domain.NormalizedPath
-	var pathsToRemove []domain.NormalizedPath
+	var pathsToAdd []domain2.NormalizedPath
+	var pathsToRemove []domain2.NormalizedPath
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
 			pathsToAdd = append(pathsToAdd, path)
 		}
 
-		var indexEntries []*domain.IndexEntry
+		var indexEntries []*domain2.IndexEntry
 		switch resolved.Type {
 		case core.PathspecTypeFile, core.PathspecTypeNonExistent:
-			normalizedScope, err := domain.NewNormalizedPathUnchecked(resolved.NormalizedScope)
+			normalizedScope, err := domain2.NewNormalizedPathUnchecked(resolved.NormalizedScope)
 			if err != nil {
 				return nil, nil, fmt.Errorf("add: %w", err)
 			}
 			if entry, _ := index.FindEntry(normalizedScope); entry != nil {
-				indexEntries = []*domain.IndexEntry{entry}
+				indexEntries = []*domain2.IndexEntry{entry}
 			} else {
 				prefix := resolved.NormalizedScope
 				if prefix != "" {

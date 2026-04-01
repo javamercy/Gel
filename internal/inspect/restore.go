@@ -1,8 +1,8 @@
 package inspect
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"errors"
 	"fmt"
 	"os"
@@ -78,13 +78,13 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 	}
 
 	for _, path := range paths {
-		absPath, err := domain.NewAbsolutePath(path)
+		absPath, err := domain2.NewAbsolutePath(path)
 		if err != nil {
 			return fmt.Errorf("restore: %w", err)
 		}
-		stat := domain.GetFileStatFromPath(absPath)
+		stat := domain2.GetFileStatFromPath(absPath)
 		// TODO: fix here later
-		entry, _ := index.FindEntry(domain.NormalizedPath(path))
+		entry, _ := index.FindEntry(domain2.NormalizedPath(path))
 		if entry == nil {
 			continue
 		}
@@ -102,10 +102,10 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 			return err
 		}
 		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+		if err := os.MkdirAll(dir, domain2.DirPermission); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
+		if err := os.WriteFile(path, blob.Body(), domain2.FilePermission); err != nil {
 			return err
 		}
 	}
@@ -113,14 +113,14 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 }
 
 func (r *RestoreService) restoreHEADVsIndex(paths []string) error {
-	commitHash, err := r.refService.Resolve(domain.HeadFileName)
+	commitHash, err := r.refService.Resolve(domain2.HeadFileName)
 	if err != nil {
 		return err
 	}
 	return r.restoreCommitVsIndex(commitHash, paths)
 }
 
-func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, paths []string) error {
+func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain2.Hash, paths []string) error {
 	commitEntries, err := r.treeResolver.ResolveCommit(commitHash)
 	if err != nil {
 		return err
@@ -145,10 +145,10 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, path
 				return err
 			}
 			dir := filepath.Dir(path)
-			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, domain2.DirPermission); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
+			if err := os.WriteFile(path, blob.Body(), domain2.FilePermission); err != nil {
 				return err
 			}
 		}
@@ -156,7 +156,7 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, path
 	return nil
 }
 
-func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []string) error {
+func (r *RestoreService) restoreCommitVsIndex(commitHash domain2.Hash, paths []string) error {
 	commit, err := r.objectService.ReadCommit(commitHash)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 
 		inCommit := err == nil
 		// TODO: fix here later
-		indexEntry, _ := index.FindEntry(domain.NormalizedPath(path))
+		indexEntry, _ := index.FindEntry(domain2.NormalizedPath(path))
 		inIndex := indexEntry != nil
 
 		switch {
@@ -185,35 +185,35 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 			continue
 		case inCommit:
 			// TODO: fix here later
-			normalizedPath, err := domain.NewNormalizedPath("", path)
+			normalizedPath, err := domain2.NewNormalizedPath("", path)
 			if err != nil {
 				return fmt.Errorf("restore: %w", err)
 			}
-			newIndexEntry := domain.NewEmptyIndexEntry(normalizedPath, treeEntry.Hash, treeEntry.Mode.Uint32())
+			newIndexEntry := domain2.NewEmptyIndexEntry(normalizedPath, treeEntry.Hash, treeEntry.Mode.Uint32())
 			index.SetEntry(newIndexEntry)
 		default:
 			// TODO: fix here later
-			index.RemoveEntry(domain.NormalizedPath(path))
+			index.RemoveEntry(domain2.NormalizedPath(path))
 
 		}
 	}
 	return r.indexService.Write(index)
 }
 
-func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
-	var commitHash domain.Hash
+func (r *RestoreService) resolveSource(source string) (domain2.Hash, error) {
+	var commitHash domain2.Hash
 	var err error
 
 	switch source {
-	case domain.HeadFileName:
+	case domain2.HeadFileName:
 		commitHash, err = r.refService.Resolve(source)
-	case domain.MainBranchName:
+	case domain2.MainBranchName:
 		commitHash, err = r.refService.Read("refs/heads/main")
 	default:
-		commitHash, err = domain.NewHash(source)
+		commitHash, err = domain2.NewHash(source)
 	}
 	if err != nil {
-		return domain.Hash{}, err
+		return domain2.Hash{}, err
 	}
 	return commitHash, nil
 }

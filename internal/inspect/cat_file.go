@@ -1,8 +1,8 @@
 package inspect
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"errors"
 	"fmt"
 	"io"
@@ -37,7 +37,7 @@ func NewCatFileService(objectService *core.ObjectService) *CatFileService {
 // At least one option must be enabled. Multiple options can be combined
 // (for example, printing type and size in sequence). When Exists is set, the
 // function only performs existence checking and does not read object content.
-func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, options CatFileOptions) error {
+func (c *CatFileService) CatFile(writer io.Writer, hash domain2.Hash, options CatFileOptions) error {
 	if !options.ObjectType && !options.Pretty && !options.Size && !options.Exists {
 		return errors.New("cat-file: specify at least one of -t, -p, -s, -e")
 	}
@@ -75,12 +75,12 @@ func (c *CatFileService) CatFile(writer io.Writer, hash domain.Hash, options Cat
 // catFileWithPretty writes object content in a format tailored to object type:
 // tree entries for tree objects, raw body for blobs, and structured commit
 // fields for commits.
-func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain.Object) error {
+func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain2.Object) error {
 	switch object.Type() {
-	case domain.ObjectTypeTree:
-		tree, ok := object.(*domain.Tree)
+	case domain2.ObjectTypeTree:
+		tree, ok := object.(*domain2.Tree)
 		if !ok {
-			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
+			return fmt.Errorf("cat file: %w", domain2.ErrInvalidObjectType)
 		}
 
 		treeEntries, err := tree.Deserialize()
@@ -103,23 +103,23 @@ func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain.Objec
 				return fmt.Errorf("cat file: %w", err)
 			}
 		}
-	case domain.ObjectTypeBlob:
-		blob, ok := object.(*domain.Blob)
+	case domain2.ObjectTypeBlob:
+		blob, ok := object.(*domain2.Blob)
 		if !ok {
-			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
+			return fmt.Errorf("cat file: %w", domain2.ErrInvalidObjectType)
 		}
 		if _, err := writer.Write(blob.Body()); err != nil {
 			return fmt.Errorf("cat file: %w", err)
 		}
-	case domain.ObjectTypeCommit:
-		commit, ok := object.(*domain.Commit)
+	case domain2.ObjectTypeCommit:
+		commit, ok := object.(*domain2.Commit)
 		if !ok {
-			return fmt.Errorf("cat file: %w", domain.ErrInvalidObjectType)
+			return fmt.Errorf("cat file: %w", domain2.ErrInvalidObjectType)
 		}
 		if _, err := fmt.Fprintf(
 			writer,
 			"%s %s\n",
-			domain.CommitFieldTree,
+			domain2.CommitFieldTree,
 			commit.TreeHash,
 		); err != nil {
 			return fmt.Errorf("cat file: %w", err)
@@ -128,7 +128,7 @@ func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain.Objec
 			if _, err := fmt.Fprintf(
 				writer,
 				"%s %s\n",
-				domain.CommitFieldParent,
+				domain2.CommitFieldParent,
 				parentHash,
 			); err != nil {
 				return fmt.Errorf("cat file: %w", err)
@@ -139,12 +139,12 @@ func (c *CatFileService) catFileWithPretty(writer io.Writer, object domain.Objec
 			"%s %s <%s> %s %s\n"+
 				"%s %s <%s> %s %s\n"+
 				"\n%s\n",
-			domain.CommitFieldAuthor,
+			domain2.CommitFieldAuthor,
 			commit.Author.Name,
 			commit.Author.Email,
 			commit.Author.Timestamp,
 			commit.Author.Timezone,
-			domain.CommitFieldCommitter,
+			domain2.CommitFieldCommitter,
 			commit.Committer.Name,
 			commit.Committer.Email,
 			commit.Committer.Timestamp,

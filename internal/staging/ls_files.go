@@ -1,8 +1,8 @@
 package staging
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"errors"
 	"fmt"
 	"os"
@@ -23,14 +23,14 @@ type LsFilesService struct {
 	indexService   *core.IndexService
 	objectService  *core.ObjectService
 	changeDetector *core.ChangeDetector
-	workspace      *domain.Workspace
+	workspace      *domain2.Workspace
 }
 
 func NewLsFilesService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
 	changeDetector *core.ChangeDetector,
-	workspace *domain.Workspace,
+	workspace *domain2.Workspace,
 ) *LsFilesService {
 	return &LsFilesService{
 		indexService:   indexService,
@@ -50,7 +50,7 @@ func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]str
 		return nil, fmt.Errorf("ls-files: %w", err)
 	}
 
-	var entries []*domain.IndexEntry
+	var entries []*domain2.IndexEntry
 	if pathspec != "" {
 		if strings.ContainsAny(pathspec, globPatterns) {
 			entries = index.FindEntriesByPathPattern(pathspec)
@@ -74,12 +74,12 @@ func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]str
 	return nil, nil
 }
 
-func (l *LsFilesService) LsFilesWithStage(entries []*domain.IndexEntry) []string {
+func (l *LsFilesService) LsFilesWithStage(entries []*domain2.IndexEntry) []string {
 	files := make([]string, len(entries))
 	for i, entry := range entries {
 		files[i] = fmt.Sprintf(
 			"%s %s %d\t%s",
-			domain.ParseFileMode(entry.Mode),
+			domain2.ParseFileMode(entry.Mode),
 			entry.Hash,
 			entry.GetStage(),
 			entry.Path,
@@ -88,7 +88,7 @@ func (l *LsFilesService) LsFilesWithStage(entries []*domain.IndexEntry) []string
 	return files
 }
 
-func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []string {
+func (l *LsFilesService) LsFilesWithCached(entries []*domain2.IndexEntry) []string {
 	files := make([]string, len(entries))
 	for i, entry := range entries {
 		files[i] = entry.Path.String()
@@ -96,14 +96,14 @@ func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []strin
 	return files
 }
 
-func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]string, error) {
+func (l *LsFilesService) LsFilesWithModified(entries []*domain2.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
 		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)
 		if err != nil {
 			return nil, fmt.Errorf("ls-files: %w", err)
 		}
-		stat := domain.GetFileStatFromPath(absolutePath)
+		stat := domain2.GetFileStatFromPath(absolutePath)
 		changeResult, err := l.changeDetector.DetectFileChange(entry, stat)
 		if err != nil {
 			return nil, err
@@ -115,7 +115,7 @@ func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]st
 	return files, nil
 }
 
-func (l *LsFilesService) LsFilesWithDeleted(entries []*domain.IndexEntry) ([]string, error) {
+func (l *LsFilesService) LsFilesWithDeleted(entries []*domain2.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
 		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)

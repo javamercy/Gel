@@ -1,11 +1,11 @@
 package core
 
 import (
-	"Gel/domain"
+	domain2 "Gel/internal/domain"
 	"path"
 )
 
-type Processor = func(entry domain.TreeEntry, relPath string) error
+type Processor = func(entry domain2.TreeEntry, relPath string) error
 
 type WalkOptions struct {
 	Recursive    bool
@@ -25,7 +25,7 @@ func NewTreeWalker(objectService *ObjectService, options WalkOptions) *TreeWalke
 	}
 }
 
-func (w *TreeWalker) Walk(hash domain.Hash, prefix string, processor Processor) error {
+func (w *TreeWalker) Walk(hash domain2.Hash, prefix string, processor Processor) error {
 	entries, err := w.objectService.ReadTreeAndDeserializeEntries(hash)
 	if err != nil {
 		return err

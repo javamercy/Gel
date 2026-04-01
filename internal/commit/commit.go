@@ -1,8 +1,8 @@
 package commit
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"Gel/internal/tree"
 	"errors"
 )
@@ -34,8 +34,8 @@ func (c *CommitService) Commit(message string) error {
 		return err
 	}
 
-	var parentHashes []domain.Hash
-	headRef, err := c.refService.ReadSymbolic(domain.HeadFileName)
+	var parentHashes []domain2.Hash
+	headRef, err := c.refService.ReadSymbolic(domain2.HeadFileName)
 	if err != nil {
 		return err
 	}

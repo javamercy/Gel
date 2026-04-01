@@ -1,8 +1,8 @@
 package staging
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"Gel/internal/validate"
 	"errors"
 	"fmt"
@@ -24,7 +24,7 @@ type UpdateIndexService struct {
 	objectService     *core.ObjectService
 	hashObjectService *core.HashObjectService
 	changeDetector    *core.ChangeDetector
-	workspace         *domain.Workspace
+	workspace         *domain2.Workspace
 }
 
 // NewUpdateIndexService creates an index update service with its dependencies.
@@ -33,7 +33,7 @@ func NewUpdateIndexService(
 	objectService *core.ObjectService,
 	hashObjectService *core.HashObjectService,
 	changeDetector *core.ChangeDetector,
-	workspace *domain.Workspace,
+	workspace *domain2.Workspace,
 ) *UpdateIndexService {
 	return &UpdateIndexService{
 		indexService:      indexService,
@@ -49,9 +49,9 @@ func NewUpdateIndexService(
 // At least one of options.Add or options.Remove must be enabled. Returned paths
 // are the paths that were actually affected by the selected operation.
 func (u *UpdateIndexService) UpdateIndex(
-	paths []domain.NormalizedPath,
+	paths []domain2.NormalizedPath,
 	options UpdateIndexOptions,
-) ([]domain.NormalizedPath, error) {
+) ([]domain2.NormalizedPath, error) {
 	if !options.Add && !options.Remove {
 		return nil, errors.New("update-index: must specify --add or --remove")
 	}
@@ -75,13 +75,13 @@ func (u *UpdateIndexService) UpdateIndex(
 // It computes object hashes, writes blob objects when requested, and updates
 // entry metadata only for paths that are newly added or modified.
 func (u *UpdateIndexService) updateIndexWithAdd(
-	index *domain.Index,
-	paths []domain.NormalizedPath,
+	index *domain2.Index,
+	paths []domain2.NormalizedPath,
 	write bool,
 ) (
-	[]domain.NormalizedPath, error,
+	[]domain2.NormalizedPath, error,
 ) {
-	var addedPaths []domain.NormalizedPath
+	var addedPaths []domain2.NormalizedPath
 	for _, path := range paths {
 		absolutePath, err := path.ToAbsolutePath(u.workspace.RepoDir)
 		if err != nil {
@@ -91,8 +91,8 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 			return nil, fmt.Errorf("update-index: %w", err)
 		}
 
-		var newEntry *domain.IndexEntry
-		stat := domain.GetFileStatFromPath(absolutePath)
+		var newEntry *domain2.IndexEntry
+		stat := domain2.GetFileStatFromPath(absolutePath)
 		entry, _ := index.FindEntry(path)
 		if entry != nil {
 			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
@@ -115,16 +115,16 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 			}
 
 			index.RemoveEntry(path)
-			newEntry = domain.NewIndexEntry(
+			newEntry = domain2.NewIndexEntry(
 				path,
 				changeResult.NewHash,
 				stat.Size,
-				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				domain2.ParseFileModeFromOsMode(stat.Mode).Uint32(),
 				stat.Device,
 				stat.Inode,
 				stat.UserId,
 				stat.GroupId,
-				domain.ComputeIndexFlags(path.String(), 0),
+				domain2.ComputeIndexFlags(path.String(), 0),
 				stat.CreatedTime,
 				stat.UpdatedTime,
 			)
@@ -144,16 +144,16 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			newEntry = domain.NewIndexEntry(
+			newEntry = domain2.NewIndexEntry(
 				path,
 				hash,
 				stat.Size,
-				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				domain2.ParseFileModeFromOsMode(stat.Mode).Uint32(),
 				stat.Device,
 				stat.Inode,
 				stat.UserId,
 				stat.GroupId,
-				domain.ComputeIndexFlags(path.String(), 0),
+				domain2.ComputeIndexFlags(path.String(), 0),
 				stat.CreatedTime,
 				stat.UpdatedTime,
 			)
@@ -173,10 +173,10 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 
 // updateIndexWithRemove removes the given paths from the index.
 // Missing paths are treated as no-op removals.
-func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []domain.NormalizedPath, write bool) (
-	[]domain.NormalizedPath, error,
+func (u *UpdateIndexService) updateIndexWithRemove(index *domain2.Index, paths []domain2.NormalizedPath, write bool) (
+	[]domain2.NormalizedPath, error,
 ) {
-	var removedPaths []domain.NormalizedPath
+	var removedPaths []domain2.NormalizedPath
 	for _, path := range paths {
 		if index.HasEntry(path) {
 			removedPaths = append(removedPaths, path)

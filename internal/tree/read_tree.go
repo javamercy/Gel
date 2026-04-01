@@ -1,8 +1,8 @@
 package tree
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"time"
 )
 
@@ -21,15 +21,15 @@ func NewReadTreeService(
 	}
 }
 
-func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
-	var indexEntries []*domain.IndexEntry
-	processor := func(entry domain.TreeEntry, path string) error {
+func (readTreeService *ReadTreeService) ReadTree(hash domain2.Hash) error {
+	var indexEntries []*domain2.IndexEntry
+	processor := func(entry domain2.TreeEntry, path string) error {
 		// TODO: fix here later
-		normalizedPath, err := domain.NewNormalizedPath("", path)
+		normalizedPath, err := domain2.NewNormalizedPath("", path)
 		if err != nil {
 			return err
 		}
-		indexEntry := domain.NewIndexEntry(
+		indexEntry := domain2.NewIndexEntry(
 			normalizedPath,
 			entry.Hash,
 			0,
@@ -38,7 +38,7 @@ func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 			0,
 			0,
 			0,
-			domain.ComputeIndexFlags(normalizedPath.String(), 0),
+			domain2.ComputeIndexFlags(normalizedPath.String(), 0),
 			time.Time{},
 			time.Time{},
 		)
@@ -58,7 +58,7 @@ func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 		return err
 	}
 
-	index := domain.NewEmptyIndex()
+	index := domain2.NewEmptyIndex()
 	for _, entry := range indexEntries {
 		index.AddEntry(entry)
 	}

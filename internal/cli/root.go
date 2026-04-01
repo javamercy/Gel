@@ -1,11 +1,11 @@
 package cli
 
 import (
-	"Gel/domain"
 	"Gel/internal/branch"
 	"Gel/internal/commit"
 	"Gel/internal/core"
 	"Gel/internal/diff"
+	"Gel/internal/domain"
 	"Gel/internal/inspect"
 	"Gel/internal/staging"
 	"Gel/internal/storage"

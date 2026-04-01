@@ -1,8 +1,8 @@
 package tree
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	domain2 "Gel/internal/domain"
 	"fmt"
 	"io"
 )
@@ -17,8 +17,8 @@ func NewLsTreeService(objectService *core.ObjectService) *LsTreeService {
 	}
 }
 
-func (l *LsTreeService) LsTree(writer io.Writer, hash domain.Hash, recursive, showTrees, nameOnly bool) error {
-	processor := func(entry domain.TreeEntry, relPath string) error {
+func (l *LsTreeService) LsTree(writer io.Writer, hash domain2.Hash, recursive, showTrees, nameOnly bool) error {
+	processor := func(entry domain2.TreeEntry, relPath string) error {
 		objectType, err := entry.Mode.ObjectType()
 		if err != nil {
 			return err

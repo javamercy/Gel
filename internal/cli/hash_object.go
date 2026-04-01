@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"Gel/domain"
 	"Gel/internal/core"
+	"Gel/internal/domain"
 
 	"github.com/spf13/cobra"
 )
