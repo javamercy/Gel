@@ -10,6 +10,9 @@ import (
 var (
 	hashObjectWriteFlag bool
 )
+
+// hashObjectCmd computes SHA-256 object IDs for one or more files.
+// With -w, it also writes computed blob objects into the repository object store.
 var hashObjectCmd = &cobra.Command{
 	Use:   "hash-object <file>...",
 	Short: "Compute the hash of a file",
