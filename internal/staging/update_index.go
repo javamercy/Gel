@@ -8,11 +8,17 @@ import (
 	"fmt"
 )
 
+// UpdateIndexOptions controls update-index behavior.
 type UpdateIndexOptions struct {
-	Add    bool
+	// Add updates or inserts entries for the provided paths.
+	Add bool
+	// Remove deletes entries for the provided paths from the index.
 	Remove bool
-	Write  bool
+	// Write persists the updated index to disk when true.
+	Write bool
 }
+
+// UpdateIndexService updates index entries from working tree files.
 type UpdateIndexService struct {
 	indexService      *core.IndexService
 	objectService     *core.ObjectService
@@ -21,6 +27,7 @@ type UpdateIndexService struct {
 	workspace         *domain.Workspace
 }
 
+// NewUpdateIndexService creates an index update service with its dependencies.
 func NewUpdateIndexService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
@@ -37,6 +44,10 @@ func NewUpdateIndexService(
 	}
 }
 
+// UpdateIndex applies add/remove operations for normalized repository paths.
+//
+// At least one of options.Add or options.Remove must be enabled. Returned paths
+// are the paths that were actually affected by the selected operation.
 func (u *UpdateIndexService) UpdateIndex(
 	paths []domain.NormalizedPath,
 	options UpdateIndexOptions,
@@ -60,6 +71,9 @@ func (u *UpdateIndexService) UpdateIndex(
 	}
 }
 
+// updateIndexWithAdd stages file content for the given normalized paths.
+// It computes object hashes, writes blob objects when requested, and updates
+// entry metadata only for paths that are newly added or modified.
 func (u *UpdateIndexService) updateIndexWithAdd(
 	index *domain.Index,
 	paths []domain.NormalizedPath,
@@ -69,16 +83,15 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 ) {
 	var addedPaths []domain.NormalizedPath
 	for _, path := range paths {
-		if err := validate.PathMustBeFile(path.String()); err != nil {
-			return nil, fmt.Errorf("update-index: %w", err)
-		}
-
-		var newEntry *domain.IndexEntry
 		absolutePath, err := path.ToAbsolutePath(u.workspace.RepoDir)
 		if err != nil {
 			return nil, fmt.Errorf("update-index: %w", err)
 		}
+		if err := validate.PathMustBeFile(absolutePath.String()); err != nil {
+			return nil, fmt.Errorf("update-index: %w", err)
+		}
 
+		var newEntry *domain.IndexEntry
 		stat := domain.GetFileStatFromPath(absolutePath)
 		entry, _ := index.FindEntry(path)
 		if entry != nil {
@@ -158,6 +171,8 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 	return addedPaths, nil
 }
 
+// updateIndexWithRemove removes the given paths from the index.
+// Missing paths are treated as no-op removals.
 func (u *UpdateIndexService) updateIndexWithRemove(index *domain.Index, paths []domain.NormalizedPath, write bool) (
 	[]domain.NormalizedPath, error,
 ) {

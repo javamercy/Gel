@@ -3,6 +3,7 @@ package cli
 import (
 	"Gel/domain"
 	"Gel/internal/staging"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -11,6 +12,8 @@ var (
 	updateIndexAddFlag    bool
 	updateIndexRemoveFlag bool
 )
+
+// updateIndexCmd updates index entries directly for the provided path arguments.
 var updateIndexCmd = &cobra.Command{
 	Use:   "update-index <file>...",
 	Short: "Update the index with the current state of the working directory",
@@ -18,14 +21,14 @@ var updateIndexCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		normalizedPaths := make([]domain.NormalizedPath, len(args))
 		for i, path := range args {
-			absolutePath, err := domain.NewNormalizedPath(workspace.RepoDir, path)
+			normalizedPath, err := domain.NewNormalizedPath(workspace.RepoDir, path)
 			if err != nil {
 				return err
 			}
-			normalizedPaths[i] = absolutePath
+			normalizedPaths[i] = normalizedPath
 		}
 
-		_, err := updateIndexService.UpdateIndex(
+		paths, err := updateIndexService.UpdateIndex(
 			normalizedPaths,
 			staging.UpdateIndexOptions{
 				Add:    updateIndexAddFlag,
@@ -33,7 +36,13 @@ var updateIndexCmd = &cobra.Command{
 				Write:  true,
 			},
 		)
-		return err
+		if err != nil {
+			return err
+		}
+		for _, path := range paths {
+			fmt.Println(path)
+		}
+		return nil
 	},
 }
 
