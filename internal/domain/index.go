@@ -192,7 +192,19 @@ func NewEmptyIndex() *Index {
 }
 
 func (idx *Index) AddEntry(entry *IndexEntry) {
-	idx.Entries = append(idx.Entries, entry)
+	i := sort.Search(
+		len(idx.Entries), func(i int) bool {
+			return idx.Entries[i].Path.String() >= entry.Path.String()
+		},
+	)
+	if i < len(idx.Entries) && idx.Entries[i].Path == entry.Path {
+		idx.Entries[i] = entry
+		return
+	}
+
+	idx.Entries = append(idx.Entries, nil)
+	copy(idx.Entries[i+1:], idx.Entries[i:])
+	idx.Entries[i] = entry
 	idx.Header.NumEntries = uint32(len(idx.Entries))
 }
 
