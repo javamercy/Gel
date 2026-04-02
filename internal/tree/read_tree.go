@@ -21,14 +21,14 @@ func NewReadTreeService(
 	}
 }
 
-func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
+func (r *ReadTreeService) ReadTree(hash domain.Hash) error {
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, path string) error {
-		// TODO: fix here later
-		normalizedPath, err := domain.NewNormalizedPath("", path)
+		normalizedPath, err := domain.NewNormalizedPathUnchecked(path)
 		if err != nil {
 			return err
 		}
+
 		indexEntry := domain.NewIndexEntry(
 			normalizedPath,
 			entry.Hash,
@@ -52,7 +52,7 @@ func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 		OnlyTrees:    false,
 	}
 
-	treeWalker := core.NewTreeWalker(readTreeService.objectService, options)
+	treeWalker := core.NewTreeWalker(r.objectService, options)
 	err := treeWalker.Walk(hash, "", processor)
 	if err != nil {
 		return err
@@ -62,5 +62,5 @@ func (readTreeService *ReadTreeService) ReadTree(hash domain.Hash) error {
 	for _, entry := range indexEntries {
 		index.AddEntry(entry)
 	}
-	return readTreeService.indexService.Write(index)
+	return r.indexService.Write(index)
 }

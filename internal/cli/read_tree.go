@@ -16,7 +16,6 @@ var readTreeCmd = &cobra.Command{
 			return err
 		}
 		return readTreeService.ReadTree(hash)
-
 	},
 }
 
