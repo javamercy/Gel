@@ -10,6 +10,8 @@ var (
 	addDryRunFlag  bool
 	addVerboseFlag bool
 )
+
+// addCmd stages file content into the index using pathspec semantics.
 var addCmd = &cobra.Command{
 	Use:   "add <pathspec>...",
 	Short: "Add file contents to the index",

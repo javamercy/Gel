@@ -4,18 +4,25 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
 	"fmt"
+	"sort"
 )
 
+// AddOptions controls add command execution mode.
 type AddOptions struct {
-	DryRun  bool
+	// DryRun computes add/remove results without writing index changes.
+	DryRun bool
+	// Verbose includes added/removed path output after a real update.
 	Verbose bool
 }
 
+// AddResult returns the outcome of an add invocation.
 type AddResult struct {
 	Added   []domain.NormalizedPath
 	Removed []domain.NormalizedPath
 	Error   error
 }
+
+// AddService stages working tree paths and reconciles scoped removals.
 type AddService struct {
 	indexService       *core.IndexService
 	updateIndexService *UpdateIndexService
@@ -23,6 +30,7 @@ type AddService struct {
 	workspace          *domain.Workspace
 }
 
+// NewAddService creates an add service with required dependencies.
 func NewAddService(
 	indexService *core.IndexService,
 	updateIndexService *UpdateIndexService,
@@ -37,6 +45,9 @@ func NewAddService(
 	}
 }
 
+// Add resolves pathspecs, computes staged additions/removals, and updates index.
+// It uses pathspec scope to decide which previously tracked entries should be
+// removed when they are no longer present in the resolved set.
 func (a *AddService) Add(pathspecs []string, options AddOptions) AddResult {
 	index, err := a.indexService.Read()
 	if err != nil {
@@ -84,6 +95,8 @@ func (a *AddService) Add(pathspecs []string, options AddOptions) AddResult {
 	return AddResult{}
 }
 
+// collectPaths computes deterministic add/remove path lists for update-index.
+// Paths are deduplicated and sorted to avoid map-iteration order instability.
 func (a *AddService) collectPaths(
 	index *domain.Index,
 	resolvedPaths []core.ResolvedPath,
