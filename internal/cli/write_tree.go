@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// writeTreeCmd writes the current index as a tree object and prints its hash.
 var writeTreeCmd = &cobra.Command{
 	Use:   "write-tree",
 	Short: "Write the current index as a tree object",
@@ -13,7 +14,6 @@ var writeTreeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		cmd.Println(hash)
 		return nil
 	},

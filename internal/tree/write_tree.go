@@ -7,11 +7,27 @@ import (
 	"strings"
 )
 
+// fileNode represents one staged file leaf in a directory tree.
+type fileNode struct {
+	mode domain.FileMode
+	hash domain.Hash
+	name string
+}
+
+// directoryNode represents one directory in the temporary tree builder graph.
+type directoryNode struct {
+	name     string
+	children map[string]*directoryNode
+	files    []*fileNode
+}
+
+// WriteTreeService writes tree objects from the current index snapshot.
 type WriteTreeService struct {
 	indexService  *core.IndexService
 	objectService *core.ObjectService
 }
 
+// NewWriteTreeService creates a write-tree service.
 func NewWriteTreeService(indexService *core.IndexService, objectService *core.ObjectService) *WriteTreeService {
 	return &WriteTreeService{
 		indexService:  indexService,
@@ -19,6 +35,8 @@ func NewWriteTreeService(indexService *core.IndexService, objectService *core.Ob
 	}
 }
 
+// WriteTree converts all current index entries into a root tree object.
+// It returns the root tree hash and writes any missing tree objects to storage.
 func (w *WriteTreeService) WriteTree() (domain.Hash, error) {
 	entries, err := w.indexService.GetEntries()
 	if err != nil {
@@ -33,6 +51,8 @@ func (w *WriteTreeService) WriteTree() (domain.Hash, error) {
 	return rootHash, nil
 }
 
+// writeTreeRecursive materializes tree objects for a directory subtree.
+// Child trees are written first so parent tree entries can reference their hashes.
 func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash, error) {
 	var entries []domain.TreeEntry
 
@@ -41,10 +61,10 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash,
 		if err != nil {
 			return domain.Hash{}, err
 		}
+
 		entry := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
 		entries = append(entries, entry)
 	}
-
 	for _, file := range root.files {
 		entry := domain.NewTreeEntry(file.mode, file.hash, file.name)
 		entries = append(entries, entry)
@@ -79,6 +99,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash,
 	return hash, nil
 }
 
+// buildRootTree groups flat index entries into an in-memory directory tree.
 func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 	root := &directoryNode{
 		name:     "",
@@ -117,6 +138,9 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 	return root
 }
 
+// sortTreeEntries applies Git tree entry ordering.
+// Directory names are compared with a trailing slash so directories sort
+// consistently with file names in the same parent tree.
 func sortTreeEntries(entries []domain.TreeEntry) {
 	sort.Slice(
 		entries, func(i, j int) bool {
@@ -132,15 +156,4 @@ func sortTreeEntries(entries []domain.TreeEntry) {
 			return NameI < NameJ
 		},
 	)
-}
-
-type fileNode struct {
-	mode domain.FileMode
-	hash domain.Hash
-	name string
-}
-type directoryNode struct {
-	name     string
-	children map[string]*directoryNode
-	files    []*fileNode
 }
