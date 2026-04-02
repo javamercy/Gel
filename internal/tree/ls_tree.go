@@ -4,8 +4,13 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
 	"fmt"
-	"io"
 )
+
+type LsTreeOptions struct {
+	Recursive bool
+	ShowTrees bool
+	NameOnly  bool
+}
 
 type LsTreeService struct {
 	objectService *core.ObjectService
@@ -17,36 +22,33 @@ func NewLsTreeService(objectService *core.ObjectService) *LsTreeService {
 	}
 }
 
-func (l *LsTreeService) LsTree(writer io.Writer, hash domain.Hash, recursive, showTrees, nameOnly bool) error {
+func (l *LsTreeService) LsTree(hash domain.Hash, options LsTreeOptions) ([]string, error) {
+	var contents []string
 	processor := func(entry domain.TreeEntry, relPath string) error {
 		objectType, err := entry.Mode.ObjectType()
 		if err != nil {
 			return err
 		}
-		if nameOnly {
-			if _, err := fmt.Fprintln(writer, entry.Name); err != nil {
-				return fmt.Errorf("failed to write entry name: %w", err)
-			}
+		if options.NameOnly {
+			contents = append(contents, relPath)
 		} else {
-			if _, err := fmt.Fprintf(
-				writer,
-				"%s %s %s\t%s\n",
-				entry.Mode,
-				objectType,
-				entry.Hash,
-				relPath,
-			); err != nil {
-				return fmt.Errorf("failed to write entry: %w", err)
-			}
+			result := fmt.Sprintf(
+				"%s %s %s\t%s",
+				entry.Mode, objectType, entry.Hash, relPath,
+			)
+			contents = append(contents, result)
 		}
 		return nil
 	}
 
-	options := core.WalkOptions{
-		Recursive:    recursive,
-		IncludeTrees: showTrees,
+	walkOptions := core.WalkOptions{
+		Recursive:    options.Recursive,
+		IncludeTrees: options.ShowTrees,
 		OnlyTrees:    false,
 	}
-	treeWalker := core.NewTreeWalker(l.objectService, options)
-	return treeWalker.Walk(hash, "", processor)
+	treeWalker := core.NewTreeWalker(l.objectService, walkOptions)
+	if err := treeWalker.Walk(hash, "", processor); err != nil {
+		return nil, err
+	}
+	return contents, nil
 }

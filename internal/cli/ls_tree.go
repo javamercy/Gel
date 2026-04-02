@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Gel/internal/domain"
+	"Gel/internal/tree"
 
 	"github.com/spf13/cobra"
 )
@@ -20,9 +21,20 @@ var lsTreeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return lsTreeService.LsTree(
-			cmd.OutOrStdout(), hash, lsTreeRecursiveFlag, lsTreeShowTreesFlag, lsTreeNameOnlyFlag,
+		contents, err := lsTreeService.LsTree(
+			hash, tree.LsTreeOptions{
+				Recursive: lsTreeRecursiveFlag,
+				ShowTrees: lsTreeShowTreesFlag,
+				NameOnly:  lsTreeNameOnlyFlag,
+			},
 		)
+		if err != nil {
+			return err
+		}
+		for _, result := range contents {
+			cmd.Println(result)
+		}
+		return nil
 	},
 }
 
