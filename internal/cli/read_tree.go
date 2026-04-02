@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// readTreeCmd loads a tree object into the index.
 var readTreeCmd = &cobra.Command{
 	Use:   "read-tree <tree-hash>",
 	Short: "Read tree objects into the index",
