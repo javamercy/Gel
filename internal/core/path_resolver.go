@@ -127,16 +127,18 @@ func (p *PathResolver) expandPathspec(pathspec string, pathspecType PathspecType
 }
 
 func (p *PathResolver) normalizeScope(pathspec string, pathspecType PathspecType) (string, error) {
-	var normalizedScope string
 	switch pathspecType {
-	case PathspecTypeFile, PathspecTypeNonExistent:
-		normalizedPath, err := domain.NewNormalizedPath(p.repoDir, pathspec)
+	case PathspecTypeFile,
+		PathspecTypeDirectory,
+		PathspecTypeGlobPattern,
+		PathspecTypeNonExistent:
+		np, err := domain.NewNormalizedPath(p.repoDir, pathspec)
 		if err != nil {
 			return "", err
 		}
-		normalizedScope = normalizedPath.String()
-	case PathspecTypeDirectory, PathspecTypeGlobPattern:
-		normalizedScope = pathspec
+		return np.String(), nil
+	default:
+		return "", ErrUnknownPathspecType
 	}
 	if normalizedScope == "." {
 		normalizedScope = ""
