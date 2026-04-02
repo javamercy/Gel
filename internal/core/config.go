@@ -6,7 +6,6 @@ import (
 	"Gel/internal/validate"
 	"bytes"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/BurntSushi/toml"
@@ -69,18 +68,6 @@ func (c *ConfigService) Set(section, key, value string) error {
 	return c.Write(config)
 }
 
-// GetAndOutput reads a config value and prints it to writer.
-func (c *ConfigService) GetAndOutput(writer io.Writer, section, key string) error {
-	value, err := c.Get(section, key)
-	if err != nil {
-		return err
-	}
-	if _, err = fmt.Fprintln(writer, value); err != nil {
-		return fmt.Errorf("config: failed to write config: %w", err)
-	}
-	return nil
-}
-
 // Get returns a config value by section and key.
 func (c *ConfigService) Get(section, key string) (string, error) {
 	if err := validate.StringMustNotBeEmpty(section); err != nil {
@@ -101,12 +88,13 @@ func (c *ConfigService) Get(section, key string) (string, error) {
 	return value, nil
 }
 
-// List writes all config entries in "section.key=value" format.
-// Output is sorted by section then key for deterministic ordering.
-func (c *ConfigService) List(writer io.Writer) error {
+// List returns all config entries in "section.key=value" format.
+// Results are sorted by section then key for deterministic ordering.
+func (c *ConfigService) List() ([]string, error) {
+	var out []string
 	config, err := c.Read()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sectionNames := make([]string, 0, len(config.Sections))
@@ -126,12 +114,10 @@ func (c *ConfigService) List(writer io.Writer) error {
 
 		for _, key := range keys {
 			value := section[key]
-			if _, err := fmt.Fprintf(writer, "%s.%s=%s\n", sectionName, key, value); err != nil {
-				return fmt.Errorf("config: failed to write config: %w", err)
-			}
+			out = append(out, fmt.Sprintf("%s.%s=%s", sectionName, key, value))
 		}
 	}
-	return nil
+	return out, nil
 }
 
 // Write encodes and persists config data to storage.
