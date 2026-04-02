@@ -88,14 +88,14 @@ func (a *AddService) collectPaths(
 	index *domain.Index,
 	resolvedPaths []core.ResolvedPath,
 ) (
-	[]domain.NormalizedPath, []domain.NormalizedPath, error,
+	pathsToAdd []domain.NormalizedPath, pathsToRemove []domain.NormalizedPath, err error,
 ) {
-	var pathsToAdd []domain.NormalizedPath
-	var pathsToRemove []domain.NormalizedPath
+	pathsToAddSet := make(map[domain.NormalizedPath]bool)
+	pathsToRemoveSet := make(map[domain.NormalizedPath]bool)
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			pathsToAdd = append(pathsToAdd, path)
+			pathsToAddSet[path] = true
 		}
 
 		var indexEntries []*domain.IndexEntry
@@ -126,7 +126,7 @@ func (a *AddService) collectPaths(
 
 		for _, entry := range indexEntries {
 			if !resolved.NormalizedPaths[entry.Path] {
-				pathsToRemove = append(pathsToRemove, entry.Path)
+				pathsToRemoveSet[entry.Path] = true
 			}
 		}
 		if len(resolved.NormalizedPaths) == 0 && len(indexEntries) == 0 {
@@ -134,5 +134,22 @@ func (a *AddService) collectPaths(
 		}
 
 	}
-	return pathsToAdd, pathsToRemove, nil
+	for path := range pathsToAddSet {
+		delete(pathsToRemoveSet, path)
+	}
+	return sortedPathSet(pathsToAddSet), sortedPathSet(pathsToRemoveSet), nil
+}
+
+// sortedPathSet converts a set of normalized paths into lexicographic order.
+func sortedPathSet(set map[domain.NormalizedPath]bool) []domain.NormalizedPath {
+	out := make([]domain.NormalizedPath, 0, len(set))
+	for path := range set {
+		out = append(out, path)
+	}
+	sort.Slice(
+		out, func(i, j int) bool {
+			return out[i].String() < out[j].String()
+		},
+	)
+	return out
 }
