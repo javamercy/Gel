@@ -11,7 +11,8 @@ var (
 	configListFlag bool
 )
 
-var ConfigCmd = &cobra.Command{
+// configCmd gets, sets, or lists repository config values.
+var configCmd = &cobra.Command{
 	Use:          "config [key] [value]",
 	Short:        "Get or set repository or global options",
 	SilenceUsage: true,
@@ -28,6 +29,7 @@ var ConfigCmd = &cobra.Command{
 		if len(segments) != 2 {
 			return fmt.Errorf("invalid key: %s (must be section.key)", args[0])
 		}
+
 		section, key := segments[0], segments[1]
 		if len(args) == 1 {
 			return configService.GetAndOutput(cmd.OutOrStdout(), section, key)
@@ -39,6 +41,6 @@ var ConfigCmd = &cobra.Command{
 }
 
 func init() {
-	ConfigCmd.Flags().BoolVarP(&configListFlag, "list", "l", false, "List all config values")
-	rootCmd.AddCommand(ConfigCmd)
+	configCmd.Flags().BoolVarP(&configListFlag, "list", "l", false, "List all config values")
+	rootCmd.AddCommand(configCmd)
 }

@@ -11,12 +11,14 @@ type ConfigStorage struct {
 	workspace *domain.Workspace
 }
 
+// NewConfigStorage creates storage access for .gel/config.toml.
 func NewConfigStorage(workspace *domain.Workspace) *ConfigStorage {
 	return &ConfigStorage{
 		workspace: workspace,
 	}
 }
 
+// Read returns raw config bytes from disk.
 func (c *ConfigStorage) Read() ([]byte, error) {
 	data, err := os.ReadFile(c.workspace.ConfigPath)
 	if err != nil {
@@ -25,6 +27,7 @@ func (c *ConfigStorage) Read() ([]byte, error) {
 	return data, nil
 }
 
+// Write persists raw config bytes to disk, creating parent directories if needed.
 func (c *ConfigStorage) Write(data []byte) error {
 	dir := filepath.Dir(c.workspace.ConfigPath)
 	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
