@@ -6,22 +6,32 @@ import (
 	"fmt"
 )
 
+// LsTreeOptions controls tree listing behavior.
 type LsTreeOptions struct {
+	// Recursive descends into subtrees.
 	Recursive bool
+	// ShowTrees includes tree entries in output when traversing.
 	ShowTrees bool
-	NameOnly  bool
+	// NameOnly prints only relative paths.
+	NameOnly bool
 }
 
+// LsTreeService lists tree object contents.
 type LsTreeService struct {
 	objectService *core.ObjectService
 }
 
+// NewLsTreeService creates an ls-tree service.
 func NewLsTreeService(objectService *core.ObjectService) *LsTreeService {
 	return &LsTreeService{
 		objectService: objectService,
 	}
 }
 
+// LsTree resolves a tree hash and returns formatted listing lines.
+//
+// In NameOnly mode it returns relative paths only; otherwise it returns
+// "<mode> <type> <hash>\t<path>" entries.
 func (l *LsTreeService) LsTree(hash domain.Hash, options LsTreeOptions) ([]string, error) {
 	var contents []string
 	processor := func(entry domain.TreeEntry, relPath string) error {

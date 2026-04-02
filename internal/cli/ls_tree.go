@@ -12,6 +12,8 @@ var (
 	lsTreeShowTreesFlag bool
 	lsTreeNameOnlyFlag  bool
 )
+
+// lsTreeCmd lists entries from a tree object by hash.
 var lsTreeCmd = &cobra.Command{
 	Use:   "ls-tree",
 	Short: "List the contents of a tree",
