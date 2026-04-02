@@ -3,7 +3,7 @@ package inspect
 import (
 	"Gel/internal/core"
 	"Gel/internal/diff"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -33,11 +33,11 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 		return s.showHEAD(writer)
 	}
 
-	ref := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, objectRef)
+	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, objectRef)
 	if branchExists := s.refService.Exists(ref); branchExists {
 		return s.showBranch(writer, ref)
 	}
-	hash, err := domain2.NewHash(objectRef)
+	hash, err := domain.NewHash(objectRef)
 	if err != nil {
 		return err
 	}
@@ -46,17 +46,17 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 		return err
 	}
 	switch object.Type() {
-	case domain2.ObjectTypeBlob:
-		return s.showBlob(writer, object.(*domain2.Blob))
-	case domain2.ObjectTypeTree:
+	case domain.ObjectTypeBlob:
+		return s.showBlob(writer, object.(*domain.Blob))
+	case domain.ObjectTypeTree:
 
-		return s.showTree(writer, object.(*domain2.Tree), objectRef)
-	case domain2.ObjectTypeCommit:
-		headRef, err := s.refService.ReadSymbolic(domain2.HeadFileName)
+		return s.showTree(writer, object.(*domain.Tree), objectRef)
+	case domain.ObjectTypeCommit:
+		headRef, err := s.refService.ReadSymbolic(domain.HeadFileName)
 		if err != nil {
 			return err
 		}
-		hash, err := domain2.NewHash(objectRef)
+		hash, err := domain.NewHash(objectRef)
 		if err != nil {
 			return err
 		}
@@ -67,11 +67,11 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 }
 
 func (s *ShowService) showHEAD(writer io.Writer) error {
-	commitHash, err := s.refService.Resolve(domain2.HeadFileName)
+	commitHash, err := s.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
-	ref, err := s.refService.ReadSymbolic(domain2.HeadFileName)
+	ref, err := s.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
@@ -87,13 +87,13 @@ func (s *ShowService) showBranch(writer io.Writer, ref string) error {
 	return s.showCommit(writer, commitHash, s.trimBranchName(ref))
 }
 
-func (s *ShowService) showCommit(writer io.Writer, commitHash domain2.Hash, branchName string) error {
+func (s *ShowService) showCommit(writer io.Writer, commitHash domain.Hash, branchName string) error {
 	commit, err := s.objectService.ReadCommit(commitHash)
 	if err != nil {
 		return err
 	}
 
-	var parentCommitHash domain2.Hash
+	var parentCommitHash domain.Hash
 	if len(commit.ParentHashes) > 0 {
 		parentCommitHash = commit.ParentHashes[0]
 	}
@@ -103,7 +103,7 @@ func (s *ShowService) showCommit(writer io.Writer, commitHash domain2.Hash, bran
 		BaseCommitHash:   parentCommitHash,
 		TargetCommitHash: commitHash,
 	}
-	commitDate, err := domain2.FormatCommitDate(
+	commitDate, err := domain.FormatCommitDate(
 		commit.Author.Timestamp,
 		commit.Author.Timezone,
 	)
@@ -124,12 +124,12 @@ func (s *ShowService) showCommit(writer io.Writer, commitHash domain2.Hash, bran
 	return s.diffService.Diff(writer, options)
 }
 
-func (s *ShowService) showBlob(writer io.Writer, blob *domain2.Blob) error {
+func (s *ShowService) showBlob(writer io.Writer, blob *domain.Blob) error {
 	_, err := fmt.Fprintf(writer, "%s", blob.Body())
 	return err
 }
 
-func (s *ShowService) showTree(writer io.Writer, tree *domain2.Tree, treeHash string) error {
+func (s *ShowService) showTree(writer io.Writer, tree *domain.Tree, treeHash string) error {
 	entries, err := tree.Deserialize()
 	if err != nil {
 		return err

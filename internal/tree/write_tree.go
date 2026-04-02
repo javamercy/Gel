@@ -2,7 +2,7 @@ package tree
 
 import (
 	"Gel/internal/core"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"sort"
 	"strings"
 )
@@ -19,54 +19,54 @@ func NewWriteTreeService(indexService *core.IndexService, objectService *core.Ob
 	}
 }
 
-func (w *WriteTreeService) WriteTree() (domain2.Hash, error) {
+func (w *WriteTreeService) WriteTree() (domain.Hash, error) {
 	entries, err := w.indexService.GetEntries()
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 
 	root := buildRootTree(entries)
 	rootHash, err := w.writeTreeRecursive(root)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	return rootHash, nil
 }
 
-func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain2.Hash, error) {
-	var entries []domain2.TreeEntry
+func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash, error) {
+	var entries []domain.TreeEntry
 
 	for _, childDir := range root.children {
 		subTreeHash, err := w.writeTreeRecursive(childDir)
 		if err != nil {
-			return domain2.Hash{}, err
+			return domain.Hash{}, err
 		}
-		entry := domain2.NewTreeEntry(domain2.DirectoryMode, subTreeHash, childDir.name)
+		entry := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
 		entries = append(entries, entry)
 	}
 
 	for _, file := range root.files {
-		entry := domain2.NewTreeEntry(file.mode, file.hash, file.name)
+		entry := domain.NewTreeEntry(file.mode, file.hash, file.name)
 		entries = append(entries, entry)
 	}
 
 	sortTreeEntries(entries)
 
-	tree, err := domain2.NewTreeFromEntries(entries)
+	tree, err := domain.NewTreeFromEntries(entries)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 
 	data := tree.Serialize()
 	hexHash := core.ComputeSHA256(data)
-	hash, err := domain2.NewHash(hexHash)
+	hash, err := domain.NewHash(hexHash)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 
 	ok, err := w.objectService.Exists(hash)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	if ok {
 		return hash, nil
@@ -74,12 +74,12 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain2.Hash
 
 	err = w.objectService.Write(hash, data)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	return hash, nil
 }
 
-func buildRootTree(entries []*domain2.IndexEntry) *directoryNode {
+func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 	root := &directoryNode{
 		name:     "",
 		children: make(map[string]*directoryNode),
@@ -93,7 +93,7 @@ func buildRootTree(entries []*domain2.IndexEntry) *directoryNode {
 		for i, name := range names {
 			if i == len(names)-1 {
 				fileNode := &fileNode{
-					mode: domain2.ParseFileMode(entry.Mode),
+					mode: domain.ParseFileMode(entry.Mode),
 					hash: entry.Hash,
 					name: name,
 				}
@@ -117,7 +117,7 @@ func buildRootTree(entries []*domain2.IndexEntry) *directoryNode {
 	return root
 }
 
-func sortTreeEntries(entries []domain2.TreeEntry) {
+func sortTreeEntries(entries []domain.TreeEntry) {
 	sort.Slice(
 		entries, func(i, j int) bool {
 			NameI := entries[i].Name
@@ -135,8 +135,8 @@ func sortTreeEntries(entries []domain2.TreeEntry) {
 }
 
 type fileNode struct {
-	mode domain2.FileMode
-	hash domain2.Hash
+	mode domain.FileMode
+	hash domain.Hash
 	name string
 }
 type directoryNode struct {

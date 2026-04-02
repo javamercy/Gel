@@ -2,7 +2,7 @@ package branch
 
 import (
 	"Gel/internal/core"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"fmt"
 	"io"
 	"os"
@@ -14,13 +14,13 @@ import (
 type BranchService struct {
 	refService    *core.RefService
 	objectService *core.ObjectService
-	workspace     *domain2.Workspace
+	workspace     *domain.Workspace
 }
 
 func NewBranchService(
 	refService *core.RefService,
 	objectService *core.ObjectService,
-	workspace *domain2.Workspace,
+	workspace *domain.Workspace,
 ) *BranchService {
 	return &BranchService{
 		refService:    refService,
@@ -30,9 +30,9 @@ func NewBranchService(
 }
 
 func (b *BranchService) List(writer io.Writer) error {
-	headsDir := filepath.Join(b.workspace.GelDir, domain2.RefsDirName, domain2.HeadsDirName)
+	headsDir := filepath.Join(b.workspace.GelDir, domain.RefsDirName, domain.HeadsDirName)
 
-	currentBranch, err := b.refService.ReadSymbolic(domain2.HeadFileName)
+	currentBranch, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return fmt.Errorf("branch: failed to read symbolic ref: %w", err)
 	}
@@ -90,21 +90,21 @@ func (b *BranchService) Create(name string, startPoint string) error {
 		return fmt.Errorf("'%s': %w", name, ErrBranchAlreadyExists)
 	}
 
-	ref := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, name)
+	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if startPoint == "" {
-		commitHash, err := b.refService.Resolve(domain2.HeadFileName)
+		commitHash, err := b.refService.Resolve(domain.HeadFileName)
 		if err != nil {
 			return err
 		}
 		return b.refService.Write(ref, commitHash)
 	}
 
-	startBranchRef := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, startPoint)
+	startBranchRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, startPoint)
 	if commitHash, err := b.refService.Read(startBranchRef); err == nil {
 		return b.refService.Write(ref, commitHash)
 	}
 
-	startHash, err := domain2.NewHash(startPoint)
+	startHash, err := domain.NewHash(startPoint)
 	if err != nil {
 		return err
 	}
@@ -119,12 +119,12 @@ func (b *BranchService) Delete(name string) error {
 		return fmt.Errorf("'%s': %w", name, err)
 	}
 
-	currRef, err := b.refService.ReadSymbolic(domain2.HeadFileName)
+	currRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return err
 	}
 
-	refToDelete := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, name)
+	refToDelete := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if refToDelete == currRef {
 		return fmt.Errorf("'%s': %w", name, ErrDeleteCurrentBranch)
 	}
@@ -132,7 +132,7 @@ func (b *BranchService) Delete(name string) error {
 }
 
 func (b *BranchService) Exists(name string) bool {
-	targetRef := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, name)
+	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	return b.refService.Exists(targetRef)
 }
 

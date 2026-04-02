@@ -2,7 +2,7 @@ package branch
 
 import (
 	"Gel/internal/core"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"Gel/internal/tree"
 	"fmt"
 	"os"
@@ -42,8 +42,8 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 			return "", err
 		}
 	}
-	targetRef := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, branch)
-	currentCommitHash, err := s.refService.Resolve(domain2.HeadFileName)
+	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, branch)
+	currentCommitHash, err := s.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +66,7 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 
 	if currentCommitHash == targetCommitHash {
 		return fmt.Sprintf("Switched to branch '%s'", branch),
-			s.refService.WriteSymbolic(domain2.HeadFileName, targetRef)
+			s.refService.WriteSymbolic(domain.HeadFileName, targetRef)
 	}
 
 	// TODO: Could we use Restore Service here?
@@ -81,18 +81,18 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 	if err := s.readTreeService.ReadTree(targetCommit.TreeHash); err != nil {
 		return "", err
 	}
-	if err := s.refService.WriteSymbolic(domain2.HeadFileName, targetRef); err != nil {
+	if err := s.refService.WriteSymbolic(domain.HeadFileName, targetRef); err != nil {
 		return "", err
 	}
 
-	headRef := filepath.Join(domain2.RefsDirName, domain2.HeadsDirName, domain2.HeadFileName)
+	headRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, domain.HeadFileName)
 	if err := s.refService.Write(headRef, targetCommitHash); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("Switched to branch '%s'", branch), nil
 }
 
-func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash domain2.Hash) error {
+func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash domain.Hash) error {
 	currentEntries, err := s.treeResolver.ResolveCommit(currentCommitHash)
 	if err != nil {
 		return err
@@ -109,10 +109,10 @@ func (s *SwitchService) updateWorkingTree(currentCommitHash, TargetCommitHash do
 				return err
 			}
 			dir := filepath.Dir(targetPath)
-			if err := os.MkdirAll(dir, domain2.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 				return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 			}
-			if err := os.WriteFile(targetPath, blob.Body(), domain2.FilePermission); err != nil {
+			if err := os.WriteFile(targetPath, blob.Body(), domain.FilePermission); err != nil {
 				return fmt.Errorf("failed to write file '%s': %w", targetPath, err)
 			}
 		}

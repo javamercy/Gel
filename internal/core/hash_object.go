@@ -1,7 +1,7 @@
 package core
 
 import (
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"Gel/internal/validate"
 	"errors"
 	"fmt"
@@ -31,14 +31,14 @@ func NewHashObjectService(objectService *ObjectService) *HashObjectService {
 // Each path must point to a regular file. The returned map is keyed by the
 // original absolute path so callers can correlate outputs to inputs.
 // If options.Write is true, each computed object is also written to storage.
-func (h *HashObjectService) HashObjects(paths []domain2.AbsolutePath, options HashObjectOptions) (
-	map[domain2.AbsolutePath]domain2.Hash, error,
+func (h *HashObjectService) HashObjects(paths []domain.AbsolutePath, options HashObjectOptions) (
+	map[domain.AbsolutePath]domain.Hash, error,
 ) {
 	if len(paths) == 0 {
 		return nil, errors.New("no paths provided")
 	}
 
-	hashes := make(map[domain2.AbsolutePath]domain2.Hash, len(paths))
+	hashes := make(map[domain.AbsolutePath]domain.Hash, len(paths))
 	for _, path := range paths {
 		if err := validate.PathMustBeFile(path.String()); err != nil {
 			return nil, fmt.Errorf("hash-object: %w", err)
@@ -59,14 +59,14 @@ func (h *HashObjectService) HashObjects(paths []domain2.AbsolutePath, options Ha
 // The hash is computed from the serialized Git-style blob object
 // ("blob <size>\\x00<body>"). When options.Write is true, the serialized object
 // is compressed and written under .gel/objects using the computed hash.
-func (h *HashObjectService) HashObject(path domain2.AbsolutePath, options HashObjectOptions) (domain2.Hash, error) {
+func (h *HashObjectService) HashObject(path domain.AbsolutePath, options HashObjectOptions) (domain.Hash, error) {
 	hash, serializedData, err := h.objectService.ComputeObjectHash(path)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	if options.Write {
 		if err := h.objectService.Write(hash, serializedData); err != nil {
-			return domain2.Hash{}, fmt.Errorf("hash object: %w", err)
+			return domain.Hash{}, fmt.Errorf("hash object: %w", err)
 		}
 	}
 	return hash, nil

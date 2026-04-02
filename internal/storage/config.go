@@ -1,17 +1,17 @@
 package storage
 
 import (
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 type ConfigStorage struct {
-	workspace *domain2.Workspace
+	workspace *domain.Workspace
 }
 
-func NewConfigStorage(workspace *domain2.Workspace) *ConfigStorage {
+func NewConfigStorage(workspace *domain.Workspace) *ConfigStorage {
 	return &ConfigStorage{
 		workspace: workspace,
 	}
@@ -27,10 +27,10 @@ func (c *ConfigStorage) Read() ([]byte, error) {
 
 func (c *ConfigStorage) Write(data []byte) error {
 	dir := filepath.Dir(c.workspace.ConfigPath)
-	if err := os.MkdirAll(dir, domain2.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 		return fmt.Errorf("config: failed to create directory '%s': %w", dir, err)
 	}
-	if err := os.WriteFile(c.workspace.ConfigPath, data, domain2.FilePermission); err != nil {
+	if err := os.WriteFile(c.workspace.ConfigPath, data, domain.FilePermission); err != nil {
 		return fmt.Errorf("config: error writing config file: %w", err)
 	}
 	return nil

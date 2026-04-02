@@ -2,7 +2,7 @@ package commit
 
 import (
 	"Gel/internal/core"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"time"
 )
 
@@ -18,43 +18,43 @@ func NewCommitTreeService(objectService *core.ObjectService, configService *core
 	}
 }
 
-func (c *CommitTreeService) CommitTree(hash domain2.Hash, message string, parentHashes []domain2.Hash) (
-	domain2.Hash, error,
+func (c *CommitTreeService) CommitTree(hash domain.Hash, message string, parentHashes []domain.Hash) (
+	domain.Hash, error,
 ) {
 	_, err := c.objectService.ReadTree(hash)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 
 	name, email, err := c.configService.GetUserInfo()
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 
 	now := time.Now()
 
-	identity := domain2.NewIdentity(
+	identity := domain.NewIdentity(
 		name,
 		email,
-		domain2.FormatCommitTimestamp(now),
-		domain2.FormatCommitTimezone(now),
+		domain.FormatCommitTimestamp(now),
+		domain.FormatCommitTimezone(now),
 	)
-	commitFields := domain2.CommitFields{
+	commitFields := domain.CommitFields{
 		TreeHash:     hash,
 		ParentHashes: parentHashes,
 		Author:       identity,
 		Committer:    identity,
 		Message:      message,
 	}
-	commit := domain2.NewCommitFromFields(commitFields)
+	commit := domain.NewCommitFromFields(commitFields)
 	serializedData := commit.Serialize()
 	hexCommitHash := core.ComputeSHA256(serializedData)
-	commitHash, err := domain2.NewHash(hexCommitHash)
+	commitHash, err := domain.NewHash(hexCommitHash)
 	if err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	if err := c.objectService.Write(commitHash, serializedData); err != nil {
-		return domain2.Hash{}, err
+		return domain.Hash{}, err
 	}
 	return commitHash, nil
 }

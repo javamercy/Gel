@@ -1,7 +1,7 @@
 package storage
 
 import (
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"errors"
 	"fmt"
 	"os"
@@ -9,31 +9,31 @@ import (
 )
 
 type ObjectStorage struct {
-	workspace *domain2.Workspace
+	workspace *domain.Workspace
 }
 
-func NewObjectStorage(workspace *domain2.Workspace) *ObjectStorage {
+func NewObjectStorage(workspace *domain.Workspace) *ObjectStorage {
 	return &ObjectStorage{
 		workspace: workspace,
 	}
 }
 
-func (o *ObjectStorage) Write(hash domain2.Hash, data []byte) error {
+func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
 	objectPath, err := o.getObjectPath(hash)
 	if err != nil {
 		return err
 	}
 	dir := filepath.Dir(objectPath.String())
-	if err := os.MkdirAll(dir, domain2.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 		return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 	}
-	if err := os.WriteFile(objectPath.String(), data, domain2.FilePermission); err != nil {
+	if err := os.WriteFile(objectPath.String(), data, domain.FilePermission); err != nil {
 		return fmt.Errorf("failed to write object '%s': %w", hash, err)
 	}
 	return nil
 }
 
-func (o *ObjectStorage) Read(hash domain2.Hash) ([]byte, error) {
+func (o *ObjectStorage) Read(hash domain.Hash) ([]byte, error) {
 	objectPath, err := o.getObjectPath(hash)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (o *ObjectStorage) Read(hash domain2.Hash) ([]byte, error) {
 	return data, nil
 }
 
-func (o *ObjectStorage) Exists(hash domain2.Hash) (bool, error) {
+func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
 	objectPath, err := o.getObjectPath(hash)
 	if err != nil {
 		return false, err
@@ -60,12 +60,12 @@ func (o *ObjectStorage) Exists(hash domain2.Hash) (bool, error) {
 	return false, fmt.Errorf("failed to check object '%s' existence: %w", hash, err)
 }
 
-func (o *ObjectStorage) getObjectPath(hash domain2.Hash) (domain2.AbsolutePath, error) {
+func (o *ObjectStorage) getObjectPath(hash domain.Hash) (domain.AbsolutePath, error) {
 	hexHash := hash.ToHexString()
 	dir := hexHash[:2]
 	file := hexHash[2:]
 	joined := filepath.Join(o.workspace.ObjectsDir, dir, file)
-	absPath, err := domain2.NewAbsolutePath(joined)
+	absPath, err := domain.NewAbsolutePath(joined)
 	if err != nil {
 		return "", err
 	}

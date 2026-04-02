@@ -2,7 +2,7 @@ package cli
 
 import (
 	"Gel/internal/diff"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 
 	"github.com/spf13/cobra"
 )
@@ -22,10 +22,10 @@ var diffCmd = &cobra.Command{
 			return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsIndex})
 		} else if len(args) == 1 {
 			arg := args[0]
-			if arg == domain2.HeadFileName {
+			if arg == domain.HeadFileName {
 				return diffService.Diff(cmd.OutOrStdout(), diff.DiffOptions{Mode: diff.ModeWorkingTreeVsHEAD})
 			}
-			baseCommitHash, err := domain2.NewHash(arg)
+			baseCommitHash, err := domain.NewHash(arg)
 			if err != nil {
 				return err
 			}
@@ -34,11 +34,11 @@ var diffCmd = &cobra.Command{
 			)
 		}
 
-		baseCommitHash, err := domain2.NewHash(args[0])
+		baseCommitHash, err := domain.NewHash(args[0])
 		if err != nil {
 			return err
 		}
-		targetCommitHash, err := domain2.NewHash(args[1])
+		targetCommitHash, err := domain.NewHash(args[1])
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,7 @@ package diff
 
 import (
 	"Gel/internal/core"
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"fmt"
 	"io"
 	"os"
@@ -21,11 +21,11 @@ const (
 
 type DiffOptions struct {
 	Mode             DiffMode
-	BaseCommitHash   domain2.Hash
-	TargetCommitHash domain2.Hash
+	BaseCommitHash   domain.Hash
+	TargetCommitHash domain.Hash
 }
 
-type ContentLoaderFunc func(path string, hash domain2.Hash) (string, error)
+type ContentLoaderFunc func(path string, hash domain.Hash) (string, error)
 
 type DiffStatus int
 
@@ -40,8 +40,8 @@ type DiffResult struct {
 	Status  DiffStatus
 	OldPath string
 	NewPath string
-	OldHash domain2.Hash
-	NewHash domain2.Hash
+	OldHash domain.Hash
+	NewHash domain.Hash
 }
 type DiffService struct {
 	objectService *core.ObjectService
@@ -93,9 +93,9 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 			indexEntries, headEntries, d.LoadBlobContent, d.LoadBlobContent,
 		)
 	case ModeCommitVsCommit:
-		var baseCommitEntries map[string]domain2.Hash
+		var baseCommitEntries map[string]domain.Hash
 		if options.BaseCommitHash.IsEmpty() {
-			baseCommitEntries = make(map[string]domain2.Hash)
+			baseCommitEntries = make(map[string]domain.Hash)
 		} else {
 			var err error
 			baseCommitEntries, err = d.treeResolver.ResolveCommit(options.BaseCommitHash)
@@ -145,7 +145,7 @@ func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
 }
 
 func (d *DiffService) ComputeDiffResults(
-	newEntries, oldEntries map[string]domain2.Hash,
+	newEntries, oldEntries map[string]domain.Hash,
 	newContentLoader, oldContentLoader ContentLoaderFunc,
 ) ([]*DiffResult, error) {
 	var results []*DiffResult
@@ -164,7 +164,7 @@ func (d *DiffService) ComputeDiffResults(
 			results = append(
 				results, &DiffResult{
 					hunks, DiffStatusAdded, newPath,
-					newPath, domain2.Hash{}, newHash,
+					newPath, domain.Hash{}, newHash,
 				},
 			)
 		} else if newHash != oldHash {
@@ -200,7 +200,7 @@ func (d *DiffService) ComputeDiffResults(
 			results = append(
 				results, &DiffResult{
 					hunks, DiffStatusDeleted, oldPath,
-					"", oldHash, domain2.Hash{},
+					"", oldHash, domain.Hash{},
 				},
 			)
 		}
@@ -208,7 +208,7 @@ func (d *DiffService) ComputeDiffResults(
 	return results, nil
 }
 
-func (d *DiffService) LoadBlobContent(_ string, hash domain2.Hash) (string, error) {
+func (d *DiffService) LoadBlobContent(_ string, hash domain.Hash) (string, error) {
 	blob, err := d.objectService.ReadBlob(hash)
 	if err != nil {
 		return "", err
@@ -216,7 +216,7 @@ func (d *DiffService) LoadBlobContent(_ string, hash domain2.Hash) (string, erro
 	return string(blob.Body()), nil
 }
 
-func (d *DiffService) LoadFileContent(path string, _ domain2.Hash) (string, error) {
+func (d *DiffService) LoadFileContent(path string, _ domain.Hash) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -263,7 +263,7 @@ func (d *DiffService) PrintAddedFileHeader(writer io.Writer, oldPath, newPath, h
 		return err
 	}
 	if _, err := fmt.Fprintf(
-		writer, "%snew file mode %s%s\n", core.ColorBold, domain2.RegularFileMode, core.ColorReset,
+		writer, "%snew file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (d *DiffService) PrintAddedFileHeader(writer io.Writer, oldPath, newPath, h
 
 func (d *DiffService) PrintDeletedFileHeader(writer io.Writer, oldPath, oldHash string) error {
 	if _, err := fmt.Fprintf(
-		writer, "%sdeleted file mode %s%s\n", core.ColorBold, domain2.RegularFileMode, core.ColorReset,
+		writer, "%sdeleted file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (d *DiffService) PrintDeletedFileHeader(writer io.Writer, oldPath, oldHash 
 
 func (d *DiffService) PrintModifiedFileHeader(writer io.Writer, oldPath, newPath, oldHash, newHash string) error {
 	if _, err := fmt.Fprintf(
-		writer, "%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain2.RegularFileMode, core.ColorReset,
+		writer, "%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.RegularFileMode, core.ColorReset,
 	); err != nil {
 		return err
 	}

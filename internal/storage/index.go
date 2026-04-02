@@ -1,16 +1,16 @@
 package storage
 
 import (
-	domain2 "Gel/internal/domain"
+	"Gel/internal/domain"
 	"fmt"
 	"os"
 )
 
 type IndexStorage struct {
-	workspace *domain2.Workspace
+	workspace *domain.Workspace
 }
 
-func NewIndexStorage(workspace *domain2.Workspace) *IndexStorage {
+func NewIndexStorage(workspace *domain.Workspace) *IndexStorage {
 	return &IndexStorage{
 		workspace: workspace,
 	}
@@ -25,7 +25,7 @@ func (i *IndexStorage) Read() ([]byte, error) {
 }
 
 func (i *IndexStorage) Write(data []byte) error {
-	if err := os.WriteFile(i.workspace.IndexPath, data, domain2.FilePermission); err != nil {
+	if err := os.WriteFile(i.workspace.IndexPath, data, domain.FilePermission); err != nil {
 		return fmt.Errorf("error writing index file: %w", err)
 	}
 	return nil
