@@ -10,6 +10,8 @@ var (
 	commitTreeMessageFlag string
 	commitTreeParentsFlag []string
 )
+
+// commitTreeCmd creates a commit object directly from a tree hash.
 var commitTreeCmd = &cobra.Command{
 	Use:   "commit-tree <tree-hash>",
 	Short: "Create a new commit object from a tree object",
@@ -19,6 +21,7 @@ var commitTreeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		var parentHashes []domain.Hash
 		for _, parent := range commitTreeParentsFlag {
 			parentHash, err := domain.NewHash(parent)
@@ -27,6 +30,7 @@ var commitTreeCmd = &cobra.Command{
 			}
 			parentHashes = append(parentHashes, parentHash)
 		}
+
 		commitHash, err := commitTreeService.CommitTree(hash, commitTreeMessageFlag, parentHashes)
 		if err != nil {
 			return err
