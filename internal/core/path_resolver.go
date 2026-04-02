@@ -21,6 +21,7 @@ const (
 
 type PathspecType int
 
+// String returns a human-readable pathspec kind.
 func (t PathspecType) String() string {
 	switch t {
 	case PathspecTypeFile:
@@ -41,11 +42,14 @@ type ResolvedPath struct {
 	NormalizedPaths map[domain.NormalizedPath]bool
 }
 
+// PathResolver expands pathspecs to normalized repository-relative paths.
 type PathResolver struct {
 	repoDir         string
 	ignoredPatterns map[string]bool
 }
 
+// NewPathResolver creates a resolver rooted at repoDir.
+// When ignoredPatterns is nil, a default set of VCS/editor directories is used.
 func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResolver {
 	if ignoredPatterns == nil {
 		// TODO: implement gelignore.
@@ -61,6 +65,8 @@ func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResol
 	}
 }
 
+// Resolve classifies and expands each pathspec and returns normalized results.
+// NormalizedScope is repository-relative and used for scoped index reconciliation.
 func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 	resolvedPaths := make([]ResolvedPath, 0)
 	for _, pathspec := range pathspecs {
@@ -101,6 +107,7 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 	return resolvedPaths, nil
 }
 
+// shouldIgnore checks whether any segment of a path matches ignored patterns.
 func (p *PathResolver) shouldIgnore(path string) bool {
 	segments := strings.Split(filepath.ToSlash(path), "/")
 	for _, segment := range segments {
@@ -111,6 +118,7 @@ func (p *PathResolver) shouldIgnore(path string) bool {
 	return false
 }
 
+// expandPathspec resolves a pathspec according to its classified type.
 func (p *PathResolver) expandPathspec(pathspec string, pathspecType PathspecType) ([]string, error) {
 	switch pathspecType {
 	case PathspecTypeFile:
@@ -126,6 +134,9 @@ func (p *PathResolver) expandPathspec(pathspec string, pathspecType PathspecType
 	}
 }
 
+// normalizeScope converts the original pathspec into a repository-relative scope.
+// For directory/glob pathspecs this ensures subdirectory invocations are scoped
+// correctly instead of defaulting to repository root.
 func (p *PathResolver) normalizeScope(pathspec string, pathspecType PathspecType) (string, error) {
 	switch pathspecType {
 	case PathspecTypeFile,
@@ -140,12 +151,9 @@ func (p *PathResolver) normalizeScope(pathspec string, pathspecType PathspecType
 	default:
 		return "", ErrUnknownPathspecType
 	}
-	if normalizedScope == "." {
-		normalizedScope = ""
-	}
-	return normalizedScope, nil
 }
 
+// classifyPathspec determines how a pathspec should be expanded.
 func classifyPathspec(pathspec string) (PathspecType, error) {
 	if strings.ContainsAny(pathspec, globPatterns) {
 		return PathspecTypeGlobPattern, nil
@@ -163,6 +171,7 @@ func classifyPathspec(pathspec string) (PathspecType, error) {
 	return PathspecTypeFile, nil
 }
 
+// expandDirectory walks a directory pathspec and returns all file paths.
 func (p *PathResolver) expandDirectory(path string) ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(
@@ -186,6 +195,7 @@ func (p *PathResolver) expandDirectory(path string) ([]string, error) {
 	return files, nil
 }
 
+// expandGlobPattern expands a glob and recursively expands directory matches.
 func (p *PathResolver) expandGlobPattern(pattern string) ([]string, error) {
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
