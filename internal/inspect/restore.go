@@ -78,22 +78,17 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 	}
 
 	for _, path := range paths {
-		absPath, err := domain.NewAbsolutePath(path)
-		if err != nil {
-			return fmt.Errorf("restore: %w", err)
-		}
-		stat := domain.GetFileStatFromPath(absPath)
 		// TODO: fix here later
 		entry, _ := index.FindEntry(domain.NormalizedPath(path))
 		if entry == nil {
 			continue
 		}
 
-		changeResult, err := r.changeDetector.DetectFileChange(entry, stat)
+		changeResult, err := r.changeDetector.DetectFileChange(entry)
 		if err != nil {
 			return err
 		}
-		if !changeResult.IsModified {
+		if changeResult.FileState == core.FileStateUnchanged {
 			continue
 		}
 

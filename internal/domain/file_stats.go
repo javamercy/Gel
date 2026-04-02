@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"syscall"
 	"time"
 )
@@ -17,24 +18,17 @@ type FileStat struct {
 	UpdatedTime time.Time
 }
 
-// GetFileStatFromPath retrieves file system metadata for the given path.
-func GetFileStatFromPath(path AbsolutePath) FileStat {
+// GetFileStatFromPath retrieves stat metadata for a file path.
+// Errors include the path context and preserve the original cause.
+func GetFileStatFromPath(path AbsolutePath) (FileStat, error) {
 	var stat syscall.Stat_t
 	if err := syscall.Stat(path.String(), &stat); err != nil {
-		return FileStat{
-			Device:      0,
-			Inode:       0,
-			UserId:      0,
-			GroupId:     0,
-			Mode:        0,
-			Size:        0,
-			CreatedTime: time.Time{},
-			UpdatedTime: time.Time{},
-		}
+		return FileStat{}, fmt.Errorf("failed to get file stat '%s': %w", path, err)
 	}
-	return getFileStat(&stat)
+	return getFileStat(&stat), nil
 }
 
+// getFileStat converts a syscall.Stat_t value into the project FileStat type.
 func getFileStat(stat *syscall.Stat_t) FileStat {
 	return FileStat{
 		Device:      uint32(stat.Dev),

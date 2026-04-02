@@ -13,33 +13,42 @@ const (
 	globPatterns string = "*?[]"
 )
 
+// LsFilesOptions controls ls-files output mode.
 type LsFilesOptions struct {
-	Cached   bool
-	Stage    bool
+	// Cached lists tracked paths from the index.
+	Cached bool
+	// Stage prints staged entry metadata (mode/hash/stage/path).
+	Stage bool
+	// Modified lists tracked paths modified in the working tree.
 	Modified bool
-	Deleted  bool
+	// Deleted lists tracked paths missing from the working tree.
+	Deleted bool
 }
+
+// LsFilesService implements ls-files queries over index and working tree state.
 type LsFilesService struct {
 	indexService   *core.IndexService
-	objectService  *core.ObjectService
 	changeDetector *core.ChangeDetector
 	workspace      *domain.Workspace
 }
 
+// NewLsFilesService creates an ls-files service with required dependencies.
 func NewLsFilesService(
 	indexService *core.IndexService,
-	objectService *core.ObjectService,
 	changeDetector *core.ChangeDetector,
 	workspace *domain.Workspace,
 ) *LsFilesService {
 	return &LsFilesService{
 		indexService:   indexService,
-		objectService:  objectService,
 		changeDetector: changeDetector,
 		workspace:      workspace,
 	}
 }
 
+// LsFiles returns tracked files based on mode flags and optional pathspec.
+//
+// Pathspec supports prefix matching by default and glob matching when wildcard
+// characters are present.
 func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]string, error) {
 	if !options.Stage && !options.Cached && !options.Modified && !options.Deleted {
 		return nil, fmt.Errorf("ls-files: must specify --stage, --cached, --modified, or --deleted")
@@ -63,18 +72,19 @@ func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]str
 
 	switch {
 	case options.Stage:
-		return l.LsFilesWithStage(entries), nil
+		return l.lsFilesWithStage(entries), nil
 	case options.Cached:
-		return l.LsFilesWithCached(entries), nil
+		return l.lsFilesWithCached(entries), nil
 	case options.Modified:
-		return l.LsFilesWithModified(entries)
+		return l.lsFilesWithModified(entries)
 	case options.Deleted:
-		return l.LsFilesWithDeleted(entries)
+		return l.lsFilesWithDeleted(entries)
 	}
 	return nil, nil
 }
 
-func (l *LsFilesService) LsFilesWithStage(entries []*domain.IndexEntry) []string {
+// lsFilesWithStage formats entries as mode/hash/stage/path.
+func (l *LsFilesService) lsFilesWithStage(entries []*domain.IndexEntry) []string {
 	files := make([]string, len(entries))
 	for i, entry := range entries {
 		files[i] = fmt.Sprintf(
@@ -88,7 +98,8 @@ func (l *LsFilesService) LsFilesWithStage(entries []*domain.IndexEntry) []string
 	return files
 }
 
-func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []string {
+// lsFilesWithCached returns entry paths exactly as stored in index.
+func (l *LsFilesService) lsFilesWithCached(entries []*domain.IndexEntry) []string {
 	files := make([]string, len(entries))
 	for i, entry := range entries {
 		files[i] = entry.Path.String()
@@ -96,26 +107,23 @@ func (l *LsFilesService) LsFilesWithCached(entries []*domain.IndexEntry) []strin
 	return files
 }
 
-func (l *LsFilesService) LsFilesWithModified(entries []*domain.IndexEntry) ([]string, error) {
+// lsFilesWithModified returns tracked paths classified as modified.
+func (l *LsFilesService) lsFilesWithModified(entries []*domain.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
-		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)
-		if err != nil {
-			return nil, fmt.Errorf("ls-files: %w", err)
-		}
-		stat := domain.GetFileStatFromPath(absolutePath)
-		changeResult, err := l.changeDetector.DetectFileChange(entry, stat)
+		changeResult, err := l.changeDetector.DetectFileChange(entry)
 		if err != nil {
 			return nil, err
 		}
-		if changeResult.IsModified {
+		if changeResult.FileState == core.FileStateModified {
 			files = append(files, entry.Path.String())
 		}
 	}
 	return files, nil
 }
 
-func (l *LsFilesService) LsFilesWithDeleted(entries []*domain.IndexEntry) ([]string, error) {
+// lsFilesWithDeleted returns tracked paths that no longer exist on disk.
+func (l *LsFilesService) lsFilesWithDeleted(entries []*domain.IndexEntry) ([]string, error) {
 	files := make([]string, 0)
 	for _, entry := range entries {
 		absolutePath, err := entry.Path.ToAbsolutePath(l.workspace.RepoDir)

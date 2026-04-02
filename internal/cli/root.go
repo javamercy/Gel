@@ -116,7 +116,7 @@ func initializeServices() error {
 		indexService, objectService, hashObjectService, changeDetector, workspace,
 	)
 	addService = staging.NewAddService(indexService, updateIndexService, pathResolver, workspace)
-	lsFilesService = staging.NewLsFilesService(indexService, objectService, changeDetector, workspace)
+	lsFilesService = staging.NewLsFilesService(indexService, changeDetector, workspace)
 	writeTreeService = tree.NewWriteTreeService(indexService, objectService)
 	readTreeService = tree.NewReadTreeService(indexService, objectService)
 	lsTreeService = tree.NewLsTreeService(objectService)

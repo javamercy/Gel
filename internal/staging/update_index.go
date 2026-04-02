@@ -92,15 +92,19 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 		}
 
 		var newEntry *domain.IndexEntry
-		stat := domain.GetFileStatFromPath(absolutePath)
+		stat, err := domain.GetFileStatFromPath(absolutePath)
+		if err != nil {
+			return nil, fmt.Errorf("update-index: %w", err)
+		}
+
 		entry, _ := index.FindEntry(path)
 		if entry != nil {
-			changeResult, err := u.changeDetector.DetectFileChange(entry, stat)
+			changeResult, err := u.changeDetector.DetectFileChange(entry)
 			if err != nil {
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
-			if !changeResult.IsModified {
+			if changeResult.FileState == core.FileStateUnchanged {
 				continue
 			}
 

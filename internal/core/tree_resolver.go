@@ -88,28 +88,26 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 	results := make(map[string]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			absolutePath, err := path.ToAbsolutePath(t.workspace.RepoDir)
-			if err != nil {
-				return nil, err
-			}
-			fileStat := domain.GetFileStatFromPath(absolutePath)
 			entry, _ := index.FindEntry(path)
-
 			if entry != nil {
-				changeResult, err := t.changeDetector.DetectFileChange(entry, fileStat)
+				changeResult, err := t.changeDetector.DetectFileChange(entry)
 				if err != nil {
 					return nil, err
 				}
-				if !changeResult.IsModified {
+				switch changeResult.FileState {
+				case FileStateUnchanged:
 					results[path.String()] = entry.Hash
-				} else {
+				case FileStateModified:
 					results[path.String()] = changeResult.NewHash
+				case FileStateDeleted:
+					// TODO: what to do with deleted files?
 				}
 			} else {
 				absolutePath, err := path.ToAbsolutePath(t.workspace.RepoDir)
 				if err != nil {
 					return nil, err
 				}
+
 				hash, _, err := t.objectService.ComputeObjectHash(absolutePath)
 				if err != nil {
 					return nil, err
