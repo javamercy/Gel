@@ -5,6 +5,8 @@ import "github.com/spf13/cobra"
 var (
 	commitMessageFlag string
 )
+
+// commitCmd records the current index state as a new commit on the current branch.
 var commitCmd = &cobra.Command{
 	Use:   "commit",
 	Short: "Record changes to the repository",
