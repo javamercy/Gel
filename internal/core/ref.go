@@ -124,7 +124,7 @@ func (r *RefService) Delete(ref string) error {
 	}
 
 	path := filepath.Join(r.workspace.GelDir, ref)
-	if err := os.RemoveAll(path); err != nil {
+	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("ref: failed to delete '%s': %w", ref, err)
 	}
 	return nil
