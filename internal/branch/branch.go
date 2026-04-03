@@ -133,7 +133,8 @@ func (b *BranchService) Delete(name string) error {
 
 func (b *BranchService) Exists(name string) bool {
 	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
-	return b.refService.Exists(targetRef)
+	ok, err := b.refService.Exists(targetRef)
+	return ok && err == nil
 }
 
 func validateBranchName(name string) error {

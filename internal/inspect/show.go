@@ -34,7 +34,7 @@ func (s *ShowService) Show(writer io.Writer, objectRef string) error {
 	}
 
 	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, objectRef)
-	if branchExists := s.refService.Exists(ref); branchExists {
+	if branchExists, _ := s.refService.Exists(ref); branchExists {
 		return s.showBranch(writer, ref)
 	}
 	hash, err := domain.NewHash(objectRef)

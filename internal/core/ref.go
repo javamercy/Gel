@@ -13,14 +13,21 @@ type RefService struct {
 	workspace *domain.Workspace
 }
 
+// NewRefService creates a repository-scoped reference service.
 func NewRefService(workspace *domain.Workspace) *RefService {
 	return &RefService{
 		workspace: workspace,
 	}
 }
 
+// ReadSymbolic reads a symbolic reference file (for example HEAD) and returns its target ref path.
+// The file content must be in "ref: <target>" format.
 func (r *RefService) ReadSymbolic(name string) (string, error) {
-	refPath := filepath.Join(r.workspace.GelDir, name)
+	refPath, err := r.symbolicPath(name)
+	if err != nil {
+		return "", err
+	}
+
 	contentBytes, err := os.ReadFile(refPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -36,16 +43,26 @@ func (r *RefService) ReadSymbolic(name string) (string, error) {
 	return strings.TrimPrefix(contentStr, "ref: "), nil
 }
 
+// WriteSymbolic writes a symbolic reference file in "ref: <target>" format.
+// Name must resolve inside .gel and ref must start with "refs/".
 func (r *RefService) WriteSymbolic(name, ref string) error {
 	if name == "" || ref == "" {
 		return ErrInvalidSymbolicRef
 	}
-
-	if !strings.HasPrefix(ref, "refs/") {
-		return fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+	if err := validateRefPrefix(ref); err != nil {
+		return err
 	}
 
-	path := filepath.Join(r.workspace.GelDir, name)
+	path, err := r.symbolicPath(name)
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+		return fmt.Errorf("ref: failed to create directory '%s': %w", dir, err)
+	}
+
 	contentStr := fmt.Sprintf("ref: %s\n", ref)
 	if err := os.WriteFile(path, []byte(contentStr), domain.FilePermission); err != nil {
 		return fmt.Errorf("ref: failed to write symbolic ref '%s': %w", name, err)
@@ -53,10 +70,13 @@ func (r *RefService) WriteSymbolic(name, ref string) error {
 	return nil
 }
 
+// Read resolves a direct ref file (for example refs/heads/main) to its commit hash.
+// Empty ref files are treated as zero hashes.
 func (r *RefService) Read(ref string) (domain.Hash, error) {
-	if !strings.HasPrefix(ref, "refs/") {
-		return domain.Hash{}, fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+	if err := validateRefPrefix(ref); err != nil {
+		return domain.Hash{}, err
 	}
+
 	absPath := filepath.Join(r.workspace.GelDir, ref)
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
@@ -68,18 +88,22 @@ func (r *RefService) Read(ref string) (domain.Hash, error) {
 	if len(contentBytes) == 0 {
 		return domain.Hash{}, nil
 	}
+
 	hexHash := strings.TrimSpace(string(contentBytes))
 	hash, err := domain.NewHash(hexHash)
 	if err != nil {
-		return domain.Hash{}, fmt.Errorf("ref: failed to parse hash: %w", err)
+		return domain.Hash{}, fmt.Errorf("ref: %w", err)
 	}
 	return hash, nil
 }
 
+// Write updates a direct ref file with hash plus trailing newline.
+// Missing parent directories are created.
 func (r *RefService) Write(ref string, hash domain.Hash) error {
-	if !strings.HasPrefix(ref, "refs/") {
-		return fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+	if err := validateRefPrefix(ref); err != nil {
+		return err
 	}
+
 	absPath := filepath.Join(r.workspace.GelDir, ref)
 	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
@@ -93,9 +117,10 @@ func (r *RefService) Write(ref string, hash domain.Hash) error {
 	return nil
 }
 
+// Delete removes a direct ref path under .gel/refs.
 func (r *RefService) Delete(ref string) error {
-	if !strings.HasPrefix(ref, "refs/") {
-		return fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+	if err := validateRefPrefix(ref); err != nil {
+		return err
 	}
 
 	path := filepath.Join(r.workspace.GelDir, ref)
@@ -105,16 +130,45 @@ func (r *RefService) Delete(ref string) error {
 	return nil
 }
 
-func (r *RefService) Exists(ref string) bool {
+// Exists reports whether a direct ref path exists.
+// It validates ref prefix and returns wrapped stat errors.
+func (r *RefService) Exists(ref string) (bool, error) {
+	if err := validateRefPrefix(ref); err != nil {
+		return false, err
+	}
+
 	path := filepath.Join(r.workspace.GelDir, ref)
-	_, err := os.Stat(path)
-	return err == nil
+	ok, err := Exists(path)
+	if err != nil {
+		return false, fmt.Errorf("ref: %w", err)
+	}
+	return ok, nil
 }
 
+// Resolve reads a symbolic name (for example HEAD) and then reads the direct ref it points to.
 func (r *RefService) Resolve(name string) (domain.Hash, error) {
 	ref, err := r.ReadSymbolic(name)
 	if err != nil {
 		return domain.Hash{}, err
 	}
 	return r.Read(ref)
+}
+
+// symbolicPath sanitizes symbolic-ref file names and maps them under .gel.
+// Absolute and traversal paths are rejected.
+func (r *RefService) symbolicPath(name string) (string, error) {
+	cleanName := filepath.Clean(name)
+	if cleanName == "." || filepath.IsAbs(cleanName) || cleanName == ".." ||
+		strings.HasPrefix(cleanName, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("'%s': %w", name, ErrInvalidSymbolicRef)
+	}
+	return filepath.Join(r.workspace.GelDir, cleanName), nil
+}
+
+// validateRefPrefix ensures a direct reference path uses the refs/ namespace.
+func validateRefPrefix(ref string) error {
+	if !strings.HasPrefix(ref, "refs/") {
+		return fmt.Errorf("'%s': %w", ref, ErrInvalidRef)
+	}
+	return nil
 }
