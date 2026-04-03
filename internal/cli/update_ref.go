@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Gel/internal/domain"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -10,27 +11,52 @@ var (
 	updateRefDeleteFlag bool
 )
 
+// updateRefCmd updates or deletes direct refs under refs/.
+// Modes:
+//   - update-ref <ref> <new-hash>
+//   - update-ref <ref> <new-hash> <old-hash>
+//   - update-ref -d <ref>
+//   - update-ref -d <ref> <old-hash>
 var updateRefCmd = &cobra.Command{
 	Use:   "update-ref",
 	Short: "Update a reference",
-	Args:  cobra.RangeArgs(2, 3),
+	Args:  cobra.RangeArgs(1, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ref := args[0]
-		newHash, err := domain.NewHash(args[1])
-		if err != nil {
-			return err
+		switch len(args) {
+		case 1:
+			if updateRefDeleteFlag {
+				return updateRefService.Delete(ref)
+			}
+			return fmt.Errorf("update-ref: missing new hash argument")
+		case 2:
+			hashStr := args[1]
+			hash, err := domain.NewHash(hashStr)
+			if err != nil {
+				return fmt.Errorf("update-ref: %w", err)
+			}
+			if updateRefDeleteFlag {
+				return updateRefService.DeleteSafe(ref, hash)
+			}
+			return updateRefService.Update(ref, hash)
+		case 3:
+			if updateRefDeleteFlag {
+				return fmt.Errorf("update-ref: --delete accepts at most one hash argument")
+			}
+
+			newHashStr := args[1]
+			oldHashStr := args[2]
+			newHash, err := domain.NewHash(newHashStr)
+			if err != nil {
+				return fmt.Errorf("update-ref: %w", err)
+			}
+			oldHash, err := domain.NewHash(oldHashStr)
+			if err != nil {
+				return fmt.Errorf("update-ref: %w", err)
+			}
+			return updateRefService.UpdateSafe(ref, newHash, oldHash)
 		}
-		if updateRefDeleteFlag {
-			return updateRefService.Delete(ref, newHash)
-		}
-		if len(args) == 2 {
-			return updateRefService.Update(ref, newHash, domain.Hash{})
-		}
-		oldHash, err := domain.NewHash(args[2])
-		if err != nil {
-			return err
-		}
-		return updateRefService.Update(ref, newHash, oldHash)
+		return nil
 	},
 }
 
