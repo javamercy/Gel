@@ -10,6 +10,8 @@ import (
 var (
 	branchDeleteFlag bool
 )
+
+// branchCmd lists local branches, creates new branches, or deletes a branch with --delete.
 var branchCmd = &cobra.Command{
 	Use:   "branch",
 	Short: "List, create, or delete branches",

@@ -15,12 +15,15 @@ type BranchListItem struct {
 	Name      string
 	IsCurrent bool
 }
+
+// BranchService provides branch-oriented operations on top of low-level ref/object services.
 type BranchService struct {
 	refService    *core.RefService
 	objectService *core.ObjectService
 	workspace     *domain.Workspace
 }
 
+// NewBranchService creates a branch service.
 func NewBranchService(
 	refService *core.RefService,
 	objectService *core.ObjectService,
@@ -33,6 +36,8 @@ func NewBranchService(
 	}
 }
 
+// List returns all local branches and marks the current branch.
+// Results are sorted by branch name for deterministic output.
 func (b *BranchService) List() ([]BranchListItem, error) {
 	headsDir := filepath.Join(b.workspace.GelDir, domain.RefsDirName, domain.HeadsDirName)
 	currentBranchRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
@@ -80,6 +85,9 @@ func (b *BranchService) List() ([]BranchListItem, error) {
 	return branchNames, nil
 }
 
+// Create creates branch name at startPoint.
+// When startPoint is empty, it uses HEAD and requires at least one existing commit.
+// Non-empty startPoint may be an existing branch name or commit hash.
 func (b *BranchService) Create(name string, startPoint string) error {
 	if err := validateBranchName(name); err != nil {
 		return fmt.Errorf("branch: '%s': %w", name, err)
@@ -126,23 +134,29 @@ func (b *BranchService) Create(name string, startPoint string) error {
 	return nil
 }
 
+// Delete removes a branch by name.
+// Deleting the currently checked-out branch is rejected.
 func (b *BranchService) Delete(name string) error {
 	if err := validateBranchName(name); err != nil {
-		return fmt.Errorf("'%s': %w", name, err)
+		return fmt.Errorf("branch: '%s': %w", name, err)
 	}
 
 	currRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("branch: failed to read HEAD: %w", err)
 	}
 
 	refToDelete := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if refToDelete == currRef {
-		return fmt.Errorf("'%s': %w", name, ErrDeleteCurrentBranch)
+		return fmt.Errorf("branch: '%s': %w", name, ErrDeleteCurrentBranch)
 	}
-	return b.refService.Delete(refToDelete)
+	if err := b.refService.Delete(refToDelete); err != nil {
+		return fmt.Errorf("branch: failed to delete '%s': %w", name, err)
+	}
+	return nil
 }
 
+// Exists reports whether a local branch exists.
 func (b *BranchService) Exists(name string) (bool, error) {
 	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	ok, err := b.refService.Exists(targetRef)
@@ -152,6 +166,7 @@ func (b *BranchService) Exists(name string) (bool, error) {
 	return ok, nil
 }
 
+// validateBranchName applies local branch naming rules.
 func validateBranchName(name string) error {
 	switch {
 	case strings.HasPrefix(name, "-"):
