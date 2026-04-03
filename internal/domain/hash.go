@@ -32,6 +32,10 @@ func (h Hash) IsEmpty() bool {
 	return h == Hash{}
 }
 
+func (h Hash) Equals(o Hash) bool {
+	return h == o
+}
+
 func (h Hash) String() string {
 	return h.ToHexString()
 }
