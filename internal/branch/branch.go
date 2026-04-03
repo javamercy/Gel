@@ -3,14 +3,18 @@ package branch
 import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 )
 
+type BranchListItem struct {
+	Name      string
+	IsCurrent bool
+}
 type BranchService struct {
 	refService    *core.RefService
 	objectService *core.ObjectService
@@ -29,12 +33,11 @@ func NewBranchService(
 	}
 }
 
-func (b *BranchService) List(writer io.Writer) error {
+func (b *BranchService) List() ([]BranchListItem, error) {
 	headsDir := filepath.Join(b.workspace.GelDir, domain.RefsDirName, domain.HeadsDirName)
-
-	currentBranch, err := b.refService.ReadSymbolic(domain.HeadFileName)
+	currentBranchRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
-		return fmt.Errorf("branch: failed to read symbolic ref: %w", err)
+		return nil, fmt.Errorf("branch: failed to read symbolic ref: %w", err)
 	}
 
 	branches := make(map[string]bool)
@@ -51,52 +54,58 @@ func (b *BranchService) List(writer io.Writer) error {
 
 			ref := strings.TrimPrefix(p, b.workspace.GelDir+"/")
 			name := strings.TrimPrefix(p, headsDir+"/")
-			isCurrent := ref == currentBranch
+			isCurrent := ref == currentBranchRef
 			branches[name] = isCurrent
 			return nil
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("branch: failed to list branches: %w", err)
+		return nil, fmt.Errorf("branch: failed to list branches: %w", err)
 	}
 
-	branchNames := make([]string, 0, len(branches))
+	branchNames := make([]BranchListItem, 0, len(branches))
 	for name := range branches {
-		branchNames = append(branchNames, name)
+		branchNames = append(
+			branchNames, BranchListItem{
+				Name:      name,
+				IsCurrent: branches[name],
+			},
+		)
 	}
-
-	sort.Strings(branchNames)
-
-	for _, name := range branchNames {
-		if branches[name] {
-			if _, err := fmt.Fprintf(writer, "%s* %s%s\n", core.ColorGreen, name, core.ColorReset); err != nil {
-				return fmt.Errorf("branch: failed to write branch name: %w", err)
-			}
-		} else {
-			if _, err := fmt.Fprintf(writer, "%s\n", name); err != nil {
-				return fmt.Errorf("branch: failed to write branch name: %w", err)
-			}
-		}
-	}
-	return nil
+	slices.SortFunc(
+		branchNames, func(a, b BranchListItem) int {
+			return strings.Compare(a.Name, b.Name)
+		},
+	)
+	return branchNames, nil
 }
 
 func (b *BranchService) Create(name string, startPoint string) error {
 	if err := validateBranchName(name); err != nil {
-		return fmt.Errorf("'%s': %w", name, err)
+		return fmt.Errorf("branch: '%s': %w", name, err)
 	}
-
-	if b.Exists(name) {
-		return fmt.Errorf("'%s': %w", name, ErrBranchAlreadyExists)
+	if ok, err := b.Exists(name); err != nil {
+		return err
+	} else if ok {
+		return fmt.Errorf("branch: '%s': %w", name, ErrBranchAlreadyExists)
 	}
 
 	ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	if startPoint == "" {
 		commitHash, err := b.refService.Resolve(domain.HeadFileName)
 		if err != nil {
-			return err
+			if errors.Is(err, core.ErrRefNotFound) {
+				return fmt.Errorf("branch: '%s': %w", name, ErrNoCommitsYet)
+			}
+			return fmt.Errorf("branch: failed to resolve HEAD: %w", err)
 		}
-		return b.refService.Write(ref, commitHash)
+		if commitHash.IsEmpty() {
+			return fmt.Errorf("branch: '%s': %w", name, ErrNoCommitsYet)
+		}
+		if err := b.refService.Write(ref, commitHash); err != nil {
+			return fmt.Errorf("branch: failed to write '%s': %w", name, err)
+		}
+		return nil
 	}
 
 	startBranchRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, startPoint)
@@ -106,12 +115,15 @@ func (b *BranchService) Create(name string, startPoint string) error {
 
 	startHash, err := domain.NewHash(startPoint)
 	if err != nil {
-		return err
+		return fmt.Errorf("branch: '%s': %w", startPoint, ErrInvalidStartPoint)
 	}
 	if _, err := b.objectService.ReadCommit(startHash); err != nil {
-		return err
+		return fmt.Errorf("branch: '%s': %w", startPoint, ErrInvalidStartPoint)
 	}
-	return b.refService.Write(ref, startHash)
+	if err := b.refService.Write(ref, startHash); err != nil {
+		return fmt.Errorf("branch: %w", err)
+	}
+	return nil
 }
 
 func (b *BranchService) Delete(name string) error {
@@ -131,10 +143,13 @@ func (b *BranchService) Delete(name string) error {
 	return b.refService.Delete(refToDelete)
 }
 
-func (b *BranchService) Exists(name string) bool {
+func (b *BranchService) Exists(name string) (bool, error) {
 	targetRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, name)
 	ok, err := b.refService.Exists(targetRef)
-	return ok && err == nil
+	if err != nil {
+		return false, fmt.Errorf("branch: %w", err)
+	}
+	return ok, nil
 }
 
 func validateBranchName(name string) error {

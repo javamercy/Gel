@@ -17,4 +17,10 @@ var (
 
 	// ErrUncommittedChanges is returned when switching branches with staged local changes.
 	ErrUncommittedChanges = errors.New("uncommitted changes")
+
+	// ErrInvalidStartPoint is returned when a branch cannot be created at the specified start point.
+	ErrInvalidStartPoint = errors.New("invalid start point")
+
+	// ErrNoCommitsYet is returned when trying to create a branch before the first commit.
+	ErrNoCommitsYet = errors.New("cannot create branch before first commit")
 )

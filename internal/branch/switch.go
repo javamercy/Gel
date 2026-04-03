@@ -55,9 +55,12 @@ func (s *SwitchService) Switch(branch string, create, force bool) (string, error
 		}
 	}
 
-	if !s.branchService.Exists(branch) {
-		return "", fmt.Errorf("'%s': %w", branch, ErrBranchNotFound)
-	}
+	// TODO: fix here later
+	/*
+		if !s.branchService.Exists(branch) {
+			return "", fmt.Errorf("'%s': %w", branch, ErrBranchNotFound)
+		}
+	*/
 
 	targetCommitHash, err := s.refService.Read(targetRef)
 	if err != nil {
