@@ -85,6 +85,20 @@ func (b *BranchService) List() ([]BranchListItem, error) {
 	return branchNames, nil
 }
 
+// Current returns the name of the currently checked-out branch.
+func (b *BranchService) Current() (string, error) {
+	ref, err := b.refService.ReadSymbolic(domain.HeadFileName)
+	if err != nil {
+		return "", fmt.Errorf("branch: %w", err)
+	}
+
+	prefix := filepath.Join(domain.RefsDirName, domain.HeadsDirName) + "/"
+	if !strings.HasPrefix(ref, filepath.Join(domain.RefsDirName, domain.HeadsDirName)+"/") {
+		return "", fmt.Errorf("branch: %w", ErrInvalidBranchName)
+	}
+	return strings.TrimPrefix(ref, prefix), nil
+}
+
 // Create creates branch name at startPoint.
 // When startPoint is empty, it uses HEAD and requires at least one existing commit.
 // Non-empty startPoint may be an existing branch name or commit hash.
