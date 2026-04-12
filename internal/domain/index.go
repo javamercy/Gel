@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Index file header and entry size constants.
 const (
 	IndexHeaderSignatureSize  = 4
 	IndexHeaderVersionSize    = 4
@@ -18,39 +19,49 @@ const (
 	IndexHeaderSize           = IndexHeaderSignatureSize + IndexHeaderVersionSize + IndexHeaderNumEntriesSize
 )
 
+// Index checksum and padding constants.
 const (
 	IndexChecksumSize = 32
 	PaddingAlignment  = 8
 )
 
+// Index entry field size constants (in bytes).
+// Note: Device, Inode, and Size use uint64 (8 bytes) to support modern filesystems.
 const (
-	IndexEntryTimeSize              = 4
-	IndexEntryDeviceSize            = 4
-	IndexEntryInodeSize             = 4
-	IndexEntryModeSize              = 4
-	IndexEntryUserIdSize            = 4
-	IndexEntryGroupIdSize           = 4
-	IndexEntrySizeFieldSize         = 4
+	IndexEntryTimeSize              = 4 // seconds (nanoseconds stored separately)
+	IndexEntryDeviceSize            = 8 // uint64
+	IndexEntryInodeSize             = 8 // uint64
+	IndexEntryModeSize              = 4 // uint32
+	IndexEntryUserIDSize            = 4 // uint32
+	IndexEntryGroupIDSize           = 4 // uint32
+	IndexEntrySizeFieldSize         = 8 // uint64
 	IndexEntryHashSize              = SHA256ByteLength
 	IndexEntryFlagsSize             = 2
 	IndexEntryPathNullTerminateSize = 1
-	IndexEntryHashOffset            = 4*IndexEntryTimeSize + IndexEntryDeviceSize + IndexEntryInodeSize + IndexEntryModeSize + IndexEntryUserIdSize + IndexEntryGroupIdSize + IndexEntrySizeFieldSize
+	IndexEntryHashOffset            = 4*IndexEntryTimeSize + IndexEntryDeviceSize + IndexEntryInodeSize + IndexEntryModeSize + IndexEntryUserIDSize + IndexEntryGroupIDSize + IndexEntrySizeFieldSize
 	IndexEntryFlagsOffset           = IndexEntryHashOffset + IndexEntryHashSize
 	IndexEntryFixedSize             = IndexEntryFlagsOffset + IndexEntryFlagsSize
 )
 
+// Index flags constants.
 const (
-	MaxPathLength = 0xFFF
-	StageMask     = 0x3
-	StageShift    = 12
+	MaxPathLength = 0xFFF // maximum path length encoded in flags (12 bits)
+	StageMask     = 0x3   // mask for stage bits in flags
+	StageShift    = 12    // bit offset for stage in flags
 )
 
+// IndexHeader represents the header of an index file.
+// Contains signature, version, and entry count.
 type IndexHeader struct {
-	Signature  [4]byte
-	Version    uint32
+	// Signature is the 4-byte file signature (e.g., "DIRC").
+	Signature [4]byte
+	// Version is the index format version.
+	Version uint32
+	// NumEntries is the number of entries in the index.
 	NumEntries uint32
 }
 
+// NewIndexHeader creates a new index header with the given values.
 func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexHeader {
 	return IndexHeader{
 		Signature:  signature,
@@ -59,20 +70,34 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 	}
 }
 
+// IndexEntry represents a single file entry in the index.
+// It stores metadata for change detection and the object's content hash.
 type IndexEntry struct {
-	Path         NormalizedPath
-	Hash         Hash
-	Size         uint64
-	Mode         uint32
-	Device       uint64
-	Inode        uint64
-	UserId       uint32
-	GroupId      uint32
-	Flags        uint16
-	ChangedTime  time.Time
+	// Path is the normalized relative path from the repository root.
+	Path NormalizedPath
+	// Hash is the SHA-256 content hash of the file/blob.
+	Hash Hash
+	// Size is the file size in bytes.
+	Size uint64
+	// Mode is the file mode (permissions and type).
+	Mode uint32
+	// Device is the device ID containing the file.
+	Device uint64
+	// Inode is the file's inode number.
+	Inode uint64
+	// UserId is the file owner's user ID.
+	UserId uint32
+	// GroupId is the file owner's group ID.
+	GroupId uint32
+	// Flags contains path length (lower 12 bits) and stage (upper 4 bits).
+	Flags uint16
+	// ChangedTime is the last metadata change time (ctime).
+	ChangedTime time.Time
+	// ModifiedTime is the last content modification time (mtime).
 	ModifiedTime time.Time
 }
 
+// NewEmptyIndexEntry creates an index entry with zero values for the given path, hash, and mode.
 func NewEmptyIndexEntry(path NormalizedPath, hash Hash, mode uint32) *IndexEntry {
 	return &IndexEntry{
 		Path:         path,
@@ -89,6 +114,7 @@ func NewEmptyIndexEntry(path NormalizedPath, hash Hash, mode uint32) *IndexEntry
 	}
 }
 
+// NewIndexEntry creates a fully populated index entry with all metadata.
 func NewIndexEntry(
 	path NormalizedPath,
 	hash Hash,
@@ -122,6 +148,7 @@ func (e *IndexEntry) GetStage() uint16 {
 	return (e.Flags >> StageShift) & StageMask
 }
 
+// serialize converts the index entry to its binary representation.
 func (e *IndexEntry) serialize() ([]byte, error) {
 
 	pathLen := len(e.Path)
@@ -153,6 +180,8 @@ func (e *IndexEntry) serialize() ([]byte, error) {
 	return serializedEntry, nil
 }
 
+// MatchesStat compares the entry's stored metadata against a fresh stat call.
+// Returns true if the file appears unchanged (same device, inode, times, size, mode).
 func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
 	if e.ChangedTime != stat.ChangedTime {
 		return false
@@ -171,12 +200,15 @@ func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
 	return e.Mode == ParseFileModeFromOsMode(stat.Mode).Uint32()
 }
 
+// Index represents the complete index (staging area) of a repository.
+// It contains a header, sorted entries, and a SHA-256 checksum of all data.
 type Index struct {
 	Header   IndexHeader
 	Entries  []*IndexEntry
 	Checksum string
 }
 
+// NewIndex creates a new index with the given header, entries, and checksum.
 func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index {
 	return &Index{
 		Header:   header,
@@ -185,12 +217,15 @@ func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index
 	}
 }
 
+// NewEmptyIndex creates a new empty index with default signature and version.
 func NewEmptyIndex() *Index {
 	signatureBytes := [4]byte([]byte(IndexSignature))
 	header := NewIndexHeader(signatureBytes, IndexVersion, 0)
 	return NewIndex(header, []*IndexEntry{}, "")
 }
 
+// AddEntry inserts an entry into the index, maintaining sorted order.
+// If an entry with the same path exists, it is replaced.
 func (idx *Index) AddEntry(entry *IndexEntry) {
 	i := sort.Search(
 		len(idx.Entries), func(i int) bool {
@@ -208,6 +243,7 @@ func (idx *Index) AddEntry(entry *IndexEntry) {
 	idx.Header.NumEntries = uint32(len(idx.Entries))
 }
 
+// UpdateEntry replaces an existing entry with the same path. Returns true if updated, false if not found.
 func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
 	prevEntry, i := idx.FindEntry(entry.Path)
 	if prevEntry == nil {
@@ -217,12 +253,14 @@ func (idx *Index) UpdateEntry(entry *IndexEntry) bool {
 	return true
 }
 
+// SetEntry updates an existing entry or adds it if not found.
 func (idx *Index) SetEntry(entry *IndexEntry) {
 	if !idx.UpdateEntry(entry) {
 		idx.AddEntry(entry)
 	}
 }
 
+// RemoveEntry removes the entry with the given path if it exists.
 func (idx *Index) RemoveEntry(path NormalizedPath) {
 	if entry, i := idx.FindEntry(path); entry != nil {
 		idx.Entries = append(idx.Entries[:i], idx.Entries[i+1:]...)
@@ -230,6 +268,7 @@ func (idx *Index) RemoveEntry(path NormalizedPath) {
 	}
 }
 
+// FindEntry looks up an entry by path. Returns the entry and its index, or nil if not found.
 func (idx *Index) FindEntry(path NormalizedPath) (*IndexEntry, int) {
 	i := sort.Search(
 		len(idx.Entries), func(i int) bool {
@@ -242,6 +281,7 @@ func (idx *Index) FindEntry(path NormalizedPath) (*IndexEntry, int) {
 	return nil, 0
 }
 
+// FindEntriesByPathPrefix returns all entries whose path starts with the given prefix.
 func (idx *Index) FindEntriesByPathPrefix(prefix string) []*IndexEntry {
 	var result []*IndexEntry
 	for _, entry := range idx.Entries {
@@ -252,6 +292,7 @@ func (idx *Index) FindEntriesByPathPrefix(prefix string) []*IndexEntry {
 	return result
 }
 
+// FindEntriesByPathPattern returns all entries whose path matches the given glob pattern.
 func (idx *Index) FindEntriesByPathPattern(pattern string) []*IndexEntry {
 	var result []*IndexEntry
 	for _, entry := range idx.Entries {
@@ -262,11 +303,13 @@ func (idx *Index) FindEntriesByPathPattern(pattern string) []*IndexEntry {
 	return result
 }
 
+// HasEntry reports whether an entry with the given path exists in the index.
 func (idx *Index) HasEntry(path NormalizedPath) bool {
 	entry, _ := idx.FindEntry(path)
 	return entry != nil
 }
 
+// Serialize serializes the entire index to bytes, including header, entries, and checksum.
 func (idx *Index) Serialize() ([]byte, error) {
 	serializedHeader := idx.serializeHeader()
 
@@ -294,6 +337,7 @@ func (idx *Index) Serialize() ([]byte, error) {
 	return result, nil
 }
 
+// serializeHeader converts the index header to bytes.
 func (idx *Index) serializeHeader() []byte {
 	serializedHeader := make([]byte, IndexHeaderSize)
 	header := idx.Header
@@ -307,6 +351,7 @@ func (idx *Index) serializeHeader() []byte {
 	return serializedHeader
 }
 
+// serializeEntries converts all index entries to bytes.
 func (idx *Index) serializeEntries() ([]byte, error) {
 	var serializedEntries []byte
 	for _, entry := range idx.Entries {
@@ -319,6 +364,8 @@ func (idx *Index) serializeEntries() ([]byte, error) {
 	return serializedEntries, nil
 }
 
+// DeserializeIndex parses index data from bytes.
+// It validates the header signature, version, entry count, and checksum.
 func DeserializeIndex(data []byte) (*Index, error) {
 	if len(data) == 0 {
 		return NewEmptyIndex(), nil
@@ -372,12 +419,14 @@ func DeserializeIndex(data []byte) (*Index, error) {
 	return &index, nil
 }
 
+// ComputeIndexFlags encodes the path length and stage into a 16-bit flags field.
 func ComputeIndexFlags(path string, stage uint16) uint16 {
 	pathLength := min(len(path), MaxPathLength)
 	flags := uint16(pathLength) | (stage << StageShift)
 	return flags
 }
 
+// deserializeHeader parses the index header from bytes.
 func deserializeHeader(data []byte) (IndexHeader, error) {
 	var header IndexHeader
 
@@ -392,6 +441,8 @@ func deserializeHeader(data []byte) (IndexHeader, error) {
 	return header, nil
 }
 
+// deserializeIndexEntry parses a single index entry from bytes.
+// Returns the entry and the total number of bytes consumed (including padding).
 func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 	if len(data) < IndexEntryFixedSize {
 		return nil, 0, ErrEntryDataTooShort
@@ -438,14 +489,15 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 	return &entry, totalSize, nil
 }
 
+// writeIndexEntryFields writes the fixed-size fields of an index entry to the buffer.
 func writeIndexEntryFields(buffer *bytes.Buffer, entry *IndexEntry) error {
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ChangedTime.Unix())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, entry.ChangedTime.Unix()); err != nil {
 		return err
 	}
 	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ChangedTime.Nanosecond())); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ModifiedTime.Unix())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, entry.ModifiedTime.Unix()); err != nil {
 		return err
 	}
 	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ModifiedTime.Nanosecond())); err != nil {
@@ -472,24 +524,27 @@ func writeIndexEntryFields(buffer *bytes.Buffer, entry *IndexEntry) error {
 	return nil
 }
 
+// readIndexEntryFields reads the fixed-size fields of an index entry from the reader.
 func readIndexEntryFields(reader *bytes.Reader, entry *IndexEntry) error {
-	var createdTimeUnix, createdTimeNanoseconds uint32
-	if err := binary.Read(reader, binary.BigEndian, &createdTimeUnix); err != nil {
+	var changedTimeUnix int64
+	var changedTimeNanoseconds uint32
+	if err := binary.Read(reader, binary.BigEndian, &changedTimeUnix); err != nil {
 		return err
 	}
-	if err := binary.Read(reader, binary.BigEndian, &createdTimeNanoseconds); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &changedTimeNanoseconds); err != nil {
 		return err
 	}
-	entry.ChangedTime = time.Unix(int64(createdTimeUnix), int64(createdTimeNanoseconds))
+	entry.ChangedTime = time.Unix(changedTimeUnix, int64(changedTimeNanoseconds))
 
-	var updatedTimeUnix, updatedTimeNanoseconds uint32
-	if err := binary.Read(reader, binary.BigEndian, &updatedTimeUnix); err != nil {
+	var modifiedTimeUnix int64
+	var modifiedTimeNanoseconds uint32
+	if err := binary.Read(reader, binary.BigEndian, &modifiedTimeUnix); err != nil {
 		return err
 	}
-	if err := binary.Read(reader, binary.BigEndian, &updatedTimeNanoseconds); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &modifiedTimeNanoseconds); err != nil {
 		return err
 	}
-	entry.ModifiedTime = time.Unix(int64(updatedTimeUnix), int64(updatedTimeNanoseconds))
+	entry.ModifiedTime = time.Unix(modifiedTimeUnix, int64(modifiedTimeNanoseconds))
 
 	if err := binary.Read(reader, binary.BigEndian, &entry.Device); err != nil {
 		return err
