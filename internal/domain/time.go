@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"strconv"
 	"time"
 )
@@ -16,7 +17,15 @@ func FormatCommitTimezone(t time.Time) string {
 }
 
 // FormatCommitDate parses a commit timestamp and timezone and returns a formatted date string.
+// It validates that timestamp is non-empty and timezone is in ±HHMM format.
 func FormatCommitDate(timestamp, timezone string) (string, error) {
+	if len(timestamp) == 0 {
+		return "", errors.New("invalid timestamp: empty")
+	}
+	if len(timezone) != 5 || (timezone[0] != '+' && timezone[0] != '-') {
+		return "", errors.New("invalid timezone: must be ±HHMM format")
+	}
+
 	unix, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
 		return "", err
@@ -26,10 +35,12 @@ func FormatCommitDate(timestamp, timezone string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	mins, err := strconv.Atoi(timezone[3:5])
 	if err != nil {
 		return "", err
 	}
+
 	offset := (hours*60 + mins) * 60
 	if timezone[0] == '-' {
 		offset = -offset
