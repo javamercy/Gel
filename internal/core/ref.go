@@ -9,11 +9,12 @@ import (
 	"strings"
 )
 
+// RefService manages operations related to symbolic and direct references within a repository workspace.
 type RefService struct {
 	workspace *domain.Workspace
 }
 
-// NewRefService creates a repository-scoped reference service.
+// NewRefService initializes and returns a new RefService instance for managing references in the specified workspace.
 func NewRefService(workspace *domain.Workspace) *RefService {
 	return &RefService{
 		workspace: workspace,

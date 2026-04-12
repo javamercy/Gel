@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+// PathHashes maps normalized repository-relative paths to content hashes.
+type PathHashes map[domain.NormalizedPath]domain.Hash
+
+// TreeResolver resolves path->hash snapshots from repository trees, index, and working tree.
 type TreeResolver struct {
 	objectService  *ObjectService
 	indexService   *IndexService
@@ -14,6 +18,7 @@ type TreeResolver struct {
 	workspace      *domain.Workspace
 }
 
+// NewTreeResolver creates a tree resolver.
 func NewTreeResolver(
 	objectService *ObjectService,
 	indexService *IndexService,
@@ -32,11 +37,13 @@ func NewTreeResolver(
 	}
 }
 
-func (t *TreeResolver) ResolveHEAD() (map[string]domain.Hash, error) {
+// ResolveHEAD resolves the tree snapshot pointed to by HEAD.
+func (t *TreeResolver) ResolveHEAD() (PathHashes, error) {
 	return t.ResolveRef(domain.HeadFileName)
 }
 
-func (t *TreeResolver) ResolveRef(refName string) (map[string]domain.Hash, error) {
+// ResolveRef resolves the tree snapshot pointed to by refName.
+func (t *TreeResolver) ResolveRef(refName string) (PathHashes, error) {
 	commitHash, err := t.refService.Resolve(refName)
 	if err != nil {
 		return nil, err
@@ -44,38 +51,46 @@ func (t *TreeResolver) ResolveRef(refName string) (map[string]domain.Hash, error
 	return t.ResolveCommit(commitHash)
 }
 
-func (t *TreeResolver) ResolveCommit(hash domain.Hash) (map[string]domain.Hash, error) {
+// ResolveCommit walks a commit tree recursively and returns normalized path hashes.
+func (t *TreeResolver) ResolveCommit(hash domain.Hash) (PathHashes, error) {
 	commit, err := t.objectService.ReadCommit(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	entries := make(map[string]domain.Hash)
+	pathHashes := make(map[domain.NormalizedPath]domain.Hash)
 	walker := NewTreeWalker(t.objectService, WalkOptions{Recursive: true})
 	err = walker.Walk(
 		commit.TreeHash, "", func(e domain.TreeEntry, relPath string) error {
-			entries[relPath] = e.Hash
+			normalizedPath, err := domain.NewNormalizedPathUnchecked(relPath)
+			if err != nil {
+				return err
+			}
+			pathHashes[normalizedPath] = e.Hash
 			return nil
 		},
 	)
-	return entries, err
+	return pathHashes, err
 }
 
-func (t *TreeResolver) ResolveIndex() (map[string]domain.Hash, error) {
+// ResolveIndex returns the current index snapshot as normalized path hashes.
+func (t *TreeResolver) ResolveIndex() (PathHashes, error) {
 	entries, err := t.indexService.GetEntries()
 	if err != nil {
 		return nil, err
 	}
 
-	entriesMap := make(map[string]domain.Hash, len(entries))
+	pathHashes := make(PathHashes, len(entries))
 	for _, entry := range entries {
-		entriesMap[entry.Path.String()] = entry.Hash
+		pathHashes[entry.Path] = entry.Hash
 	}
-	return entriesMap, nil
+	return pathHashes, nil
 }
 
-func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
-	resolvedPaths, err := t.pathResolver.Resolve([]string{"."})
+// ResolveWorkingTree returns repository-wide working tree path hashes.
+// The scan is rooted at repository root so results are independent of current working directory.
+func (t *TreeResolver) ResolveWorkingTree() (PathHashes, error) {
+	resolvedPaths, err := t.pathResolver.Resolve([]string{t.workspace.RepoDir})
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +100,7 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 		return nil, err
 	}
 
-	results := make(map[string]domain.Hash)
+	pathHashes := make(map[domain.NormalizedPath]domain.Hash)
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
 			entry, _ := index.FindEntry(path)
@@ -96,11 +111,11 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 				}
 				switch changeResult.FileState {
 				case FileStateUnchanged:
-					results[path.String()] = entry.Hash
+					pathHashes[path] = entry.Hash
 				case FileStateModified:
-					results[path.String()] = changeResult.NewHash
+					pathHashes[path] = changeResult.NewHash
 				case FileStateDeleted:
-					// TODO: what to do with deleted files?
+					delete(pathHashes, path)
 				}
 			} else {
 				absolutePath, err := path.ToAbsolutePath(t.workspace.RepoDir)
@@ -112,18 +127,20 @@ func (t *TreeResolver) ResolveWorkingTree() (map[string]domain.Hash, error) {
 				if err != nil {
 					return nil, err
 				}
-				results[path.String()] = hash
+				pathHashes[path] = hash
 			}
 		}
 	}
-	return results, nil
+	return pathHashes, nil
 }
 
-func (t *TreeResolver) LookupPathInTree(treeHash domain.Hash, path string) (domain.TreeEntry, error) {
-	segments := strings.Split(path, "/")
+// LookupPathInTree traverses a tree hierarchy using the given tree hash and path, returning the matching tree entry.
+func (t *TreeResolver) LookupPathInTree(treeHash domain.Hash, path domain.NormalizedPath) (domain.TreeEntry, error) {
+	segments := strings.Split(path.String(), "/")
 	return t.lookupPathInTreeRecursive(treeHash, segments)
 }
 
+// lookupPathInTreeRecursive traverses a tree hierarchy using the given tree hash and path segments, returning the matching tree entry.
 func (t *TreeResolver) lookupPathInTreeRecursive(treeHash domain.Hash, segments []string) (domain.TreeEntry, error) {
 	entries, err := t.objectService.ReadTreeAndDeserializeEntries(treeHash)
 	if err != nil {

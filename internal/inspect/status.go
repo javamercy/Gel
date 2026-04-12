@@ -1,148 +1,135 @@
 package inspect
 
 import (
+	"Gel/internal/branch"
 	"Gel/internal/core"
 	"Gel/internal/domain"
 	"errors"
 	"fmt"
-	"io"
 )
 
+// FileStatus describes one path and its status label.
 type FileStatus struct {
-	Path   string
+	Path   domain.NormalizedPath
 	Status string
 }
 
+// StatusResult contains categorized repository changes for status output.
 type StatusResult struct {
-	Staged    []FileStatus
-	Unstaged  []FileStatus
-	Untracked []string
-}
-type StatusService struct {
-	indexService       *core.IndexService
-	objectService      *core.ObjectService
-	treeResolver       *core.TreeResolver
-	refService         *core.RefService
-	symbolicRefService *core.SymbolicRefService
+	Staged        []FileStatus
+	Unstaged      []FileStatus
+	Untracked     []domain.NormalizedPath
+	CurrentBranch string
+	HeadTreeSize  int
 }
 
+// StatusService computes repository state from HEAD, index, and working tree snapshots.
+type StatusService struct {
+	indexService  *core.IndexService
+	objectService *core.ObjectService
+	branchService *branch.BranchService
+	treeResolver  *core.TreeResolver
+}
+
+// NewStatusService creates a status service.
 func NewStatusService(
-	indexService *core.IndexService, objectService *core.ObjectService, treeResolver *core.TreeResolver,
-	refService *core.RefService, symbolicRefService *core.SymbolicRefService,
+	indexService *core.IndexService,
+	objectService *core.ObjectService,
+	branchService *branch.BranchService,
+	treeResolver *core.TreeResolver,
 ) *StatusService {
 	return &StatusService{
-		indexService:       indexService,
-		objectService:      objectService,
-		treeResolver:       treeResolver,
-		refService:         refService,
-		symbolicRefService: symbolicRefService,
+		indexService:  indexService,
+		objectService: objectService,
+		branchService: branchService,
+		treeResolver:  treeResolver,
 	}
 }
 
-func (s *StatusService) Status(writer io.Writer, short bool) error {
-	// TODO: handle short flag
+// Status returns staged, unstaged, and untracked changes for the current branch.
+func (s *StatusService) Status() (*StatusResult, error) {
 	result := &StatusResult{}
-	indexEntries, err := s.treeResolver.ResolveIndex()
+	indexPathHashes, headTreePathHashes, workingTreePathHashes, err := s.loadPathHashes()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("status: %w", err)
 	}
 
-	headTreeEntries, err := s.treeResolver.ResolveHEAD()
+	result.Staged = collectStaged(indexPathHashes, headTreePathHashes)
+	result.Unstaged = collectUnstaged(indexPathHashes, workingTreePathHashes)
+	result.Untracked = collectUntracked(indexPathHashes, workingTreePathHashes)
+
+	currentBranch, err := s.branchService.Current()
+	if err != nil {
+		return nil, fmt.Errorf("status: %w", err)
+	}
+	result.CurrentBranch = currentBranch
+	result.HeadTreeSize = len(headTreePathHashes)
+	return result, nil
+}
+
+// loadPathHashes resolves path->hash snapshots from index, HEAD tree, and working tree.
+func (s *StatusService) loadPathHashes() (
+	indexPathHashes,
+	headTreePathHashes,
+	workingTreePathHashes core.PathHashes,
+	err error,
+) {
+	indexPathHashes, err = s.treeResolver.ResolveIndex()
+	if err != nil {
+		return
+	}
+
+	headTreePathHashes, err = s.treeResolver.ResolveHEAD()
 	if err != nil && !errors.Is(err, core.ErrRefNotFound) {
-		return err
-	}
-	workingTreeEntries, err := s.treeResolver.ResolveWorkingTree()
-	if err != nil {
-		return err
+		return
 	}
 
-	for indexEntryPath, indexEntryHash := range indexEntries {
-		headHash, inHead := headTreeEntries[indexEntryPath]
+	workingTreePathHashes, err = s.treeResolver.ResolveWorkingTree()
+	if err != nil {
+		return
+	}
+	return
+}
+
+// collectStaged compares index against HEAD to find staged additions, modifications, and deletions.
+func collectStaged(indexPathHashes, headTreePathHashes core.PathHashes) (staged []FileStatus) {
+	for indexPath, indexHash := range indexPathHashes {
+		headHash, inHead := headTreePathHashes[indexPath]
 		if !inHead {
-			result.Staged = append(result.Staged, FileStatus{indexEntryPath, "New File"})
-		} else if headHash != indexEntryHash {
-			result.Staged = append(result.Staged, FileStatus{indexEntryPath, "Modified"})
+			staged = append(staged, FileStatus{indexPath, "New File"})
+		} else if headHash != indexHash {
+			staged = append(staged, FileStatus{indexPath, "Modified"})
 		}
 	}
-	for path := range headTreeEntries {
-		if _, inIndex := indexEntries[path]; !inIndex {
-			result.Unstaged = append(result.Unstaged, FileStatus{path, "Deleted"})
+	for path := range headTreePathHashes {
+		if _, inIndex := indexPathHashes[path]; !inIndex {
+			staged = append(staged, FileStatus{path, "Deleted"})
 		}
 	}
-	for indexEntryPath, indexEntryHash := range indexEntries {
-		workingTreeHash, inWorkingDir := workingTreeEntries[indexEntryPath]
+	return
+}
+
+// collectUnstaged compares working tree against index to find unstaged modifications and deletions.
+func collectUnstaged(indexPathHashes, workingTreePathHashes core.PathHashes) (unstaged []FileStatus) {
+	for indexPath, indexHash := range indexPathHashes {
+		workingTreeHash, inWorkingDir := workingTreePathHashes[indexPath]
 		if !inWorkingDir {
 			// in Index but not in Working Dir
-			result.Unstaged = append(result.Unstaged, FileStatus{indexEntryPath, "Deleted"})
-		} else if workingTreeHash != indexEntryHash {
+			unstaged = append(unstaged, FileStatus{indexPath, "Deleted"})
+		} else if workingTreeHash != indexHash {
 			// in Index and Working Dir but different
-			result.Unstaged = append(result.Unstaged, FileStatus{indexEntryPath, "Modified"})
+			unstaged = append(unstaged, FileStatus{indexPath, "Modified"})
 		}
 	}
-	for path := range workingTreeEntries {
-		if _, inIndex := indexEntries[path]; !inIndex {
-			result.Untracked = append(result.Untracked, path)
-		}
-	}
-
-	currentBranch, err := s.symbolicRefService.Read(domain.HeadFileName, true)
-	if err != nil {
-		return err
-	}
-	return s.printStatus(writer, currentBranch, len(headTreeEntries), result)
+	return
 }
 
-func (s *StatusService) printStatus(writer io.Writer, branch string, headTreeSize int, result *StatusResult) error {
-	if _, err := fmt.Fprintf(writer, "On branch %s%s%s", core.ColorGreen, branch, core.ColorReset); err != nil {
-		return err
-	}
-	if headTreeSize == 0 {
-		if _, err := fmt.Fprintln(writer, " (no commits yet)"); err != nil {
-			return err
+// collectUntracked finds working tree paths that are not present in index.
+func collectUntracked(indexPathHashes, workingTreePathHashes core.PathHashes) (untracked []domain.NormalizedPath) {
+	for path := range workingTreePathHashes {
+		if _, inIndex := indexPathHashes[path]; !inIndex {
+			untracked = append(untracked, path)
 		}
 	}
-	if len(result.Staged) > 0 {
-		if _, err := fmt.Fprintf(
-			writer, "\n%sChanges to be committed:%s\n", core.ColorGreen, core.ColorReset,
-		); err != nil {
-			return err
-		}
-		for _, staged := range result.Staged {
-			if _, err := fmt.Fprintf(
-				writer,
-				"\t%s%s:  %s%s\n", core.ColorGreen, staged.Status, staged.Path, core.ColorReset,
-			); err != nil {
-				return err
-			}
-		}
-	}
-	if len(result.Unstaged) > 0 {
-		if _, err := fmt.Fprintf(
-			writer, "\nChanges not staged for commit:%s\n", core.ColorReset,
-		); err != nil {
-			return err
-		}
-		for _, unstaged := range result.Unstaged {
-			if _, err := fmt.Fprintf(
-				writer,
-				"\t%s:  %s%s\n", unstaged.Status, unstaged.Path, core.ColorReset,
-			); err != nil {
-				return err
-			}
-		}
-	}
-	if len(result.Untracked) > 0 {
-		if _, err := fmt.Fprintf(writer, "\nUntracked files:%s\n", core.ColorReset); err != nil {
-			return err
-		}
-		for _, untracked := range result.Untracked {
-			if _, err := fmt.Fprintf(
-				writer,
-				"\t%s%s\n", untracked, core.ColorReset,
-			); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return
 }

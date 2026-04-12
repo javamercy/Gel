@@ -8,18 +8,21 @@ import (
 	"path/filepath"
 )
 
+// ObjectStorage provides low-level object database persistence under .gel/objects.
 type ObjectStorage struct {
 	workspace *domain.Workspace
 }
 
+// NewObjectStorage creates object storage bound to the repository workspace.
 func NewObjectStorage(workspace *domain.Workspace) *ObjectStorage {
 	return &ObjectStorage{
 		workspace: workspace,
 	}
 }
 
+// Write stores compressed object data at its hash-derived object path.
 func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
-	objectPath, err := o.getObjectPath(hash)
+	objectPath, err := o.hashToObjectPath(hash)
 	if err != nil {
 		return err
 	}
@@ -33,8 +36,9 @@ func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
 	return nil
 }
 
+// Read loads compressed object data by hash.
 func (o *ObjectStorage) Read(hash domain.Hash) ([]byte, error) {
-	objectPath, err := o.getObjectPath(hash)
+	objectPath, err := o.hashToObjectPath(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +49,9 @@ func (o *ObjectStorage) Read(hash domain.Hash) ([]byte, error) {
 	return data, nil
 }
 
+// Exists reports whether an object exists for the given hash.
 func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
-	objectPath, err := o.getObjectPath(hash)
+	objectPath, err := o.hashToObjectPath(hash)
 	if err != nil {
 		return false, err
 	}
@@ -60,7 +65,8 @@ func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
 	return false, fmt.Errorf("failed to check object '%s' existence: %w", hash, err)
 }
 
-func (o *ObjectStorage) getObjectPath(hash domain.Hash) (domain.AbsolutePath, error) {
+// hashToObjectPath converts a hash to .gel/objects/<2-char-prefix>/<remaining> path.
+func (o *ObjectStorage) hashToObjectPath(hash domain.Hash) (domain.AbsolutePath, error) {
 	hexHash := hash.ToHexString()
 	dir := hexHash[:2]
 	file := hexHash[2:]

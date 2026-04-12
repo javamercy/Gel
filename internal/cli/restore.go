@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Gel/internal/domain"
 	"Gel/internal/inspect"
 
 	"github.com/spf13/cobra"
@@ -11,6 +12,7 @@ var (
 	restoreSourceFlag string
 )
 
+// restoreCmd restores paths in the working tree or index depending on flags.
 var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore working tree files",
@@ -37,12 +39,28 @@ var restoreCmd = &cobra.Command{
 				Mode: inspect.RestoreModeIndexVsWorkingTree,
 			}
 		}
-		return restoreService.Restore(args, options)
+
+		var absolutePaths []domain.AbsolutePath
+		for _, arg := range args {
+			absolutePath, err := domain.NewAbsolutePath(arg)
+			if err != nil {
+				return err
+			}
+			absolutePaths = append(absolutePaths, absolutePath)
+		}
+		return restoreService.Restore(absolutePaths, options)
 	},
 }
 
+// init registers the restore command and its flags.
 func init() {
-	restoreCmd.Flags().BoolVarP(&restoreStageFlag, "staged", "s", false, "Restore staged files")
-	restoreCmd.Flags().StringVarP(&restoreSourceFlag, "source", "S", "", "Restore from specified source")
+	restoreCmd.Flags().BoolVarP(
+		&restoreStageFlag, "staged", "s", false,
+		"Restore staged files",
+	)
+	restoreCmd.Flags().StringVarP(
+		&restoreSourceFlag, "source", "S", "",
+		"Restore from specified source",
+	)
 	rootCmd.AddCommand(restoreCmd)
 }

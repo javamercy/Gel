@@ -1,5 +1,21 @@
 package diff
 
+// Region represents a contiguous slice of line diffs included in a hunk.
+type Region struct {
+	Start int
+	End   int
+}
+
+// Hunk describes one unified-diff section with old/new ranges and lines.
+type Hunk struct {
+	OldStart  int
+	OldLength int
+	NewStart  int
+	NewLength int
+	Lines     []LineDiff
+}
+
+// FindRegions finds changed regions and extends them with fixed context lines.
 func FindRegions(diffs []LineDiff) []Region {
 	regions := make([]Region, 0)
 	size := len(diffs)
@@ -17,14 +33,15 @@ func FindRegions(diffs []LineDiff) []Region {
 	return regions
 }
 
-func BuildHunks(diffs []LineDiff, regions []Region) []Hunk {
-	hunks := make([]Hunk, 0)
+// BuildHunks converts regions into unified-style hunks with computed ranges.
+func BuildHunks(lines []LineDiff, regions []Region) []*Hunk {
+	hunks := make([]*Hunk, 0)
 	for _, region := range regions {
 		oldLength := 0
 		newLength := 0
 
 		for i := region.Start; i < region.End; i++ {
-			switch diffs[i].OperationType {
+			switch lines[i].OperationType {
 			case OpTypeMatch:
 				oldLength++
 				newLength++
@@ -34,15 +51,15 @@ func BuildHunks(diffs []LineDiff, regions []Region) []Hunk {
 				oldLength++
 			}
 		}
-		oldStart := diffs[region.Start].OldPos
-		newStart := diffs[region.Start].NewPos
+		oldStart := lines[region.Start].OldPos
+		newStart := lines[region.Start].NewPos
 		hunks = append(
-			hunks, Hunk{
+			hunks, &Hunk{
 				OldStart:  oldStart,
 				OldLength: oldLength,
 				NewStart:  newStart,
 				NewLength: newLength,
-				Lines:     diffs[region.Start:region.End],
+				Lines:     lines[region.Start:region.End],
 			},
 		)
 	}

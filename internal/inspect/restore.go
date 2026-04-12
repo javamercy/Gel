@@ -7,36 +7,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
+// RestoreMode selects source/target snapshots for restore operations.
 type RestoreMode int
 
 const (
+	// RestoreModeIndexVsWorkingTree restores working tree paths from index entries.
 	RestoreModeIndexVsWorkingTree RestoreMode = iota
+	// RestoreModeHEADVsIndex restores index entries from HEAD.
 	RestoreModeHEADVsIndex
+	// RestoreModeCommitVsWorkingTree restores working tree paths from a source commit.
 	RestoreModeCommitVsWorkingTree
+	// RestoreModeCommitVsIndex restores index entries from a source commit.
 	RestoreModeCommitVsIndex
 )
 
+// RestoreOptions configures how restore should resolve and apply source data.
 type RestoreOptions struct {
-	Mode   RestoreMode
+	// Mode controls source/target behavior for the restore operation.
+	Mode RestoreMode
+	// Source is a revision name/hash used by commit-based restore modes.
 	Source string
 }
 
+// RestoreService applies restore operations to working tree files and index entries.
 type RestoreService struct {
 	indexService   *core.IndexService
 	objectService  *core.ObjectService
 	refService     *core.RefService
 	treeResolver   *core.TreeResolver
 	changeDetector *core.ChangeDetector
+	workspace      *domain.Workspace
 }
 
+// NewRestoreService creates a restore service.
 func NewRestoreService(
 	indexService *core.IndexService,
 	objectService *core.ObjectService,
 	refService *core.RefService,
 	treeResolver *core.TreeResolver,
 	changeDetector *core.ChangeDetector,
+	workspace *domain.Workspace,
 ) *RestoreService {
 	return &RestoreService{
 		indexService:   indexService,
@@ -44,42 +57,52 @@ func NewRestoreService(
 		refService:     refService,
 		treeResolver:   treeResolver,
 		changeDetector: changeDetector,
+		workspace:      workspace,
 	}
 }
 
-func (r *RestoreService) Restore(paths []string, options RestoreOptions) error {
+// Restore executes a restore operation for the provided absolute paths.
+func (r *RestoreService) Restore(paths []domain.AbsolutePath, options RestoreOptions) error {
+	var err error
 	switch options.Mode {
 	case RestoreModeIndexVsWorkingTree:
-		return r.restoreIndexVsWorkingTree(paths)
+		err = r.restoreIndexVsWorkingTree(paths)
 	case RestoreModeHEADVsIndex:
-		return r.restoreHEADVsIndex(paths)
+		err = r.restoreHEADVsIndex(paths)
 	case RestoreModeCommitVsWorkingTree:
-		commitHash, err := r.resolveSource(options.Source)
-		if err != nil {
-			return err
+		commitHash, resolveErr := r.resolveSource(options.Source)
+		if resolveErr != nil {
+			return fmt.Errorf("restore: %w", resolveErr)
 		}
-
-		return r.restoreCommitVsWorkingTree(commitHash, paths)
+		err = r.restoreCommitVsWorkingTree(commitHash, paths)
 	case RestoreModeCommitVsIndex:
-		commitHash, err := r.resolveSource(options.Source)
-		if err != nil {
-			return err
+		commitHash, resolveErr := r.resolveSource(options.Source)
+		if resolveErr != nil {
+			return fmt.Errorf("restore: %w", resolveErr)
 		}
-		return r.restoreCommitVsIndex(commitHash, paths)
+		err = r.restoreCommitVsIndex(commitHash, paths)
 	default:
-		return ErrInvalidRestoreMode
+		err = ErrInvalidRestoreMode
 	}
+	if err != nil {
+		return fmt.Errorf("restore: %w", err)
+	}
+	return nil
 }
 
-func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
+// restoreIndexVsWorkingTree updates working tree files from index blob snapshots.
+func (r *RestoreService) restoreIndexVsWorkingTree(paths []domain.AbsolutePath) error {
 	index, err := r.indexService.Read()
 	if err != nil {
 		return err
 	}
-
 	for _, path := range paths {
-		// TODO: fix here later
-		entry, _ := index.FindEntry(domain.NormalizedPath(path))
+		normalizedPath, err := path.ToNormalizedPath(r.workspace.RepoDir)
+		if err != nil {
+			return err
+		}
+
+		entry, _ := index.FindEntry(normalizedPath)
 		if entry == nil {
 			continue
 		}
@@ -96,18 +119,20 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []string) error {
 		if err != nil {
 			return err
 		}
-		dir := filepath.Dir(path)
+
+		dir := filepath.Dir(path.String())
 		if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
+		if err := os.WriteFile(path.String(), blob.Body(), domain.FilePermission); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *RestoreService) restoreHEADVsIndex(paths []string) error {
+// restoreHEADVsIndex resets index entries to match HEAD commit contents.
+func (r *RestoreService) restoreHEADVsIndex(paths []domain.AbsolutePath) error {
 	commitHash, err := r.refService.Resolve(domain.HeadFileName)
 	if err != nil {
 		return err
@@ -115,35 +140,46 @@ func (r *RestoreService) restoreHEADVsIndex(paths []string) error {
 	return r.restoreCommitVsIndex(commitHash, paths)
 }
 
-func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, paths []string) error {
-	commitEntries, err := r.treeResolver.ResolveCommit(commitHash)
+// restoreCommitVsWorkingTree updates working tree files to match the source commit.
+// Paths missing in the source commit are removed from the working tree.
+func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, paths []domain.AbsolutePath) error {
+	commitPathHashes, err := r.treeResolver.ResolveCommit(commitHash)
 	if err != nil {
 		return err
 	}
 
-	workingTreeEntries, err := r.treeResolver.ResolveWorkingTree()
+	workingTreePathHashes, err := r.treeResolver.ResolveWorkingTree()
 	if err != nil {
 		return err
 	}
 
 	for _, path := range paths {
-		cHash, inCommit := commitEntries[path]
+		normalizedPath, err := path.ToNormalizedPath(r.workspace.RepoDir)
+		if err != nil {
+			return err
+		}
+
+		commitHash, inCommit := commitPathHashes[normalizedPath]
 		if !inCommit {
+			err := os.Remove(path.String())
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
 			continue
 		}
 
-		workingTreeHash, inWorkingTree := workingTreeEntries[path]
-
-		if !inWorkingTree || cHash != workingTreeHash {
-			blob, err := r.objectService.ReadBlob(cHash)
+		workingTreeHash, inWorkingTree := workingTreePathHashes[normalizedPath]
+		if !inWorkingTree || commitHash != workingTreeHash {
+			blob, err := r.objectService.ReadBlob(commitHash)
 			if err != nil {
 				return err
 			}
-			dir := filepath.Dir(path)
+
+			dir := filepath.Dir(path.String())
 			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, blob.Body(), domain.FilePermission); err != nil {
+			if err := os.WriteFile(path.String(), blob.Body(), domain.FilePermission); err != nil {
 				return err
 			}
 		}
@@ -151,7 +187,9 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, path
 	return nil
 }
 
-func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []string) error {
+// restoreCommitVsIndex updates index entries to match the source commit.
+// Paths missing in the source commit are removed from index.
+func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []domain.AbsolutePath) error {
 	commit, err := r.objectService.ReadCommit(commitHash)
 	if err != nil {
 		return err
@@ -161,16 +199,19 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 	if err != nil {
 		return err
 	}
-
 	for _, path := range paths {
-		treeEntry, err := r.treeResolver.LookupPathInTree(commit.TreeHash, path)
+		normalizedPath, err := path.ToNormalizedPath(r.workspace.RepoDir)
+		if err != nil {
+			return err
+		}
+
+		treeEntry, err := r.treeResolver.LookupPathInTree(commit.TreeHash, normalizedPath)
 		if err != nil && !errors.Is(err, core.ErrPathNotFoundInTree) {
 			return err
 		}
 
 		inCommit := err == nil
-		// TODO: fix here later
-		indexEntry, _ := index.FindEntry(domain.NormalizedPath(path))
+		indexEntry, _ := index.FindEntry(normalizedPath)
 		inIndex := indexEntry != nil
 
 		switch {
@@ -179,36 +220,35 @@ func (r *RestoreService) restoreCommitVsIndex(commitHash domain.Hash, paths []st
 		case inCommit && inIndex && indexEntry.Hash == treeEntry.Hash:
 			continue
 		case inCommit:
-			// TODO: fix here later
-			normalizedPath, err := domain.NewNormalizedPath("", path)
-			if err != nil {
-				return fmt.Errorf("restore: %w", err)
-			}
 			newIndexEntry := domain.NewEmptyIndexEntry(normalizedPath, treeEntry.Hash, treeEntry.Mode.Uint32())
 			index.SetEntry(newIndexEntry)
 		default:
-			// TODO: fix here later
-			index.RemoveEntry(domain.NormalizedPath(path))
-
+			index.RemoveEntry(normalizedPath)
 		}
 	}
 	return r.indexService.Write(index)
 }
 
+// resolveSource resolves a restore source string to a commit hash.
+// Supported inputs are HEAD, main, full refs/* paths, local branch names, and commit hashes.
 func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
-	var commitHash domain.Hash
-	var err error
-
 	switch source {
 	case domain.HeadFileName:
-		commitHash, err = r.refService.Resolve(source)
+		return r.refService.Resolve(domain.HeadFileName)
 	case domain.MainBranchName:
-		commitHash, err = r.refService.Read("refs/heads/main")
-	default:
-		commitHash, err = domain.NewHash(source)
+		ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, domain.MainBranchName)
+		return r.refService.Read(ref)
 	}
-	if err != nil {
+
+	if strings.HasPrefix(source, domain.RefsDirName+"/") {
+		return r.refService.Read(source)
+	}
+
+	branchRef := filepath.Join(domain.RefsDirName, domain.HeadsDirName, source)
+	if hash, err := r.refService.Read(branchRef); err == nil {
+		return hash, nil
+	} else if !errors.Is(err, core.ErrRefNotFound) {
 		return domain.Hash{}, err
 	}
-	return commitHash, nil
+	return domain.NewHash(source)
 }

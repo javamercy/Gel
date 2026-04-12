@@ -4,161 +4,109 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
 	"fmt"
-	"io"
 	"os"
+	"slices"
 	"strings"
 )
 
 type DiffMode int
 
 const (
-	ModeWorkingTreeVsIndex DiffMode = iota
-	ModeWorkingTreeVsHEAD
-	ModeIndexVsHEAD
-	ModeCommitVsWorkingTree
-	ModeCommitVsCommit
+	// DiffModeIndexVsWorkingTree compares index snapshot against working tree.
+	DiffModeIndexVsWorkingTree DiffMode = iota
+	// DiffModeHEADVsIndex compares HEAD tree against index snapshot.
+	DiffModeHEADVsIndex
+	// DiffModeHeadVsWorkingTree compares HEAD tree against working tree.
+	DiffModeHeadVsWorkingTree
+	// DiffModeCommitVsWorkingTree compares a specific commit tree against working tree.
+	DiffModeCommitVsWorkingTree
+	// DiffModeCommitVsCommit compares two commit trees.
+	DiffModeCommitVsCommit
 )
 
+// DiffOptions configures which snapshots should be compared.
 type DiffOptions struct {
 	Mode             DiffMode
 	BaseCommitHash   domain.Hash
 	TargetCommitHash domain.Hash
 }
 
-type ContentLoaderFunc func(path string, hash domain.Hash) (string, error)
+// ContentLoaderFunc loads textual content for a path/hash pair in a snapshot.
+type ContentLoaderFunc func(path domain.NormalizedPath, hash domain.Hash) (string, error)
 
+// Snapshot bundles path hashes with a matching content loader.
+type Snapshot struct {
+	PathHashes    core.PathHashes
+	ContentLoader ContentLoaderFunc
+}
+
+// DiffStatus classifies a file-level diff result.
 type DiffStatus int
 
 const (
+	// DiffStatusModified indicates a path exists in both snapshots with different content.
 	DiffStatusModified DiffStatus = iota
+	// DiffStatusAdded indicates a path exists only in the new snapshot.
 	DiffStatusAdded
+	// DiffStatusDeleted indicates a path exists only in the old snapshot.
 	DiffStatusDeleted
 )
 
+// DiffResult represents the patch hunks and metadata for one changed path.
 type DiffResult struct {
-	Hunks   []Hunk
+	Hunks   []*Hunk
 	Status  DiffStatus
-	OldPath string
-	NewPath string
+	OldPath domain.NormalizedPath
+	NewPath domain.NormalizedPath
 	OldHash domain.Hash
 	NewHash domain.Hash
 }
+
+// DiffService resolves snapshots and computes unified-style line diffs.
 type DiffService struct {
 	objectService *core.ObjectService
-	refService    *core.RefService
 	treeResolver  *core.TreeResolver
 	diffAlgorithm *MyersDiffAlgorithm
+	workspace     *domain.Workspace
 }
 
+// NewDiffService creates a diff service.
 func NewDiffService(
 	objectService *core.ObjectService,
-	refService *core.RefService,
 	treeResolver *core.TreeResolver,
 	diffAlgorithm *MyersDiffAlgorithm,
+	workspace *domain.Workspace,
 ) *DiffService {
 	return &DiffService{
 		objectService: objectService,
-		refService:    refService,
 		treeResolver:  treeResolver,
 		diffAlgorithm: diffAlgorithm,
+		workspace:     workspace,
 	}
 }
 
-func (d *DiffService) Diff(writer io.Writer, options DiffOptions) error {
-	var results []*DiffResult
-	var resultsErr error
-	switch options.Mode {
-	case ModeWorkingTreeVsHEAD:
-		headEntries, err := d.treeResolver.ResolveHEAD()
-		if err != nil {
-			return err
-		}
-		workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
-		if err != nil {
-			return err
-		}
-		results, resultsErr = d.ComputeDiffResults(
-			headEntries, workingTreeEntries, d.LoadBlobContent, d.LoadFileContent,
-		)
-	case ModeIndexVsHEAD:
-		headEntries, err := d.treeResolver.ResolveHEAD()
-		if err != nil {
-			return err
-		}
-		indexEntries, err := d.treeResolver.ResolveIndex()
-		if err != nil {
-			return err
-		}
-		results, resultsErr = d.ComputeDiffResults(
-			indexEntries, headEntries, d.LoadBlobContent, d.LoadBlobContent,
-		)
-	case ModeCommitVsCommit:
-		var baseCommitEntries map[string]domain.Hash
-		if options.BaseCommitHash.IsEmpty() {
-			baseCommitEntries = make(map[string]domain.Hash)
-		} else {
-			var err error
-			baseCommitEntries, err = d.treeResolver.ResolveCommit(options.BaseCommitHash)
-			if err != nil {
-				return err
-			}
-		}
-
-		targetCommitEntries, err := d.treeResolver.ResolveCommit(options.TargetCommitHash)
-		if err != nil {
-			return err
-		}
-		results, resultsErr = d.ComputeDiffResults(
-			targetCommitEntries, baseCommitEntries, d.LoadBlobContent, d.LoadBlobContent,
-		)
-	case ModeCommitVsWorkingTree:
-		commitEntries, err := d.treeResolver.ResolveCommit(options.BaseCommitHash)
-		if err != nil {
-			return err
-		}
-		workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
-		if err != nil {
-			return err
-		}
-		results, resultsErr = d.ComputeDiffResults(
-			workingTreeEntries, commitEntries, d.LoadFileContent, d.LoadBlobContent,
-		)
-	case ModeWorkingTreeVsIndex:
-		indexEntries, err := d.treeResolver.ResolveIndex()
-		if err != nil {
-			return err
-		}
-		workingTreeEntries, err := d.treeResolver.ResolveWorkingTree()
-		if err != nil {
-			return err
-		}
-		results, resultsErr = d.ComputeDiffResults(
-			workingTreeEntries, indexEntries, d.LoadFileContent, d.LoadBlobContent,
-		)
-	default:
-		return fmt.Errorf("'%d': %w", options.Mode, ErrUnsupportedDiffMode)
+// Diff computes diff results for the requested mode.
+func (d *DiffService) Diff(options DiffOptions) ([]*DiffResult, error) {
+	oldSnapshot, newSnapshot, err := d.LoadSnapshots(options)
+	if err != nil {
+		return nil, fmt.Errorf("diff: %w", err)
 	}
-	if resultsErr != nil {
-		return resultsErr
-	}
-	return d.PrintResults(writer, results)
+	return d.computeDiffResults(oldSnapshot, newSnapshot)
 }
 
-func (d *DiffService) ComputeDiffResults(
-	newEntries, oldEntries map[string]domain.Hash,
-	newContentLoader, oldContentLoader ContentLoaderFunc,
-) ([]*DiffResult, error) {
+// computeDiffResults compares old and new snapshots and builds per-path patch hunks.
+func (d *DiffService) computeDiffResults(oldSnapshot *Snapshot, newSnapshot *Snapshot) ([]*DiffResult, error) {
 	var results []*DiffResult
-	for newPath, newHash := range newEntries {
-		newData, err := newContentLoader(newPath, newHash)
+	for newPath, newHash := range newSnapshot.PathHashes {
+		newContent, err := newSnapshot.ContentLoader(newPath, newHash)
 		if err != nil {
 			return nil, err
 		}
 
-		newLines := strings.Split(strings.TrimSuffix(newData, "\n"), "\n")
-		oldHash, ok := oldEntries[newPath]
+		newLines := strings.Split(strings.TrimSuffix(newContent, "\n"), "\n")
+		oldHash, ok := oldSnapshot.PathHashes[newPath]
 		if !ok {
-			lineDiffs := d.diffAlgorithm.ComputeLineDiffs([]string{}, newLines)
+			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(nil, newLines)
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
 			results = append(
@@ -168,12 +116,12 @@ func (d *DiffService) ComputeDiffResults(
 				},
 			)
 		} else if newHash != oldHash {
-			oldData, err := oldContentLoader("", oldHash)
+			oldContent, err := oldSnapshot.ContentLoader(newPath, oldHash)
 			if err != nil {
 				return nil, err
 			}
 
-			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
+			oldLines := strings.Split(strings.TrimSuffix(oldContent, "\n"), "\n")
 			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, newLines)
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
@@ -186,15 +134,15 @@ func (d *DiffService) ComputeDiffResults(
 		}
 	}
 
-	for oldPath, oldHash := range oldEntries {
-		if _, ok := newEntries[oldPath]; !ok {
-			oldData, err := oldContentLoader(oldPath, oldHash)
+	for oldPath, oldHash := range oldSnapshot.PathHashes {
+		if _, ok := newSnapshot.PathHashes[oldPath]; !ok {
+			oldContent, err := oldSnapshot.ContentLoader(oldPath, oldHash)
 			if err != nil {
 				return nil, err
 			}
 
-			oldLines := strings.Split(strings.TrimSuffix(oldData, "\n"), "\n")
-			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, []string{})
+			oldLines := strings.Split(strings.TrimSuffix(oldContent, "\n"), "\n")
+			lineDiffs := d.diffAlgorithm.ComputeLineDiffs(oldLines, nil)
 			regions := FindRegions(lineDiffs)
 			hunks := BuildHunks(lineDiffs, regions)
 			results = append(
@@ -205,10 +153,91 @@ func (d *DiffService) ComputeDiffResults(
 			)
 		}
 	}
-	return results, nil
+	return sortDiffResults(results), nil
 }
 
-func (d *DiffService) LoadBlobContent(_ string, hash domain.Hash) (string, error) {
+// LoadSnapshots resolves old/new snapshots and matching content loaders for a diff mode.
+func (d *DiffService) LoadSnapshots(options DiffOptions) (*Snapshot, *Snapshot, error) {
+	switch options.Mode {
+	case DiffModeHeadVsWorkingTree:
+		headPathHashes, err := d.treeResolver.ResolveHEAD()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		workingTreePathHashes, err := d.treeResolver.ResolveWorkingTree()
+		if err != nil {
+			return nil, nil, err
+		}
+		return &Snapshot{headPathHashes, d.LoadBlobContent},
+			&Snapshot{workingTreePathHashes, d.LoadFileContent},
+			nil
+	case DiffModeHEADVsIndex:
+		headPathHashes, err := d.treeResolver.ResolveHEAD()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		indexPathHashes, err := d.treeResolver.ResolveIndex()
+		if err != nil {
+			return nil, nil, err
+		}
+		return &Snapshot{headPathHashes, d.LoadBlobContent},
+			&Snapshot{indexPathHashes, d.LoadBlobContent},
+			nil
+
+	case DiffModeCommitVsCommit:
+		baseCommitPathHashes := make(core.PathHashes)
+		if !options.BaseCommitHash.IsEmpty() {
+			var err error
+			baseCommitPathHashes, err = d.treeResolver.ResolveCommit(options.BaseCommitHash)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		targetCommitPathHashes, err := d.treeResolver.ResolveCommit(options.TargetCommitHash)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &Snapshot{baseCommitPathHashes, d.LoadBlobContent},
+			&Snapshot{targetCommitPathHashes, d.LoadBlobContent},
+			nil
+
+	case DiffModeCommitVsWorkingTree:
+		commitPathHashes, err := d.treeResolver.ResolveCommit(options.BaseCommitHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		workingTreePathHashes, err := d.treeResolver.ResolveWorkingTree()
+		if err != nil {
+			return nil, nil, err
+		}
+		return &Snapshot{commitPathHashes, d.LoadBlobContent},
+			&Snapshot{workingTreePathHashes, d.LoadFileContent},
+			nil
+
+	case DiffModeIndexVsWorkingTree:
+		indexPathHashes, err := d.treeResolver.ResolveIndex()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		workingTreePathHashes, err := d.treeResolver.ResolveWorkingTree()
+		if err != nil {
+			return nil, nil, err
+		}
+		return &Snapshot{indexPathHashes, d.LoadBlobContent},
+			&Snapshot{workingTreePathHashes, d.LoadFileContent},
+			nil
+	default:
+		return nil, nil, fmt.Errorf("%d': %w", options.Mode, ErrUnsupportedDiffMode)
+	}
+}
+
+// LoadBlobContent loads blob text from object storage.
+func (d *DiffService) LoadBlobContent(_ domain.NormalizedPath, hash domain.Hash) (string, error) {
 	blob, err := d.objectService.ReadBlob(hash)
 	if err != nil {
 		return "", err
@@ -216,128 +245,25 @@ func (d *DiffService) LoadBlobContent(_ string, hash domain.Hash) (string, error
 	return string(blob.Body()), nil
 }
 
-func (d *DiffService) LoadFileContent(path string, _ domain.Hash) (string, error) {
-	data, err := os.ReadFile(path)
+// LoadFileContent loads file text from the working tree using repository-root resolution.
+func (d *DiffService) LoadFileContent(path domain.NormalizedPath, _ domain.Hash) (string, error) {
+	absolutePath, err := path.ToAbsolutePath(d.workspace.RepoDir)
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+
+	content, err := os.ReadFile(absolutePath.String())
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }
 
-func (d *DiffService) PrintResults(writer io.Writer, results []*DiffResult) error {
-	for _, result := range results {
-		var err error
-		switch result.Status {
-		case DiffStatusAdded:
-			err = d.PrintAddedFileHeader(
-				writer, result.OldPath, result.NewPath,
-				result.NewHash.ToHexString()[:7],
-			)
-
-		case DiffStatusModified:
-			err = d.PrintModifiedFileHeader(
-				writer, result.OldPath, result.NewPath,
-				result.OldHash.ToHexString()[:7],
-				result.NewHash.ToHexString()[:7],
-			)
-		case DiffStatusDeleted:
-			err = d.PrintDeletedFileHeader(
-				writer, result.OldPath,
-				result.OldHash.ToHexString()[:7],
-			)
-		}
-		if err != nil {
-			return err
-		}
-		if err := d.PrintHunks(writer, result.Hunks); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (d *DiffService) PrintAddedFileHeader(writer io.Writer, oldPath, newPath, hash string) error {
-	if _, err := fmt.Fprintf(
-		writer, "%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, newPath, core.ColorReset,
-	); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(
-		writer, "%snew file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
-	); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%sindex 00000000..%s%s\n", core.ColorBold, hash, core.ColorReset); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s--- /dev/null%s\n", core.ColorBold, core.ColorReset); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *DiffService) PrintDeletedFileHeader(writer io.Writer, oldPath, oldHash string) error {
-	if _, err := fmt.Fprintf(
-		writer, "%sdeleted file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset,
-	); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(
-		writer, "%sindex %s..00000000%s\n", core.ColorBold, oldHash, core.ColorReset,
-	); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s+++ /dev/null%s\n", core.ColorBold, core.ColorReset); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *DiffService) PrintModifiedFileHeader(writer io.Writer, oldPath, newPath, oldHash, newHash string) error {
-	if _, err := fmt.Fprintf(
-		writer, "%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.RegularFileMode, core.ColorReset,
-	); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(writer, "%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *DiffService) PrintHunks(writer io.Writer, hunks []Hunk) error {
-	for _, hunk := range hunks {
-		header := fmt.Sprintf("@@ -%d,%d +%d,%d @@", hunk.OldStart, hunk.OldLength, hunk.NewStart, hunk.NewLength)
-		if _, err := fmt.Fprintln(writer, header); err != nil {
-			return err
-		}
-		for _, line := range hunk.Lines {
-			var prefix string
-			var color string
-			switch line.OperationType {
-			case OpTypeMatch:
-				prefix = " "
-				color = ""
-			case OpTypeInsertion:
-				prefix = "+ "
-				color = core.ColorGreen
-			case OpTypeDeletion:
-				prefix = "- "
-				color = core.ColorRed
-			}
-			if _, err := fmt.Fprintf(writer, "%s%s%s%s\n", color, prefix, line.Content, core.ColorReset); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+func sortDiffResults(results []*DiffResult) []*DiffResult {
+	slices.SortFunc(
+		results, func(a, b *DiffResult) int {
+			return strings.Compare(a.OldPath.String(), b.OldPath.String())
+		},
+	)
+	return results
 }
