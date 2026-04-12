@@ -27,18 +27,19 @@ const (
 
 // Index entry field size constants (in bytes).
 // Note: Device, Inode, and Size use uint64 (8 bytes) to support modern filesystems.
+// Time fields use int64 (8 bytes) for seconds plus uint32 (4 bytes) for nanoseconds.
 const (
-	IndexEntryTimeSize              = 4 // seconds (nanoseconds stored separately)
-	IndexEntryDeviceSize            = 8 // uint64
-	IndexEntryInodeSize             = 8 // uint64
-	IndexEntryModeSize              = 4 // uint32
-	IndexEntryUserIDSize            = 4 // uint32
-	IndexEntryGroupIDSize           = 4 // uint32
-	IndexEntrySizeFieldSize         = 8 // uint64
+	IndexEntryTimeSize              = 12 // 8 bytes (seconds) + 4 bytes (nanoseconds)
+	IndexEntryDeviceSize            = 8  // uint64
+	IndexEntryInodeSize             = 8  // uint64
+	IndexEntryModeSize              = 4  // uint32
+	IndexEntryUserIDSize            = 4  // uint32
+	IndexEntryGroupIDSize           = 4  // uint32
+	IndexEntrySizeFieldSize         = 8  // uint64
 	IndexEntryHashSize              = SHA256ByteLength
 	IndexEntryFlagsSize             = 2
 	IndexEntryPathNullTerminateSize = 1
-	IndexEntryHashOffset            = 4*IndexEntryTimeSize + IndexEntryDeviceSize + IndexEntryInodeSize + IndexEntryModeSize + IndexEntryUserIDSize + IndexEntryGroupIDSize + IndexEntrySizeFieldSize
+	IndexEntryHashOffset            = 2*IndexEntryTimeSize + IndexEntryDeviceSize + IndexEntryInodeSize + IndexEntryModeSize + IndexEntryUserIDSize + IndexEntryGroupIDSize + IndexEntrySizeFieldSize
 	IndexEntryFlagsOffset           = IndexEntryHashOffset + IndexEntryHashSize
 	IndexEntryFixedSize             = IndexEntryFlagsOffset + IndexEntryFlagsSize
 )
