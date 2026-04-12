@@ -5,12 +5,12 @@ type Blob struct {
 }
 
 func (blob *Blob) Body() []byte {
-	return blob.body
+	return append([]byte(nil), blob.body...)
 }
 
 func NewBlob(body []byte) *Blob {
 	blob := &Blob{
-		body: body,
+		body: append([]byte(nil), body...),
 	}
 	return blob
 }

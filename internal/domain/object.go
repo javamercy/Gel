@@ -1,29 +1,42 @@
 package domain
 
 import (
+	"bytes"
 	"strconv"
 )
 
+// Object is the interface implemented by all domain objects (blob, tree, commit).
 type Object interface {
+	// Type returns the object type (blob, tree, or commit).
 	Type() ObjectType
+
+	// Size returns the byte length of the object's body.
 	Size() int
+
+	// Serialize returns the full serialization in "<type> <size>\x00<body>" format.
 	Serialize() []byte
+
+	// Body returns a defensive copy of the raw object body bytes.
 	Body() []byte
 }
 
+// DeserializeObject parses a serialized object from raw bytes.
+// It validates the header format, checks size consistency, and dispatches
+// to the appropriate constructor based on object type.
 func DeserializeObject(data []byte) (Object, error) {
-	nullIndex := FindNullByteIndex(data)
+	dataCopy := append([]byte(nil), data...)
+	nullIndex := bytes.IndexByte(dataCopy, 0)
 	if nullIndex == -1 {
 		return nil, ErrNoNullByteFound
 	}
 
-	header := data[:nullIndex]
+	header := dataCopy[:nullIndex]
 	objectType, size, err := deserializeObjectHeader(header)
 	if err != nil {
 		return nil, err
 	}
 
-	body := data[nullIndex+1:]
+	body := dataCopy[nullIndex+1:]
 	if len(body) != size {
 		return nil, ErrObjectSizeMismatch
 	}
@@ -43,12 +56,20 @@ func DeserializeObject(data []byte) (Object, error) {
 	}
 }
 
+// SerializeObject returns the full object serialization in
+// "<type> <size>\x00<body>" format.
 func SerializeObject(objectType ObjectType, body []byte) []byte {
-	header := objectType.String() + " " +
-		strconv.Itoa(len(body)) + "\x00"
-	return append([]byte(header), body...)
+	var buf bytes.Buffer
+	buf.WriteString(objectType.String())
+	buf.WriteByte(' ')
+	buf.WriteString(strconv.Itoa(len(body)))
+	buf.WriteByte(0)
+	buf.Write(body)
+	return buf.Bytes()
 }
 
+// deserializeObjectHeader parses the object header ("<type> <size>") from raw bytes
+// and returns the object type and body size.
 func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	spaceIndex := -1
 	for i, b := range data {
