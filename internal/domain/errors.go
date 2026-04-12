@@ -3,7 +3,6 @@ package domain
 import "errors"
 
 var (
-	ErrInvalidFileMode   = errors.New("invalid file mode")
 	ErrInvalidObjectType = errors.New("invalid object type")
 
 	ErrInvalidCommitFormat = errors.New("invalid commit format")

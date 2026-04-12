@@ -10,7 +10,7 @@ const (
 
 // Index format constants
 const (
-	IndexSignature = "DIRC" // DirectoryMode Cache signature
+	IndexSignature = "DIRC" // FileModeDirectory Cache signature
 	IndexVersion   = 2      // Index format version
 )
 

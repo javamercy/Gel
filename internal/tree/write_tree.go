@@ -62,7 +62,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash,
 			return domain.Hash{}, err
 		}
 
-		entry := domain.NewTreeEntry(domain.DirectoryMode, subTreeHash, childDir.name)
+		entry := domain.NewTreeEntry(domain.FileModeDirectory, subTreeHash, childDir.name)
 		entries = append(entries, entry)
 	}
 	for _, file := range root.files {

@@ -85,7 +85,7 @@ func printDiffResults(cmd *cobra.Command, results []*diff.DiffResult) {
 // printAddedFileHeader prints patch header lines for a newly added file.
 func printAddedFileHeader(cmd *cobra.Command, oldPath, newPath domain.NormalizedPath, hash domain.Hash) {
 	cmd.Printf("%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, newPath, core.ColorReset)
-	cmd.Printf("%snew file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset)
+	cmd.Printf("%snew file mode %s%s\n", core.ColorBold, domain.FileModeRegular, core.ColorReset)
 	cmd.Printf("%sindex 00000000..%s%s\n", core.ColorBold, hash, core.ColorReset)
 	cmd.Printf("%s--- /dev/null%s\n", core.ColorBold, core.ColorReset)
 	cmd.Printf("%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset)
@@ -94,7 +94,7 @@ func printAddedFileHeader(cmd *cobra.Command, oldPath, newPath domain.Normalized
 // printDeletedFileHeader prints patch header lines for a deleted file.
 func printDeletedFileHeader(cmd *cobra.Command, oldPath domain.NormalizedPath, oldHash domain.Hash) {
 	cmd.Printf("%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, oldPath, core.ColorReset)
-	cmd.Printf("%sdeleted file mode %s%s\n", core.ColorBold, domain.RegularFileMode, core.ColorReset)
+	cmd.Printf("%sdeleted file mode %s%s\n", core.ColorBold, domain.FileModeRegular, core.ColorReset)
 	cmd.Printf("%sindex %s..00000000%s\n", core.ColorBold, oldHash, core.ColorReset)
 	cmd.Printf("%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset)
 	cmd.Printf("%s+++ /dev/null%s\n", core.ColorBold, core.ColorReset)
@@ -107,7 +107,7 @@ func printModifiedFileHeader(
 	oldHash, newHash domain.Hash,
 ) {
 	cmd.Printf("%sdiff --gel a/%s b/%s%s\n", core.ColorBold, oldPath, newPath, core.ColorReset)
-	cmd.Printf("%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.RegularFileMode, core.ColorReset)
+	cmd.Printf("%sindex %s..%s %s%s\n", core.ColorBold, oldHash, newHash, domain.FileModeRegular, core.ColorReset)
 	cmd.Printf("%s--- a/%s%s\n", core.ColorBold, oldPath, core.ColorReset)
 	cmd.Printf("%s+++ b/%s%s\n", core.ColorBold, newPath, core.ColorReset)
 }
