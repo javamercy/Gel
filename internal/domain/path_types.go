@@ -6,9 +6,16 @@ import (
 	"strings"
 )
 
-// NormalizedPath represents a path relative to repository root with forward slashes.
+// RootPath represents an empty normalized path, used for the repository root.
+const RootPath = NormalizedPath("")
+
+// NormalizedPath represents a path relative to the repository root,
+// using forward slashes (e.g., "src/main.go").
+// It cannot be absolute, contain backslashes, or contain null bytes.
 type NormalizedPath string
 
+// NewNormalizedPath creates a NormalizedPath from an arbitrary path string
+// relative to the repository directory.
 func NewNormalizedPath(repoDir string, path string) (NormalizedPath, error) {
 	absPath, err := NewAbsolutePath(path)
 	if err != nil {
@@ -17,9 +24,8 @@ func NewNormalizedPath(repoDir string, path string) (NormalizedPath, error) {
 	return absPath.ToNormalizedPath(repoDir)
 }
 
-// NewNormalizedPathUnchecked creates a NormalizedPath from an already-normalized string
-// (e.g., from index file or other storage). It validates the format but doesn't convert.
-// Use this when you know the path is already in normalized format.
+// NewNormalizedPathUnchecked creates a NormalizedPath without converting through
+// the filesystem. It validates that the path is in normalized format.
 func NewNormalizedPathUnchecked(path string) (NormalizedPath, error) {
 	if err := validateNormalizedFormat(path); err != nil {
 		return "", err
@@ -27,17 +33,23 @@ func NewNormalizedPathUnchecked(path string) (NormalizedPath, error) {
 	return NormalizedPath(path), nil
 }
 
+// ToAbsolutePath converts a normalized path to an absolute path within the repository.
 func (p NormalizedPath) ToAbsolutePath(repoDir string) (AbsolutePath, error) {
 	absPath := filepath.Join(repoDir, filepath.FromSlash(p.String()))
 	return AbsolutePath(absPath), nil
+}
+
+// Equals reports whether two normalized paths are identical.
+func (p NormalizedPath) Equals(o NormalizedPath) bool {
+	return p == o
 }
 
 func (p NormalizedPath) String() string {
 	return string(p)
 }
 
-// validateNormalizedFormat ensures a path is in proper normalized format.
-// This provides defense against corrupted index files or malicious data.
+// validateNormalizedFormat checks that a path is in valid normalized format
+// (no leading slash, no backslashes, no null bytes).
 func validateNormalizedFormat(path string) error {
 	if strings.HasPrefix(path, "/") {
 		return fmt.Errorf("normalized path cannot be absolute: %s", path)
@@ -51,9 +63,11 @@ func validateNormalizedFormat(path string) error {
 	return nil
 }
 
-// AbsolutePath represents an absolute path to a file or directory.
+// AbsolutePath represents an absolute filesystem path (e.g., "/home/user/project/src/main.go").
 type AbsolutePath string
 
+// NewAbsolutePath creates an AbsolutePath from an arbitrary path string.
+// It normalizes the path to use forward slashes internally.
 func NewAbsolutePath(path string) (AbsolutePath, error) {
 	absPath, err := filepath.Abs(filepath.FromSlash(path))
 	if err != nil {
@@ -62,20 +76,23 @@ func NewAbsolutePath(path string) (AbsolutePath, error) {
 	return AbsolutePath(absPath), nil
 }
 
+// ToNormalizedPath converts an absolute path to a normalized path relative
+// to the repository directory. Returns RootPath if the absolute path is exactly
+// the repository root.
 func (p AbsolutePath) ToNormalizedPath(repoDir string) (NormalizedPath, error) {
 	relPath, err := filepath.Rel(repoDir, p.String())
 	if err != nil {
 		return "", fmt.Errorf("failed to get relative path: %w", err)
 	}
 
-	normalizedPath := filepath.ToSlash(relPath)
-	if normalizedPath == "." {
-		normalizedPath = ""
+	normPath := filepath.ToSlash(relPath)
+	if normPath == "." {
+		return RootPath, nil
 	}
-	if err := validateNormalizedFormat(normalizedPath); err != nil {
+	if err := validateNormalizedFormat(normPath); err != nil {
 		return "", fmt.Errorf("path is outside repository or invalid: %w", err)
 	}
-	return NormalizedPath(normalizedPath), nil
+	return NormalizedPath(normPath), nil
 }
 
 func (p AbsolutePath) String() string {
