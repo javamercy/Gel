@@ -85,10 +85,10 @@ type IndexEntry struct {
 	Device uint64
 	// Inode is the file's inode number.
 	Inode uint64
-	// UserId is the file owner's user ID.
-	UserId uint32
-	// GroupId is the file owner's group ID.
-	GroupId uint32
+	// UserID is the file owner's user ID.
+	UserID uint32
+	// GroupID is the file owner's group ID.
+	GroupID uint32
 	// Flags contains path length (lower 12 bits) and stage (upper 4 bits).
 	Flags uint16
 	// ChangedTime is the last metadata change time (ctime).
@@ -106,8 +106,8 @@ func NewEmptyIndexEntry(path NormalizedPath, hash Hash, mode uint32) *IndexEntry
 		Mode:         mode,
 		Device:       0,
 		Inode:        0,
-		UserId:       0,
-		GroupId:      0,
+		UserID:       0,
+		GroupID:      0,
 		Flags:        0,
 		ChangedTime:  time.Time{},
 		ModifiedTime: time.Time{},
@@ -135,8 +135,8 @@ func NewIndexEntry(
 		Mode:         mode,
 		Device:       device,
 		Inode:        inode,
-		UserId:       userID,
-		GroupId:      groupID,
+		UserID:       userID,
+		GroupID:      groupID,
 		Flags:        flags,
 		ChangedTime:  createdTime,
 		ModifiedTime: updatedTime,
@@ -512,10 +512,10 @@ func writeIndexEntryFields(buffer *bytes.Buffer, entry *IndexEntry) error {
 	if err := binary.Write(buffer, binary.BigEndian, entry.Mode); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, entry.UserId); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, entry.UserID); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, entry.GroupId); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, entry.GroupID); err != nil {
 		return err
 	}
 	if err := binary.Write(buffer, binary.BigEndian, entry.Size); err != nil {
@@ -555,10 +555,10 @@ func readIndexEntryFields(reader *bytes.Reader, entry *IndexEntry) error {
 	if err := binary.Read(reader, binary.BigEndian, &entry.Mode); err != nil {
 		return err
 	}
-	if err := binary.Read(reader, binary.BigEndian, &entry.UserId); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &entry.UserID); err != nil {
 		return err
 	}
-	if err := binary.Read(reader, binary.BigEndian, &entry.GroupId); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &entry.GroupID); err != nil {
 		return err
 	}
 	if err := binary.Read(reader, binary.BigEndian, &entry.Size); err != nil {
