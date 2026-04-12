@@ -43,6 +43,12 @@ func DeserializeObject(data []byte) (Object, error) {
 	}
 }
 
+func SerializeObject(objectType ObjectType, body []byte) []byte {
+	header := objectType.String() + " " +
+		strconv.Itoa(len(body)) + "\x00"
+	return append([]byte(header), body...)
+}
+
 func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	spaceIndex := -1
 	for i, b := range data {
@@ -68,10 +74,4 @@ func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
 	}
 
 	return objectType, size, nil
-}
-
-func SerializeObject(objectType ObjectType, body []byte) []byte {
-	header := string(objectType) + " " +
-		strconv.Itoa(len(body)) + "\x00"
-	return append([]byte(header), body...)
 }
