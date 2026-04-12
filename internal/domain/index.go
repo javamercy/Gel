@@ -60,60 +60,60 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 }
 
 type IndexEntry struct {
-	Path        NormalizedPath
-	Hash        Hash
-	Size        uint32
-	Mode        uint32
-	Device      uint32
-	Inode       uint32
-	UserId      uint32
-	GroupId     uint32
-	Flags       uint16
-	CreatedTime time.Time
-	UpdatedTime time.Time
+	Path         NormalizedPath
+	Hash         Hash
+	Size         uint64
+	Mode         uint32
+	Device       uint64
+	Inode        uint64
+	UserId       uint32
+	GroupId      uint32
+	Flags        uint16
+	ChangedTime  time.Time
+	ModifiedTime time.Time
 }
 
 func NewEmptyIndexEntry(path NormalizedPath, hash Hash, mode uint32) *IndexEntry {
 	return &IndexEntry{
-		Path:        path,
-		Hash:        hash,
-		Size:        0,
-		Mode:        mode,
-		Device:      0,
-		Inode:       0,
-		UserId:      0,
-		GroupId:     0,
-		Flags:       0,
-		CreatedTime: time.Time{},
-		UpdatedTime: time.Time{},
+		Path:         path,
+		Hash:         hash,
+		Size:         0,
+		Mode:         mode,
+		Device:       0,
+		Inode:        0,
+		UserId:       0,
+		GroupId:      0,
+		Flags:        0,
+		ChangedTime:  time.Time{},
+		ModifiedTime: time.Time{},
 	}
 }
 
 func NewIndexEntry(
 	path NormalizedPath,
 	hash Hash,
-	size uint32,
+	size uint64,
 	mode uint32,
-	device uint32,
-	inode uint32,
-	userId uint32,
-	groupId uint32,
+	device uint64,
+	inode uint64,
+	userID uint32,
+	groupID uint32,
 	flags uint16,
 	createdTime time.Time,
 	updatedTime time.Time,
 ) *IndexEntry {
 	entry := IndexEntry{
-		Path:        path,
-		Hash:        hash,
-		Size:        size,
-		Mode:        mode,
-		Device:      device,
-		Inode:       inode,
-		UserId:      userId,
-		GroupId:     groupId,
-		Flags:       flags,
-		CreatedTime: createdTime,
-		UpdatedTime: updatedTime,
+		Path:         path,
+		Hash:         hash,
+		Size:         size,
+		Mode:         mode,
+		Device:       device,
+		Inode:        inode,
+		UserId:       userID,
+		GroupId:      groupID,
+		Flags:        flags,
+		ChangedTime:  createdTime,
+		ModifiedTime: updatedTime,
 	}
 	return &entry
 }
@@ -153,13 +153,13 @@ func (e *IndexEntry) serialize() ([]byte, error) {
 	return serializedEntry, nil
 }
 
-func (e *IndexEntry) MatchesStat(stat FileStat) bool {
-	if e.CreatedTime != stat.CreatedTime {
+func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
+	if e.ChangedTime != stat.ChangedTime {
 		return false
 	}
 
 	// TODO: race condition
-	if e.UpdatedTime != stat.UpdatedTime {
+	if e.ModifiedTime != stat.ModifiedTime {
 		return false
 	}
 	if e.Size != stat.Size {
@@ -439,16 +439,16 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 }
 
 func writeIndexEntryFields(buffer *bytes.Buffer, entry *IndexEntry) error {
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.CreatedTime.Unix())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ChangedTime.Unix())); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.CreatedTime.Nanosecond())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ChangedTime.Nanosecond())); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.UpdatedTime.Unix())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ModifiedTime.Unix())); err != nil {
 		return err
 	}
-	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.UpdatedTime.Nanosecond())); err != nil {
+	if err := binary.Write(buffer, binary.BigEndian, uint32(entry.ModifiedTime.Nanosecond())); err != nil {
 		return err
 	}
 	if err := binary.Write(buffer, binary.BigEndian, entry.Device); err != nil {
@@ -480,7 +480,7 @@ func readIndexEntryFields(reader *bytes.Reader, entry *IndexEntry) error {
 	if err := binary.Read(reader, binary.BigEndian, &createdTimeNanoseconds); err != nil {
 		return err
 	}
-	entry.CreatedTime = time.Unix(int64(createdTimeUnix), int64(createdTimeNanoseconds))
+	entry.ChangedTime = time.Unix(int64(createdTimeUnix), int64(createdTimeNanoseconds))
 
 	var updatedTimeUnix, updatedTimeNanoseconds uint32
 	if err := binary.Read(reader, binary.BigEndian, &updatedTimeUnix); err != nil {
@@ -489,7 +489,7 @@ func readIndexEntryFields(reader *bytes.Reader, entry *IndexEntry) error {
 	if err := binary.Read(reader, binary.BigEndian, &updatedTimeNanoseconds); err != nil {
 		return err
 	}
-	entry.UpdatedTime = time.Unix(int64(updatedTimeUnix), int64(updatedTimeNanoseconds))
+	entry.ModifiedTime = time.Unix(int64(updatedTimeUnix), int64(updatedTimeNanoseconds))
 
 	if err := binary.Read(reader, binary.BigEndian, &entry.Device); err != nil {
 		return err

@@ -51,7 +51,7 @@ func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry) (ChangeResul
 		return ChangeResult{}, err
 	}
 
-	stat, err := domain.GetFileStatFromPath(absolutePath)
+	stat, err := domain.ParseFileStatFromPath(absolutePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return ChangeResult{FileState: FileStateDeleted}, nil
