@@ -17,6 +17,10 @@ func (objectType ObjectType) IsValid() bool {
 	}
 }
 
+func (objectType ObjectType) String() string {
+	return string(objectType)
+}
+
 func ParseObjectType(typeStr string) (ObjectType, bool) {
 	objectType := ObjectType(typeStr)
 	if objectType.IsValid() {

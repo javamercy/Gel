@@ -44,12 +44,16 @@ func (c *CommitTreeService) CommitTree(
 	}
 
 	now := time.Now()
-	identity := domain.NewIdentity(
+	identity, err := domain.NewIdentity(
 		name,
 		email,
 		domain.FormatCommitTimestamp(now),
 		domain.FormatCommitTimezone(now),
 	)
+	if err != nil {
+		return domain.Hash{}, fmt.Errorf("commit-tree: %w", err)
+	}
+
 	commitFields := domain.CommitFields{
 		TreeHash:     hash,
 		ParentHashes: parentHashes,
@@ -57,7 +61,11 @@ func (c *CommitTreeService) CommitTree(
 		Committer:    identity,
 		Message:      message,
 	}
-	commit := domain.NewCommitFromFields(commitFields)
+	commit, err := domain.NewCommitFromFields(commitFields)
+	if err != nil {
+		return domain.Hash{}, fmt.Errorf("commit-tree: %w", err)
+	}
+
 	serializedData := commit.Serialize()
 	hexCommitHash := core.ComputeSHA256(serializedData)
 	commitHash, err := domain.NewHash(hexCommitHash)
