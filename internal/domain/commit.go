@@ -1,6 +1,15 @@
 package domain
 
-import "bytes"
+import (
+	"bytes"
+	"errors"
+)
+
+// ErrInvalidCommitFormat is returned when commit body parsing fails.
+var ErrInvalidCommitFormat = errors.New("invalid commit format")
+
+// ErrInvalidCommitField is returned when an unknown commit header is encountered.
+var ErrInvalidCommitField = errors.New("invalid commit field")
 
 // CommitFieldTree is the commit header key that stores the root tree hash.
 const CommitFieldTree string = "tree"

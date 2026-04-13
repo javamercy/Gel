@@ -1,21 +1,22 @@
 package domain
 
-// Section is a key-value map for one TOML section.
+// Section maps keys to values within one TOML section.
 type Section map[string]string
 
-// Config stores all repository configuration sections.
+// Config stores repository configuration grouped by TOML section.
 type Config struct {
+	// Sections maps section names to their key/value pairs.
 	Sections map[string]Section
 }
 
-// NewConfigFromMap constructs Config from decoded section map data.
+// NewConfigFromMap returns a Config backed by sections.
 func NewConfigFromMap(sections map[string]Section) *Config {
 	return &Config{
 		Sections: sections,
 	}
 }
 
-// Get returns section.key and whether it exists.
+// Get returns the value for section.key and whether it exists.
 func (c *Config) Get(section, key string) (string, bool) {
 	sec, ok := c.Sections[section]
 	if !ok {
@@ -26,8 +27,11 @@ func (c *Config) Get(section, key string) (string, bool) {
 	return value, ok
 }
 
-// Set assigns section.key=value, creating the section when absent.
+// Set stores value at section.key and creates the section map when needed.
 func (c *Config) Set(section, key, value string) {
+	if c.Sections == nil {
+		c.Sections = make(map[string]Section)
+	}
 	if _, ok := c.Sections[section]; !ok {
 		c.Sections[section] = make(Section)
 	}
