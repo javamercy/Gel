@@ -50,7 +50,7 @@ func TestAddOrUpdateEntry_NewPath(t *testing.T) {
 	index.SetEntry(entry)
 
 	assert.Equal(t, 1, len(index.Entries))
-	assert.Equal(t, "new.txt", index.Entries[0].Path)
+	assert.Equal(t, NormalizedPath("new.txt"), index.Entries[0].Path)
 }
 
 func TestAddOrUpdateEntry_ExistingPath(t *testing.T) {
@@ -98,7 +98,46 @@ func TestFindEntry_Exists(t *testing.T) {
 	entry, _ := index.FindEntry("b.txt")
 
 	require.NotNil(t, entry)
-	assert.Equal(t, "b.txt", entry.Path)
+	assert.Equal(t, NormalizedPath("b.txt"), entry.Path)
+}
+
+func TestUpdateEntry_NotFound(t *testing.T) {
+	index := NewEmptyIndex()
+	updated := index.UpdateEntry(createTestEntry("missing.txt", "hash1"))
+	assert.False(t, updated)
+}
+
+func TestFindEntriesByPathPrefix(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("src/a.go", "hash1"))
+	index.AddEntry(createTestEntry("src/b.go", "hash2"))
+	index.AddEntry(createTestEntry("docs/readme.md", "hash3"))
+
+	entries := index.FindEntriesByPathPrefix("src/")
+	require.Len(t, entries, 2)
+	assert.Equal(t, NormalizedPath("src/a.go"), entries[0].Path)
+	assert.Equal(t, NormalizedPath("src/b.go"), entries[1].Path)
+}
+
+func TestFindEntriesByPathPattern(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("src/a.go", "hash1"))
+	index.AddEntry(createTestEntry("src/b.txt", "hash2"))
+	index.AddEntry(createTestEntry("src/c.go", "hash3"))
+
+	entries := index.FindEntriesByPathPattern("src/*.go")
+	require.Len(t, entries, 2)
+	assert.Equal(t, NormalizedPath("src/a.go"), entries[0].Path)
+	assert.Equal(t, NormalizedPath("src/c.go"), entries[1].Path)
+}
+
+func TestComputeIndexFlagsAndGetStage(t *testing.T) {
+	flags := ComputeIndexFlags("path/to/file.txt", 2)
+	entry := createTestEntry("path/to/file.txt", "hash1")
+	entry.Flags = flags
+
+	assert.Equal(t, uint16(2), entry.GetStage())
+	assert.Equal(t, uint16(len("path/to/file.txt")), flags&MaxPathLength)
 }
 
 func TestFindEntry_NotExists(t *testing.T) {
@@ -235,15 +274,52 @@ func TestDeserialize_TruncatedData(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func createTestEntry(path, hashSeed string) *IndexEntry {
-	fullHash := fmt.Sprintf("%064x", hashSeed)
+func TestDeserialize_IncorrectChecksumSize(t *testing.T) {
+	index := NewEmptyIndex()
+	index.AddEntry(createTestEntry("a.txt", "hash1"))
+
+	data, err := index.Serialize()
+	require.NoError(t, err)
+
+	broken := data[:len(data)-1]
+	_, err = DeserializeIndex(broken)
+	assert.ErrorIs(t, err, ErrIncorrectChecksumSize)
+}
+
+func TestIndexEntry_MatchesStat(t *testing.T) {
+	entry := createTestEntry("a.txt", "hash1")
+	entry.Mode = ParseFileModeFromOsMode(0o100644).Uint32()
+	stat := &FileStat{
+		Device:       entry.Device,
+		Inode:        entry.Inode,
+		Mode:         0o100644,
+		Size:         entry.Size,
+		ChangedTime:  entry.ChangedTime,
+		ModifiedTime: entry.ModifiedTime,
+	}
+
+	assert.True(t, entry.MatchesStat(stat))
+
+	stat.Size++
+	assert.False(t, entry.MatchesStat(stat))
+}
+
+func createTestEntry(pathStr, hashSeed string) *IndexEntry {
+	path, err := NewNormalizedPathUnchecked(pathStr)
+	if err != nil {
+		panic(err)
+	}
+	fullHash, err := NewHash(ComputeSHA256([]byte(hashSeed)))
+	if err != nil {
+		panic(err)
+	}
 	entry := NewIndexEntry(
 		path,
 		fullHash,
 		100,
-		uint32(RegularFileMode),
+		uint32(FileModeRegular),
 		0, 0, 0, 0,
-		uint16(len(path)),
+		uint16(len(pathStr)),
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 	)

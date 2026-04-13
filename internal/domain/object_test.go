@@ -17,9 +17,9 @@ func TestSerialize_Blob(t *testing.T) {
 }
 
 func TestSerialize_Tree(t *testing.T) {
-	entry := NewTreeEntry(
-		RegularFileMode, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt",
-	)
+	h, err := NewHash("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2")
+	require.NoError(t, err)
+	entry := NewTreeEntry(FileModeRegular, h, "test.txt")
 	tree, err := NewTreeFromEntries([]TreeEntry{entry})
 	require.NoError(t, err)
 	serializedTree := tree.Serialize()
@@ -60,9 +60,9 @@ func TestDeserializeObject_ValidBlob(t *testing.T) {
 }
 
 func TestDeserializeObject_ValidTree(t *testing.T) {
-	entry := NewTreeEntry(
-		RegularFileMode, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt",
-	)
+	h, err := NewHash("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2")
+	require.NoError(t, err)
+	entry := NewTreeEntry(FileModeRegular, h, "test.txt")
 	tree, err := NewTreeFromEntries([]TreeEntry{entry})
 	require.NoError(t, err)
 
@@ -107,6 +107,22 @@ func TestDeserializeObject_InvalidSizeFormat(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidSizeFormat)
 }
 
+func TestDeserializeObject_ValidCommit(t *testing.T) {
+	commitBody := []byte(
+		"tree a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2\n" +
+			"author A <a@e.c> 1 +0000\n" +
+			"committer C <c@e.c> 2 +0000\n\nmsg",
+	)
+	serialized := SerializeObject(ObjectTypeCommit, commitBody)
+
+	obj, err := DeserializeObject(serialized)
+	require.NoError(t, err)
+	commit, ok := obj.(*Commit)
+	require.True(t, ok)
+	assert.Equal(t, ObjectTypeCommit, commit.Type())
+	assert.Equal(t, "msg", commit.Message)
+}
+
 func TestSerializeDeserializeObject_RoundTrip(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -138,9 +154,9 @@ func TestSerializeDeserializeObject_RoundTrip(t *testing.T) {
 
 	t.Run(
 		"tree", func(t *testing.T) {
-			entry := NewTreeEntry(
-				RegularFileMode, "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", "test.txt",
-			)
+			h, err := NewHash("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2")
+			require.NoError(t, err)
+			entry := NewTreeEntry(FileModeRegular, h, "test.txt")
 			tree, err := NewTreeFromEntries([]TreeEntry{entry})
 			require.NoError(t, err)
 
@@ -170,4 +186,14 @@ func TestSerialize_Format(t *testing.T) {
 	serializedBlob := blob.Serialize()
 	expectedData := "blob 5\x00hello"
 	assert.Equal(t, expectedData, string(serializedBlob))
+}
+
+func TestDeserializeObject_MakesInputCopy(t *testing.T) {
+	data := []byte("blob 5\x00hello")
+	obj, err := DeserializeObject(data)
+	require.NoError(t, err)
+
+	data[len(data)-1] = 'X'
+	blob := obj.(*Blob)
+	assert.Equal(t, []byte("hello"), blob.Body())
 }

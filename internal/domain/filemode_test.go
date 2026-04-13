@@ -11,11 +11,11 @@ func TestParseFileMode(t *testing.T) {
 		input    uint32
 		expected FileMode
 	}{
-		{0o100644, RegularFileMode},
-		{0o100755, ExecutableFileMode},
-		{0o040000, DirectoryMode},
-		{0, InvalidMode},
-		{0o777, InvalidMode},
+		{0o100644, FileModeRegular},
+		{0o100755, FileModeExecutable},
+		{0o040000, FileModeDirectory},
+		{0, FileModeInvalid},
+		{0o777, FileModeInvalid},
 	}
 
 	for _, tt := range tests {
@@ -32,11 +32,11 @@ func TestParseFileModeFromString(t *testing.T) {
 		input    string
 		expected FileMode
 	}{
-		{"100644", RegularFileMode},
-		{"100755", ExecutableFileMode},
-		{"40000", DirectoryMode},
-		{"invalid", InvalidMode},
-		{"", InvalidMode},
+		{"100644", FileModeRegular},
+		{"100755", FileModeExecutable},
+		{"40000", FileModeDirectory},
+		{"invalid", FileModeInvalid},
+		{"", FileModeInvalid},
 	}
 
 	for _, tt := range tests {
@@ -53,10 +53,10 @@ func TestFileMode_String(t *testing.T) {
 		mode     FileMode
 		expected string
 	}{
-		{RegularFileMode, "100644"},
-		{ExecutableFileMode, "100755"},
-		{DirectoryMode, "40000"},
-		{InvalidMode, ""},
+		{FileModeRegular, "100644"},
+		{FileModeExecutable, "100755"},
+		{FileModeDirectory, "40000"},
+		{FileModeInvalid, ""},
 	}
 
 	for _, tt := range tests {
@@ -69,17 +69,17 @@ func TestFileMode_String(t *testing.T) {
 }
 
 func TestFileMode_Helpers(t *testing.T) {
-	assert.True(t, RegularFileMode.IsRegularFile())
-	assert.False(t, DirectoryMode.IsRegularFile())
+	assert.True(t, FileModeRegular.IsRegularFile())
+	assert.False(t, FileModeDirectory.IsRegularFile())
 
-	assert.True(t, DirectoryMode.IsDirectory())
-	assert.False(t, RegularFileMode.IsDirectory())
+	assert.True(t, FileModeDirectory.IsDirectory())
+	assert.False(t, FileModeRegular.IsDirectory())
 
-	assert.True(t, ExecutableFileMode.IsExecutableFile())
-	assert.False(t, RegularFileMode.IsExecutableFile())
+	assert.True(t, FileModeExecutable.IsExecutableFile())
+	assert.False(t, FileModeRegular.IsExecutableFile())
 
-	assert.True(t, RegularFileMode.IsValid())
-	assert.False(t, InvalidMode.IsValid())
+	assert.True(t, FileModeRegular.IsValid())
+	assert.False(t, FileModeInvalid.IsValid())
 }
 
 func TestFileMode_ObjectType(t *testing.T) {
@@ -88,10 +88,10 @@ func TestFileMode_ObjectType(t *testing.T) {
 		expectedType ObjectType
 		expectErr    bool
 	}{
-		{RegularFileMode, ObjectTypeBlob, false},
-		{ExecutableFileMode, ObjectTypeBlob, false},
-		{DirectoryMode, ObjectTypeTree, false},
-		{InvalidMode, "", true},
+		{FileModeRegular, ObjectTypeBlob, false},
+		{FileModeExecutable, ObjectTypeBlob, false},
+		{FileModeDirectory, ObjectTypeTree, false},
+		{FileModeInvalid, "", true},
 	}
 
 	for _, tt := range tests {
@@ -107,4 +107,16 @@ func TestFileMode_ObjectType(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestParseFileModeFromOsMode(t *testing.T) {
+	assert.Equal(t, FileModeDirectory, ParseFileModeFromOsMode(0o040755))
+	assert.Equal(t, FileModeExecutable, ParseFileModeFromOsMode(0o100755))
+	assert.Equal(t, FileModeRegular, ParseFileModeFromOsMode(0o100644))
+}
+
+func TestFileMode_Utils(t *testing.T) {
+	assert.Equal(t, uint32(0o100644), FileModeRegular.Uint32())
+	assert.True(t, FileModeRegular.Equals(FileModeRegular))
+	assert.False(t, FileModeRegular.Equals(FileModeExecutable))
 }

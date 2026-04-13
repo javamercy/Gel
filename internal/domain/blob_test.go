@@ -20,3 +20,15 @@ func TestNewBlob_NilBody(t *testing.T) {
 	assert.NotNil(t, blob)
 	assert.Equal(t, 0, blob.Size())
 }
+
+func TestBlob_Immutability(t *testing.T) {
+	input := []byte("hello")
+	blob := NewBlob(input)
+
+	input[0] = 'H'
+	assert.Equal(t, []byte("hello"), blob.Body())
+
+	body := blob.Body()
+	body[1] = 'A'
+	assert.Equal(t, []byte("hello"), blob.Body())
+}

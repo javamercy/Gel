@@ -49,3 +49,23 @@ func TestConfig_Set_ExistingSection(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "New Name", val)
 }
+
+func TestConfig_Get_Missing(t *testing.T) {
+	config := NewConfigFromMap(map[string]Section{"core": {"editor": "vim"}})
+
+	_, ok := config.Get("user", "name")
+	assert.False(t, ok)
+
+	_, ok = config.Get("core", "missing")
+	assert.False(t, ok)
+}
+
+func TestConfig_ZeroValueSet(t *testing.T) {
+	var config Config
+
+	config.Set("core", "editor", "vim")
+
+	val, ok := config.Get("core", "editor")
+	assert.True(t, ok)
+	assert.Equal(t, "vim", val)
+}
