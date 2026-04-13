@@ -1,6 +1,6 @@
 package domain
 
-// ObjectType represents a type of object in the version control model, such as "blob", "tree", or "commit".
+// ObjectType identifies a domain object kind.
 type ObjectType string
 
 const (
@@ -12,7 +12,7 @@ const (
 	ObjectTypeCommit ObjectType = "commit"
 )
 
-// IsValid checks if the ObjectType is one of the predefined valid types: blob, tree, or commit.
+// IsValid reports whether objectType is one of the supported values.
 func (objectType ObjectType) IsValid() bool {
 	switch objectType {
 	case ObjectTypeBlob, ObjectTypeTree, ObjectTypeCommit:
@@ -22,12 +22,12 @@ func (objectType ObjectType) IsValid() bool {
 	}
 }
 
-// String converts the ObjectType to its underlying string representation.
+// String returns the underlying string value.
 func (objectType ObjectType) String() string {
 	return string(objectType)
 }
 
-// ParseObjectType converts a string to an ObjectType and verifies its validity, returning the type and a success flag.
+// ParseObjectType converts typeStr to an ObjectType and reports whether it is valid.
 func ParseObjectType(typeStr string) (ObjectType, bool) {
 	objectType := ObjectType(typeStr)
 	if objectType.IsValid() {

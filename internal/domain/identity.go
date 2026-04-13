@@ -7,11 +7,10 @@ import (
 	"strings"
 )
 
-// ErrInvalidIdentityFormat is returned when identity input violates
-// required shape or validation rules.
+// ErrInvalidIdentityFormat is returned when identity input violates required shape or validation rules.
 var ErrInvalidIdentityFormat = errors.New("invalid identity format")
 
-// Identity contains commit identity metadata used by author and committer fields.
+// Identity stores commit author or committer metadata.
 type Identity struct {
 	// Name is the display name of the actor.
 	Name string
@@ -26,7 +25,7 @@ type Identity struct {
 	Timezone string
 }
 
-// NewIdentity creates and validates an Identity.
+// NewIdentity validates and returns an Identity.
 // Validation requires non-empty name/email, a minimal email shape, a valid Unix
 // timestamp string, and a valid ±HHMM timezone.
 func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
@@ -53,7 +52,7 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 	}, nil
 }
 
-// Serialize returns identity in commit header format:
+// Serialize returns identity in commit-header form:
 // "<name> <email> <timestamp> <timezone>".
 func (identity Identity) Serialize() []byte {
 	return []byte(fmt.Sprintf(

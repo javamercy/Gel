@@ -7,8 +7,7 @@ import (
 	"path/filepath"
 )
 
-// ErrNotAGelRepository is returned when no .gel directory is found
-// in the current directory or any parent.
+// ErrNotAGelRepository is returned when no .gel directory is found while walking upward.
 var ErrNotAGelRepository = errors.New("not a Gel repository")
 
 // Workspace represents a Gel repository's directory structure.
@@ -28,8 +27,8 @@ type Workspace struct {
 	ConfigPath string
 }
 
-// NewWorkspace finds the .gel directory starting from startPath
-// and returns a Workspace with all paths resolved.
+// NewWorkspace searches upward from startPath for .gel and returns a Workspace
+// with all repository paths resolved.
 func NewWorkspace(startPath string) (*Workspace, error) {
 	gelDir, err := findGelDir(startPath)
 	if err != nil {

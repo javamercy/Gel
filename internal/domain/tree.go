@@ -8,9 +8,17 @@ import (
 	"strings"
 )
 
-// ErrInvalidTreeEntryName is returned when a tree entry name is invalid
-// (empty, contains slash, null bytes, or path traversal components).
-var ErrInvalidTreeEntryName = errors.New("invalid tree entry name")
+var (
+	// ErrInvalidTreeEntryName is returned when a tree entry name is invalid
+	// (empty, contains slash, null bytes, or path traversal components).
+	ErrInvalidTreeEntryName = errors.New("invalid tree entry name")
+
+	// ErrTreeMissingNullByte is returned when a tree entry name is not null-terminated.
+	ErrTreeMissingNullByte = errors.New("invalid tree format: missing null byte after name")
+
+	// ErrTreeTruncatedHash is returned when a tree entry hash is incomplete.
+	ErrTreeTruncatedHash = errors.New("invalid tree format: truncated hash")
+)
 
 // TreeEntry represents a single entry within a tree object.
 // Each entry corresponds to a file or subdirectory.
@@ -23,7 +31,7 @@ type TreeEntry struct {
 	Name string
 }
 
-// NewTreeEntry creates a new tree entry. Callers should ensure name is valid.
+// NewTreeEntry returns a TreeEntry without validating name or mode.
 func NewTreeEntry(mode FileMode, hash Hash, name string) TreeEntry {
 	return TreeEntry{
 		Mode: mode,
@@ -60,8 +68,7 @@ func NewTree(body []byte) (*Tree, error) {
 	return tree, nil
 }
 
-// NewTreeFromEntries creates a Tree from a slice of entries.
-// It validates each entry name and mode before serialization.
+// NewTreeFromEntries validates entries and returns a Tree built from them.
 func NewTreeFromEntries(entries []TreeEntry) (*Tree, error) {
 	var buffer bytes.Buffer
 	for _, entry := range entries {
@@ -91,7 +98,7 @@ func (t *Tree) Size() int {
 	return len(t.body)
 }
 
-// Serialize returns the full object serialization in "<type> <size>\x00<body>" format.
+// Serialize returns the full object serialization in the form "<type> <size>\x00<body>".
 func (t *Tree) Serialize() []byte {
 	return SerializeObject(ObjectTypeTree, t.body)
 }

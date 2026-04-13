@@ -4,11 +4,32 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+)
+
+// Index format constants.
+const (
+	// IndexSignature is the 4-byte signature stored at the start of index files.
+	IndexSignature = "DIRC"
+
+	// IndexVersion is the supported on-disk index format version.
+	IndexVersion = 2
+)
+
+// Index-specific errors.
+var (
+	ErrIndexTooShort         = errors.New("index file is too short: minimum 12 bytes required for header")
+	ErrInvalidIndexSignature = errors.New("invalid index signature: expected 'DIRC', file may be corrupted")
+	ErrTruncatedEntryData    = errors.New("index file truncated: not enough data to read all entries")
+	ErrIncorrectChecksumSize = errors.New("invalid index checksum: expected 32 bytes at end of file")
+	ErrChecksumMismatch      = errors.New("index checksum verification failed: file may be corrupted")
+	ErrEntryDataTooShort     = errors.New("index entry is incomplete: minimum 74 bytes required")
+	ErrPathNotNullTerminated = errors.New("index entry path is malformed: missing null terminator")
 )
 
 // Index file header and entry size constants.
@@ -51,8 +72,7 @@ const (
 	StageShift    = 12    // bit offset for stage in flags
 )
 
-// IndexHeader represents the header of an index file.
-// Contains signature, version, and entry count.
+// IndexHeader stores the on-disk index header.
 type IndexHeader struct {
 	// Signature is the 4-byte file signature (e.g., "DIRC").
 	Signature [4]byte
@@ -62,7 +82,7 @@ type IndexHeader struct {
 	NumEntries uint32
 }
 
-// NewIndexHeader creates a new index header with the given values.
+// NewIndexHeader returns an IndexHeader with the supplied values.
 func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexHeader {
 	return IndexHeader{
 		Signature:  signature,
@@ -71,8 +91,7 @@ func NewIndexHeader(signature [4]byte, version uint32, numEntries uint32) IndexH
 	}
 }
 
-// IndexEntry represents a single file entry in the index.
-// It stores metadata for change detection and the object's content hash.
+// IndexEntry stores metadata for one tracked path.
 type IndexEntry struct {
 	// Path is the normalized relative path from the repository root.
 	Path NormalizedPath
@@ -145,6 +164,7 @@ func NewIndexEntry(
 	return &entry
 }
 
+// GetStage returns the staging stage encoded in the entry flags.
 func (e *IndexEntry) GetStage() uint16 {
 	return (e.Flags >> StageShift) & StageMask
 }
@@ -201,15 +221,17 @@ func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
 	return e.Mode == ParseFileModeFromOsMode(stat.Mode).Uint32()
 }
 
-// Index represents the complete index (staging area) of a repository.
-// It contains a header, sorted entries, and a SHA-256 checksum of all data.
+// Index stores the staging area entries and checksum.
 type Index struct {
-	Header   IndexHeader
-	Entries  []*IndexEntry
+	// Header stores the parsed index header.
+	Header IndexHeader
+	// Entries stores the tracked paths in sorted order.
+	Entries []*IndexEntry
+	// Checksum stores the hex-encoded SHA-256 checksum of the serialized data.
 	Checksum string
 }
 
-// NewIndex creates a new index with the given header, entries, and checksum.
+// NewIndex returns an Index backed by the supplied header, entries, and checksum.
 func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index {
 	return &Index{
 		Header:   header,
@@ -218,7 +240,7 @@ func NewIndex(header IndexHeader, entries []*IndexEntry, checksum string) *Index
 	}
 }
 
-// NewEmptyIndex creates a new empty index with default signature and version.
+// NewEmptyIndex returns an empty index with the default signature and version.
 func NewEmptyIndex() *Index {
 	signatureBytes := [4]byte([]byte(IndexSignature))
 	header := NewIndexHeader(signatureBytes, IndexVersion, 0)

@@ -20,7 +20,7 @@ const (
 	FileModeInvalid FileMode = 0
 )
 
-// ParseFileMode converts a uint32 mode value to a FileMode.
+// ParseFileMode converts a raw uint32 mode value to a FileMode.
 func ParseFileMode(mode uint32) FileMode {
 	switch mode {
 	case uint32(FileModeRegular):
@@ -34,7 +34,7 @@ func ParseFileMode(mode uint32) FileMode {
 	}
 }
 
-// ParseFileModeFromString converts a string mode (e.g., "100644") to a FileMode.
+// ParseFileModeFromString converts a Git tree-mode string (for example, "100644") to a FileMode.
 func ParseFileModeFromString(mode string) FileMode {
 	switch mode {
 	case FileModeRegular.String():
@@ -48,7 +48,7 @@ func ParseFileModeFromString(mode string) FileMode {
 	}
 }
 
-// ParseFileModeFromOsMode converts an OS-level mode (from syscall) to a FileMode.
+// ParseFileModeFromOsMode converts an OS file mode to a Git file mode.
 func ParseFileModeFromOsMode(osMode uint32) FileMode {
 	if osMode&0o170000 == 0o040000 {
 		return FileModeDirectory
@@ -58,8 +58,8 @@ func ParseFileModeFromOsMode(osMode uint32) FileMode {
 	return FileModeRegular
 }
 
-// String returns the string representation of the mode (e.g., "100644").
-// Returns empty string for invalid modes.
+// String returns the canonical Git mode string for f.
+// It returns an empty string for invalid modes.
 func (f FileMode) String() string {
 	switch f {
 	case FileModeRegular:

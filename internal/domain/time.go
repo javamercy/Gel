@@ -16,7 +16,8 @@ func FormatCommitTimezone(t time.Time) string {
 	return t.Format("-0700")
 }
 
-// FormatCommitDate parses a commit timestamp and timezone and returns a formatted date string.
+// FormatCommitDate parses a commit timestamp and timezone and returns a
+// formatted date string in "2006-01-02 15:04:05 -0700" layout.
 // It validates that timestamp is non-empty and timezone is in ±HHMM format.
 func FormatCommitDate(timestamp, timezone string) (string, error) {
 	if len(timestamp) == 0 {

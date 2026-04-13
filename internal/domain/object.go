@@ -2,10 +2,28 @@ package domain
 
 import (
 	"bytes"
+	"errors"
 	"strconv"
 )
 
-// Object is the interface implemented by all domain objects (blob, tree, commit).
+var (
+	// ErrNoNullByteFound is returned when an object header is not null-terminated.
+	ErrNoNullByteFound = errors.New("invalid object format: header must be terminated with null byte")
+
+	// ErrObjectSizeMismatch is returned when the body length does not match the header size.
+	ErrObjectSizeMismatch = errors.New("invalid object format: data size does not match header size")
+
+	// ErrNoSpaceInHeader is returned when the object header does not contain the required separator.
+	ErrNoSpaceInHeader = errors.New("invalid object header: type and size must be separated by space")
+
+	// ErrUnknownObjectType is returned when the object type is not supported by the domain.
+	ErrUnknownObjectType = errors.New("invalid object header: unknown object type (expected 'blob' or 'tree')")
+
+	// ErrInvalidSizeFormat is returned when the object size field is not a valid integer.
+	ErrInvalidSizeFormat = errors.New("invalid object header: size must be a valid integer")
+)
+
+// Object is implemented by Blob, Tree, and Commit.
 type Object interface {
 	// Type returns the object type (blob, tree, or commit).
 	Type() ObjectType
@@ -56,8 +74,8 @@ func DeserializeObject(data []byte) (Object, error) {
 	}
 }
 
-// SerializeObject returns the full object serialization in
-// "<type> <size>\x00<body>" format.
+// SerializeObject returns the full object serialization in the form
+// "<type> <size>\x00<body>".
 func SerializeObject(objectType ObjectType, body []byte) []byte {
 	var buf bytes.Buffer
 	buf.WriteString(objectType.String())

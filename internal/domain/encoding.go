@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 )
 
-// ComputeSHA256 calculates the SHA-256 hash of the input data and returns it as a hexadecimal string.
+// ComputeSHA256 returns the hex-encoded SHA-256 digest of data.
 func ComputeSHA256(data []byte) string {
 	hash := sha256.Sum256(data)
 	return hex.EncodeToString(hash[:])

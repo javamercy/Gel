@@ -14,8 +14,7 @@ const RootPath = NormalizedPath("")
 // It cannot be absolute, contain backslashes, or contain null bytes.
 type NormalizedPath string
 
-// NewNormalizedPath creates a NormalizedPath from an arbitrary path string
-// relative to the repository directory.
+// NewNormalizedPath resolves path and converts it to a repository-relative normalized path.
 func NewNormalizedPath(repoDir string, path string) (NormalizedPath, error) {
 	absPath, err := NewAbsolutePath(path)
 	if err != nil {
@@ -33,7 +32,7 @@ func NewNormalizedPathUnchecked(path string) (NormalizedPath, error) {
 	return NormalizedPath(path), nil
 }
 
-// ToAbsolutePath converts a normalized path to an absolute path within the repository.
+// ToAbsolutePath converts a normalized path to an absolute path within repoDir.
 func (p NormalizedPath) ToAbsolutePath(repoDir string) (AbsolutePath, error) {
 	absPath := filepath.Join(repoDir, filepath.FromSlash(p.String()))
 	return AbsolutePath(absPath), nil
@@ -44,6 +43,7 @@ func (p NormalizedPath) Equals(o NormalizedPath) bool {
 	return p == o
 }
 
+// String returns the normalized path as a string.
 func (p NormalizedPath) String() string {
 	return string(p)
 }
@@ -63,11 +63,11 @@ func validateNormalizedFormat(path string) error {
 	return nil
 }
 
-// AbsolutePath represents an absolute filesystem path (e.g., "/home/user/project/src/main.go").
+// AbsolutePath represents an absolute filesystem path (for example,
+// "/home/user/project/src/main.go").
 type AbsolutePath string
 
-// NewAbsolutePath creates an AbsolutePath from an arbitrary path string.
-// It normalizes the path to use forward slashes internally.
+// NewAbsolutePath resolves path against the current working directory.
 func NewAbsolutePath(path string) (AbsolutePath, error) {
 	absPath, err := filepath.Abs(filepath.FromSlash(path))
 	if err != nil {
@@ -95,6 +95,7 @@ func (p AbsolutePath) ToNormalizedPath(repoDir string) (NormalizedPath, error) {
 	return NormalizedPath(normPath), nil
 }
 
+// String returns the absolute path as a string.
 func (p AbsolutePath) String() string {
 	return string(p)
 }
