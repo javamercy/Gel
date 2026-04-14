@@ -43,3 +43,12 @@ func (i *IndexService) GetEntries() ([]*domain.IndexEntry, error) {
 	}
 	return index.Entries, nil
 }
+
+func (i *IndexService) WriteEntries(entries []*domain.IndexEntry) error {
+	index, err := i.Read()
+	if err != nil {
+		return err
+	}
+	index.Entries = entries
+	return i.Write(index)
+}

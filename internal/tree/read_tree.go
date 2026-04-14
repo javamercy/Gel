@@ -3,6 +3,7 @@ package tree
 import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
+	"fmt"
 	"time"
 )
 
@@ -51,22 +52,19 @@ func (r *ReadTreeService) ReadTree(hash domain.Hash) error {
 		indexEntries = append(indexEntries, indexEntry)
 		return nil
 	}
-
 	options := core.WalkOptions{
 		Recursive:    true,
 		IncludeTrees: false,
 		OnlyTrees:    false,
 	}
-
 	treeWalker := core.NewTreeWalker(r.objectService, options)
 	err := treeWalker.Walk(hash, "", processor)
 	if err != nil {
-		return err
+		return fmt.Errorf("read-tree: %w", err)
 	}
 
-	index := domain.NewEmptyIndex()
-	for _, entry := range indexEntries {
-		index.AddEntry(entry)
+	if err := r.indexService.WriteEntries(indexEntries); err != nil {
+		return fmt.Errorf("read-tree: %w", err)
 	}
-	return r.indexService.Write(index)
+	return nil
 }
