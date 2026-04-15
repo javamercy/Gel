@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Gel/internal"
 	"Gel/internal/branch"
 	"Gel/internal/commit"
 	"Gel/internal/core"
@@ -48,6 +49,8 @@ var (
 	statusService      *inspect.StatusService
 	diffService        *diff.DiffService
 	showService        *inspect.ShowService
+	commitResolver     *core.CommitResolver
+	resetService       *internal.ResetService
 
 	isServicesInitialized bool
 )
@@ -133,6 +136,10 @@ func initializeServices() error {
 	statusService = inspect.NewStatusService(indexService, objectService, branchService, treeResolver)
 	diffService = diff.NewDiffService(objectService, treeResolver, diff.NewMyersDiffAlgorithm(), workspace)
 	showService = inspect.NewShowService(objectService, refService, diffService)
+	commitResolver = core.NewCommitResolver(refService, objectService)
+	resetService = internal.NewResetService(
+		refService, objectService, readTreeService, treeResolver, commitResolver, workspace,
+	)
 
 	isServicesInitialized = true
 	return nil
