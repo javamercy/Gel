@@ -49,6 +49,6 @@ func (i *IndexService) WriteEntries(entries []*domain.IndexEntry) error {
 	if err != nil {
 		return err
 	}
-	index.Entries = entries
+	index.ReplaceEntries(entries)
 	return i.Write(index)
 }
