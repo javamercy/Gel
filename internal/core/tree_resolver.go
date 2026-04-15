@@ -8,6 +8,20 @@ import (
 // PathHashes maps normalized repository-relative paths to content hashes.
 type PathHashes map[domain.NormalizedPath]domain.Hash
 
+func (p PathHashes) ExtractPaths() (paths []domain.NormalizedPath) {
+	paths = make([]domain.NormalizedPath, 0, len(p))
+	for path := range p {
+		paths = append(paths, path)
+	}
+	return
+}
+
+func (p PathHashes) ExtractPathsSorted() (paths []domain.NormalizedPath) {
+	paths = p.ExtractPaths()
+	SortedPaths(paths)
+	return
+}
+
 // TreeResolver resolves path->hash snapshots from repository trees, index, and working tree.
 type TreeResolver struct {
 	objectService  *ObjectService
