@@ -171,12 +171,10 @@ func (e *IndexEntry) GetStage() uint16 {
 
 // serialize converts the index entry to its binary representation.
 func (e *IndexEntry) serialize() ([]byte, error) {
-
 	pathLen := len(e.Path)
 	totalBytes := IndexEntryFixedSize + pathLen + IndexEntryPathNullTerminateSize
 	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
 	totalBytes += padding
-
 	var buffer bytes.Buffer
 	buffer.Grow(totalBytes)
 	if err := writeIndexEntryFields(&buffer, e); err != nil {
@@ -196,9 +194,7 @@ func (e *IndexEntry) serialize() ([]byte, error) {
 	if _, err := buffer.Write(paddingBytes); err != nil {
 		return nil, err
 	}
-
-	serializedEntry := buffer.Bytes()
-	return serializedEntry, nil
+	return buffer.Bytes(), nil
 }
 
 // MatchesStat compares the entry's stored metadata against a fresh stat call.
@@ -264,6 +260,11 @@ func (idx *Index) AddEntry(entry *IndexEntry) {
 	copy(idx.Entries[i+1:], idx.Entries[i:])
 	idx.Entries[i] = entry
 	idx.Header.NumEntries = uint32(len(idx.Entries))
+}
+
+func (idx *Index) ReplaceEntries(entries []*IndexEntry) {
+	idx.Entries = entries
+	idx.Header.NumEntries = uint32(len(entries))
 }
 
 // UpdateEntry replaces an existing entry with the same path. Returns true if updated, false if not found.
