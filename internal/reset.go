@@ -11,22 +11,29 @@ import (
 	"strings"
 )
 
+// ResetMode selects how much repository state reset updates.
 type ResetMode int
 
 const (
+	// ResetModeSoft moves HEAD only.
 	ResetModeSoft ResetMode = iota
+	// ResetModeMixed moves HEAD and resets the index to the target tree.
 	ResetModeMixed
+	// ResetModeHard moves HEAD, resets the index, and rewrites the working tree.
 	ResetModeHard
 )
 
+// ResetOptions configures reset execution mode.
 type ResetOptions struct {
 	Mode ResetMode
 }
 
+// ResetResult reports the commit hash reset resolved and applied.
 type ResetResult struct {
 	TargetHash domain.Hash
 }
 
+// ResetService moves repository refs and snapshots to a target revision.
 type ResetService struct {
 	refService      *core.RefService
 	objectService   *core.ObjectService
@@ -36,6 +43,7 @@ type ResetService struct {
 	workspace       *domain.Workspace
 }
 
+// NewResetService creates a reset service with the dependencies needed to move refs and snapshots.
 func NewResetService(
 	refService *core.RefService,
 	objectService *core.ObjectService,
@@ -54,6 +62,7 @@ func NewResetService(
 	}
 }
 
+// Reset applies the requested reset mode to the target revision and returns the resolved commit hash.
 func (r *ResetService) Reset(target string, options ResetOptions) (*ResetResult, error) {
 	if err := validateMode(options.Mode); err != nil {
 		return nil, fmt.Errorf("reset: %w", err)
@@ -90,6 +99,7 @@ func (r *ResetService) Reset(target string, options ResetOptions) (*ResetResult,
 	}, nil
 }
 
+// moveHEADPointer advances the current symbolic branch ref to the resolved target hash.
 func (r *ResetService) moveHEADPointer(hash domain.Hash) error {
 	ref, err := r.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
@@ -98,6 +108,7 @@ func (r *ResetService) moveHEADPointer(hash domain.Hash) error {
 	return r.refService.Write(ref, hash)
 }
 
+// checkoutWorkingTree makes the working tree match the target commit during hard reset.
 func (r *ResetService) checkoutWorkingTree(targetHash domain.Hash) error {
 	headPathHashes, err := r.treeResolver.ResolveHEAD()
 	if err != nil {
@@ -181,6 +192,7 @@ func pruneEmptyParentDirs(filePath, repoRoot string) error {
 	return nil
 }
 
+// collectDeletePaths returns tracked paths present in the old snapshot but absent from the new one.
 func collectDeletePaths(oldPathHashes, newPathHashes core.PathHashes) (deletePaths []domain.NormalizedPath) {
 	for path := range oldPathHashes {
 		if _, inNew := newPathHashes[path]; !inNew {
@@ -190,6 +202,7 @@ func collectDeletePaths(oldPathHashes, newPathHashes core.PathHashes) (deletePat
 	return
 }
 
+// collectWritePaths returns paths whose target content differs from the current working tree.
 func collectWritePaths(targetPathHashes, workingTreePathHashes core.PathHashes) (writePaths []domain.NormalizedPath) {
 	for path, targetHash := range targetPathHashes {
 		if workingHash, inWorking := workingTreePathHashes[path]; !inWorking || workingHash != targetHash {
@@ -199,6 +212,7 @@ func collectWritePaths(targetPathHashes, workingTreePathHashes core.PathHashes) 
 	return
 }
 
+// validateMode rejects unknown reset modes before any repository state is changed.
 func validateMode(mode ResetMode) error {
 	switch mode {
 	case ResetModeSoft, ResetModeMixed, ResetModeHard:

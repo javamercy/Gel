@@ -10,11 +10,22 @@ var (
 	// ErrPathDidNotMatch is returned when a pathspec matches no files in the index or working tree.
 	ErrPathDidNotMatch = errors.New("pathspec did not match any files")
 
-	errRemovePathDidNotMatch        = errors.New("remove: pathspec did not match any tracked files")
-	errRemoveRecursiveRequired      = errors.New("remove: recursive flag required")
-	errRemoveOutsideRepository      = errors.New("remove: path is outside repository")
-	errRemoveHasStagedChanges       = errors.New("remove: file has staged changes")
-	errRemoveHasLocalModifications  = errors.New("remove: file has local modifications")
+	// errRemovePathDidNotMatch identifies rm failures where no tracked path matches the pathspec.
+	errRemovePathDidNotMatch = errors.New("remove: pathspec did not match any tracked files")
+
+	// errRemoveRecursiveRequired identifies rm failures where a directory-like pathspec is used without -r.
+	errRemoveRecursiveRequired = errors.New("remove: recursive flag required")
+
+	// errRemoveOutsideRepository identifies rm failures where the requested path resolves outside the repo root.
+	errRemoveOutsideRepository = errors.New("remove: path is outside repository")
+
+	// errRemoveHasStagedChanges identifies safety failures where staged changes would be discarded.
+	errRemoveHasStagedChanges = errors.New("remove: file has staged changes")
+
+	// errRemoveHasLocalModifications identifies safety failures where working tree changes would be discarded.
+	errRemoveHasLocalModifications = errors.New("remove: file has local modifications")
+
+	// errRemoveHasStagedAndLocalState identifies safety failures where both staged and local changes exist.
 	errRemoveHasStagedAndLocalState = errors.New("remove: file has staged and local changes")
 )
 

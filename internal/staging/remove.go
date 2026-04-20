@@ -104,6 +104,7 @@ func (r *RemoveService) Remove(pathspecs []string, options RemoveOptions) (*Remo
 	return result, nil
 }
 
+// collectPlan resolves rm pathspecs into a deduplicated, deterministic removal plan.
 func (r *RemoveService) collectPlan(
 	index *domain.Index,
 	pathspecs []string,
@@ -145,6 +146,7 @@ func (r *RemoveService) collectPlan(
 	}, nil
 }
 
+// normalizePathspec converts a user pathspec into a repository-relative normalized path.
 func (r *RemoveService) normalizePathspec(pathspec string) (domain.NormalizedPath, error) {
 	absPath, err := filepath.Abs(filepath.FromSlash(pathspec))
 	if err != nil {
@@ -168,6 +170,7 @@ func (r *RemoveService) normalizePathspec(pathspec string) (domain.NormalizedPat
 	return path, nil
 }
 
+// loadHeadPathHashes returns the HEAD tree snapshot, treating an unborn HEAD as empty.
 func (r *RemoveService) loadHeadPathHashes() (core.PathHashes, error) {
 	headPathHashes, err := r.treeResolver.ResolveHEAD()
 	if errors.Is(err, core.ErrRefNotFound) {
@@ -179,6 +182,7 @@ func (r *RemoveService) loadHeadPathHashes() (core.PathHashes, error) {
 	return headPathHashes, nil
 }
 
+// validateTargets enforces rm safety checks against the resolved removal plan.
 func (r *RemoveService) validateTargets(
 	index *domain.Index,
 	paths []domain.NormalizedPath,
@@ -209,6 +213,7 @@ func (r *RemoveService) validateTargets(
 	return nil
 }
 
+// hasLocalModifications reports whether the working tree file differs from its index entry.
 func (r *RemoveService) hasLocalModifications(entry *domain.IndexEntry, check bool) (bool, error) {
 	if !check {
 		return false, nil
@@ -221,6 +226,7 @@ func (r *RemoveService) hasLocalModifications(entry *domain.IndexEntry, check bo
 	return changeResult.FileState == core.FileStateModified, nil
 }
 
+// applyRemoval executes the working tree and index mutations after planning and validation.
 func (r *RemoveService) applyRemoval(updatedIndex *domain.Index, plan removePlan) error {
 	backups, err := r.captureFileBackups(plan.paths)
 	if err != nil {
@@ -239,6 +245,7 @@ func (r *RemoveService) applyRemoval(updatedIndex *domain.Index, plan removePlan
 	return nil
 }
 
+// captureFileBackups snapshots working tree files before deletion so rollback can restore them.
 func (r *RemoveService) captureFileBackups(paths []domain.NormalizedPath) (
 	map[domain.NormalizedPath]fileBackup, error,
 ) {
@@ -269,6 +276,7 @@ func (r *RemoveService) captureFileBackups(paths []domain.NormalizedPath) (
 	return backups, nil
 }
 
+// deleteWorkingTreeFiles removes the target files from disk and ignores already-missing paths.
 func (r *RemoveService) deleteWorkingTreeFiles(paths []domain.NormalizedPath) error {
 	for _, path := range paths {
 		absolutePath, err := path.ToAbsolutePath(r.workspace.RepoDir)
@@ -284,6 +292,7 @@ func (r *RemoveService) deleteWorkingTreeFiles(paths []domain.NormalizedPath) er
 	return nil
 }
 
+// pruneEmptyDirectories removes empty directories created by recursive removals within requested roots.
 func (r *RemoveService) pruneEmptyDirectories(paths, pruneRoots []domain.NormalizedPath) error {
 	for _, pruneRoot := range pruneRoots {
 		rootPath, err := pruneRoot.ToAbsolutePath(r.workspace.RepoDir)
@@ -312,6 +321,7 @@ func (r *RemoveService) pruneEmptyDirectories(paths, pruneRoots []domain.Normali
 	return nil
 }
 
+// restoreBackups returns the original removal error unless rollback itself also fails.
 func (r *RemoveService) restoreBackups(
 	removeErr error,
 	backups map[domain.NormalizedPath]fileBackup,
@@ -322,6 +332,7 @@ func (r *RemoveService) restoreBackups(
 	return removeErr
 }
 
+// restoreFileBackups recreates deleted files from their in-memory snapshots.
 func (r *RemoveService) restoreFileBackups(backups map[domain.NormalizedPath]fileBackup) error {
 	paths := make(map[domain.NormalizedPath]bool, len(backups))
 	for path := range backups {
@@ -344,6 +355,7 @@ func (r *RemoveService) restoreFileBackups(backups map[domain.NormalizedPath]fil
 	return nil
 }
 
+// findDescendantEntries returns tracked files beneath a directory-style pathspec.
 func findDescendantEntries(index *domain.Index, path domain.NormalizedPath) []*domain.IndexEntry {
 	prefix := path.String()
 	if prefix != "" {
@@ -352,6 +364,7 @@ func findDescendantEntries(index *domain.Index, path domain.NormalizedPath) []*d
 	return index.FindEntriesByPathPrefix(prefix)
 }
 
+// hasStagedChanges reports whether an index entry differs from the HEAD tree snapshot.
 func hasStagedChanges(
 	path domain.NormalizedPath,
 	indexHash domain.Hash,
@@ -361,6 +374,7 @@ func hasStagedChanges(
 	return !ok || headHash != indexHash
 }
 
+// cloneIndexWithoutTargets derives the post-rm index state without mutating the original index.
 func cloneIndexWithoutTargets(
 	index *domain.Index,
 	targets map[domain.NormalizedPath]bool,
@@ -378,6 +392,7 @@ func cloneIndexWithoutTargets(
 	return clonedIndex
 }
 
+// pathWithinRoot reports whether a tracked path belongs to a recursive prune root.
 func pathWithinRoot(path, root domain.NormalizedPath) bool {
 	if root == domain.RootPath {
 		return true
@@ -386,6 +401,7 @@ func pathWithinRoot(path, root domain.NormalizedPath) bool {
 	return path.String() == root.String() || strings.HasPrefix(path.String(), rootPrefix)
 }
 
+// pruneEmptyParentDirsWithin removes empty ancestor directories until it leaves the requested prune root.
 func pruneEmptyParentDirsWithin(filePath, repoRoot, pruneRoot string) error {
 	dir := filepath.Dir(filePath)
 	repoRoot = filepath.Clean(repoRoot)
@@ -425,6 +441,7 @@ func pruneEmptyParentDirsWithin(filePath, repoRoot, pruneRoot string) error {
 	}
 }
 
+// dirWithinRoot reports whether dir is equal to root or nested beneath it.
 func dirWithinRoot(dir, root string) bool {
 	if dir == root {
 		return true
@@ -432,10 +449,12 @@ func dirWithinRoot(dir, root string) bool {
 	return strings.HasPrefix(dir, root+string(filepath.Separator))
 }
 
+// shouldBypassSafetyChecks reports whether rm should skip staged and local change checks.
 func shouldBypassSafetyChecks(options RemoveOptions) bool {
 	return options.Force && !options.DryRun
 }
 
+// removeDisplayPath chooses the user-facing path shown in rm errors for in-repository targets.
 func removeDisplayPath(pathspec string, normPath domain.NormalizedPath) string {
 	if normPath == domain.RootPath {
 		return pathspec
@@ -443,6 +462,7 @@ func removeDisplayPath(pathspec string, normPath domain.NormalizedPath) string {
 	return normPath.String()
 }
 
+// wrapRemoveError preserves rm-specific typed errors and adds command context to unexpected failures.
 func wrapRemoveError(err error) error {
 	if errors.Is(err, errRemovePathDidNotMatch) ||
 		errors.Is(err, errRemoveRecursiveRequired) ||
