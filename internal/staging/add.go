@@ -4,7 +4,6 @@ import (
 	"Gel/internal/core"
 	"Gel/internal/domain"
 	"fmt"
-	"sort"
 )
 
 // AddOptions controls add command execution mode.
@@ -150,19 +149,5 @@ func (a *AddService) collectPaths(
 	for path := range pathsToAddSet {
 		delete(pathsToRemoveSet, path)
 	}
-	return sortedPathSet(pathsToAddSet), sortedPathSet(pathsToRemoveSet), nil
-}
-
-// sortedPathSet converts a set of normalized paths into lexicographic order.
-func sortedPathSet(set map[domain.NormalizedPath]bool) []domain.NormalizedPath {
-	out := make([]domain.NormalizedPath, 0, len(set))
-	for path := range set {
-		out = append(out, path)
-	}
-	sort.Slice(
-		out, func(i, j int) bool {
-			return out[i].String() < out[j].String()
-		},
-	)
-	return out
+	return domain.SortedPathSet(pathsToAddSet), domain.SortedPathSet(pathsToRemoveSet), nil
 }

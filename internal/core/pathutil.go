@@ -1,12 +1,9 @@
 package core
 
 import (
-	"Gel/internal/domain"
 	"errors"
 	"fmt"
 	"os"
-	"slices"
-	"strings"
 )
 
 // Exists reports whether path exists on disk.
@@ -20,16 +17,4 @@ func Exists(path string) (bool, error) {
 		return false, fmt.Errorf("failed to stat path: %w", err)
 	}
 	return true, nil
-}
-
-// SortedPaths sorts a slice of paths (NormalizedPath or AbsolutePath) in lexicographical order based on their string representation.
-func SortedPaths[T interface {
-	domain.NormalizedPath | domain.AbsolutePath
-	String() string
-}](paths []T) {
-	slices.SortFunc(
-		paths, func(a, b T) int {
-			return strings.Compare(a.String(), b.String())
-		},
-	)
 }
