@@ -243,6 +243,26 @@ func NewEmptyIndex() *Index {
 	return NewIndex(header, []*IndexEntry{}, "")
 }
 
+func (idx *Index) Clone() *Index {
+	if idx == nil {
+		return nil
+	}
+
+	cloned := &Index{
+		Header:   idx.Header,
+		Checksum: idx.Checksum,
+		Entries:  make([]*IndexEntry, len(idx.Entries)),
+	}
+	for i, entry := range idx.Entries {
+		if entry == nil {
+			continue
+		}
+		entryCopy := *entry
+		cloned.Entries[i] = &entryCopy
+	}
+	return cloned
+}
+
 // AddEntry inserts an entry into the index, maintaining sorted order.
 // If an entry with the same path exists, it is replaced.
 func (idx *Index) AddEntry(entry *IndexEntry) {
