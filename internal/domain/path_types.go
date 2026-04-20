@@ -51,6 +51,9 @@ func (p NormalizedPath) String() string {
 // validateNormalizedFormat checks that a path is in valid normalized format
 // (no leading slash, no backslashes, no null bytes).
 func validateNormalizedFormat(path string) error {
+	if path == "" {
+		return nil
+	}
 	if strings.HasPrefix(path, "/") {
 		return fmt.Errorf("normalized path cannot be absolute: %s", path)
 	}
@@ -59,6 +62,16 @@ func validateNormalizedFormat(path string) error {
 	}
 	if strings.Contains(path, "\x00") {
 		return fmt.Errorf("normalized path cannot contain null bytes: %s", path)
+	}
+
+	segments := strings.Split(path, "/")
+	for _, segment := range segments {
+		switch segment {
+		case "":
+			return fmt.Errorf("normalized path cannot contain empty segments: %s", path)
+		case ".", "..":
+			return fmt.Errorf("normalized path cannot contain traversal segments: %s", path)
+		}
 	}
 	return nil
 }
