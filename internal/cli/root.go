@@ -45,6 +45,7 @@ var (
 	logService         *commit.LogService
 	branchService      *branch.BranchService
 	restoreService     *inspect.RestoreService
+	removeService      *staging.RemoveService
 	switchService      *branch.SwitchService
 	statusService      *inspect.StatusService
 	diffService        *diff.DiffService
@@ -140,6 +141,7 @@ func initializeServices() error {
 	resetService = internal.NewResetService(
 		refService, objectService, readTreeService, treeResolver, commitResolver, workspace,
 	)
+	removeService = staging.NewRemoveService(indexService, treeResolver, changeDetector, workspace)
 
 	isServicesInitialized = true
 	return nil
