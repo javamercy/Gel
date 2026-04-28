@@ -1,6 +1,79 @@
-.idea/
-.gel/
-/gel
-
-# macOS
+# OS files
 .DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Gel repository data created while testing the CLI
+.gel/
+**/.gel/
+
+# Go build and test artifacts
+bin/
+dist/
+build/
+*.test
+*.out
+coverage.out
+coverage.txt
+*.coverprofile
+
+# CLI binaries
+/gel
+/cli/gel
+/cli/bin/
+/cli/dist/
+/cli/build/
+
+# Generated command documentation
+/cli/docs/commands/
+
+# Future server dependencies and build outputs
+node_modules/
+coverage/
+.nyc_output/
+.next/
+.nuxt/
+.svelte-kit/
+.astro/
+out/
+
+# Package manager caches
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-store/
+
+# Docker and local runtime state
+*.pid
+*.seed
+*.pid.lock
