@@ -7,6 +7,7 @@ Thumbs.db
 # Editors and IDEs
 .idea/
 .vscode/
+.vs/
 *.swp
 *.swo
 *~
@@ -64,6 +65,19 @@ coverage/
 .svelte-kit/
 .astro/
 out/
+
+# .NET server build and IDE artifacts
+obj/
+TestResults/
+*.user
+*.rsuser
+*.suo
+*.nupkg
+*.snupkg
+
+# Local .NET app settings; keep checked-in defaults versioned
+appsettings.Local.json
+appsettings.*.Local.json
 
 # Package manager caches
 .npm/
