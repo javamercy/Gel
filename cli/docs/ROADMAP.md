@@ -55,7 +55,7 @@ _Understanding repository state_
 
 _Moving through commit history_
 
-- [ ] **reset** - Reset current HEAD to a specified state
+- [X] **reset** - Reset current HEAD to a specified state
 - [ ] **reflog** - Manage reflog information
 
 ## Phase 8: Undoing Changes
@@ -63,7 +63,7 @@ _Moving through commit history_
 _Reverting and cleaning_
 
 - [ ] **rm** - Remove files from working tree and index
-
+    
 ## Phase 9: Merging & Rebasing
 
 _Combining branches_
