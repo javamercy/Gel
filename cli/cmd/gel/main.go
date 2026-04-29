@@ -2,8 +2,9 @@ package main
 
 import (
 	"Gel/internal/cli"
+	"os"
 )
 
 func main() {
-	cli.Execute()
+	os.Exit(cli.Execute())
 }

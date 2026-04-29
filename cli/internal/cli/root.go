@@ -11,6 +11,7 @@ import (
 	"Gel/internal/staging"
 	"Gel/internal/storage"
 	"Gel/internal/tree"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -75,11 +76,15 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+func Execute() int {
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(rootCmd.ErrOrStderr(), "error: %v\n", err)
+		return 1
 	}
+	return 0
 }
 
 // initializeServices sets up all services lazily when a command needs them
