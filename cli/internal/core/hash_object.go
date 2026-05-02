@@ -31,7 +31,10 @@ func NewHashObjectService(objectService *ObjectService) *HashObjectService {
 // Each path must point to a regular file. The returned map is keyed by the
 // original absolute path so callers can correlate outputs to inputs.
 // If options.Write is true, each computed object is also written to storage.
-func (h *HashObjectService) HashObjects(paths []domain.AbsolutePath, options HashObjectOptions) (
+func (h *HashObjectService) HashObjects(
+	paths []domain.AbsolutePath,
+	options HashObjectOptions,
+) (
 	map[domain.AbsolutePath]domain.Hash, error,
 ) {
 	if len(paths) == 0 {
@@ -48,7 +51,6 @@ func (h *HashObjectService) HashObjects(paths []domain.AbsolutePath, options Has
 		if err != nil {
 			return nil, err
 		}
-
 		hashes[path] = hash
 	}
 	return hashes, nil

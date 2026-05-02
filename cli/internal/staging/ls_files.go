@@ -87,9 +87,14 @@ func (l *LsFilesService) LsFiles(pathspec string, options LsFilesOptions) ([]str
 func (l *LsFilesService) lsFilesWithStage(entries []*domain.IndexEntry) []string {
 	files := make([]string, len(entries))
 	for i, entry := range entries {
+		fileMode, err := domain.NewFileMode(entry.Mode)
+		if err != nil {
+			// TODO: Skip entries with invalid mode, as they cannot be meaningfully represented in stage format.
+			continue
+		}
 		files[i] = fmt.Sprintf(
 			"%s %s %d\t%s",
-			domain.ParseFileMode(entry.Mode),
+			fileMode,
 			entry.Hash,
 			entry.GetStage(),
 			entry.Path,

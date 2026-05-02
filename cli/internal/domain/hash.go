@@ -6,27 +6,53 @@ import (
 	"fmt"
 )
 
-// ErrInvalidHashLen indicates that the provided hash length does not match the expected SHA-256 hash length.
-var ErrInvalidHashLen = errors.New("invalid hash length")
+var (
+	// ErrInvalidHashLength is returned when a hash input has an invalid length.
+	ErrInvalidHashLength = errors.New("invalid hash length")
 
-// Hash is a fixed-length SHA-256 digest.
+	// ErrInvalidHashEncoding is returned when a hex-encoded hash contains invalid characters.
+	ErrInvalidHashEncoding = errors.New("invalid hash encoding")
+)
+
+// Hash represents a SHA-256 hash stored as a fixed-length byte array.
 type Hash [SHA256ByteLength]byte
 
-// NewHash parses a hex-encoded SHA-256 digest.
-func NewHash(s string) (Hash, error) {
-	if len(s) != SHA256HexLength {
-		return Hash{}, ErrInvalidHashLen
+// NewHashFromHex creates a new Hash from the provided hexadecimal string and returns an error if the input is invalid.
+func NewHashFromHex(hexHash string) (Hash, error) {
+	if len(hexHash) != SHA256HexLength {
+		return Hash{}, fmt.Errorf(
+			"%w: got %d characters, want %d",
+			ErrInvalidHashLength,
+			len(hexHash),
+			SHA256HexLength,
+		)
 	}
 
-	decoded, err := hex.DecodeString(s)
+	decoded, err := hex.DecodeString(hexHash)
 	if err != nil {
-		return Hash{}, fmt.Errorf("failed to decode hash: %w", err)
+		return Hash{}, fmt.Errorf("%w: %q", ErrInvalidHashEncoding, hexHash)
 	}
-	return Hash(decoded), nil
+	return NewHashFromBytes(decoded)
 }
 
-// ToHexString returns the hex-encoded form of h.
-func (h Hash) ToHexString() string {
+// NewHashFromBytes creates a new Hash from the provided byte slice and returns an error if the input has an invalid length.
+func NewHashFromBytes(data []byte) (Hash, error) {
+	if len(data) != SHA256ByteLength {
+		return Hash{}, fmt.Errorf(
+			"%w: got %d bytes, want %d",
+			ErrInvalidHashLength,
+			len(data),
+			SHA256ByteLength,
+		)
+	}
+
+	var hash Hash
+	copy(hash[:], data)
+	return hash, nil
+}
+
+// Hex returns the hex-encoded form of h.
+func (h Hash) Hex() string {
 	return hex.EncodeToString(h[:])
 }
 
@@ -42,5 +68,5 @@ func (h Hash) Equals(o Hash) bool {
 
 // String returns the hex-encoded form of h.
 func (h Hash) String() string {
-	return h.ToHexString()
+	return h.Hex()
 }

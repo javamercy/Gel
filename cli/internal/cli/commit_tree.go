@@ -17,14 +17,14 @@ var commitTreeCmd = &cobra.Command{
 	Short: "Create a new commit object from a tree object",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hash, err := domain.NewHash(args[0])
+		hash, err := domain.NewHashFromHex(args[0])
 		if err != nil {
 			return err
 		}
 
 		var parentHashes []domain.Hash
 		for _, parent := range commitTreeParentsFlag {
-			parentHash, err := domain.NewHash(parent)
+			parentHash, err := domain.NewHashFromHex(parent)
 			if err != nil {
 				return err
 			}

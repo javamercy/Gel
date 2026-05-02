@@ -1,21 +1,21 @@
 package domain
 
-// Blob represents immutable object content.
+// Blob represents immutable file content stored as a blob object.
 type Blob struct {
 	body []byte
 }
 
-// Body returns a copy of the blob contents.
-func (blob *Blob) Body() []byte {
-	return append([]byte(nil), blob.body...)
-}
-
-// NewBlob returns a Blob containing a copy of body.
+// NewBlob returns a Blob containing a defensive copy of body.
 func NewBlob(body []byte) *Blob {
 	blob := &Blob{
 		body: append([]byte(nil), body...),
 	}
 	return blob
+}
+
+// Body returns a defensive copy of the blob contents.
+func (blob *Blob) Body() []byte {
+	return append([]byte(nil), blob.body...)
 }
 
 // Type returns ObjectTypeBlob.

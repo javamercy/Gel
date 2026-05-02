@@ -68,7 +68,7 @@ func (o *ObjectService) ReadBlob(hash domain.Hash) (*domain.Blob, error) {
 	}
 	blob, ok := object.(*domain.Blob)
 	if !ok {
-		return nil, domain.ErrInvalidObjectType
+		return nil, fmt.Errorf("%w: expected %s, got %s", domain.ErrObjectTypeMismatch, domain.ObjectTypeBlob, object.Type())
 	}
 	return blob, nil
 }
@@ -81,7 +81,7 @@ func (o *ObjectService) ReadTree(hash domain.Hash) (*domain.Tree, error) {
 
 	tree, ok := object.(*domain.Tree)
 	if !ok {
-		return nil, domain.ErrInvalidObjectType
+		return nil, fmt.Errorf("%w: expected %s, got %s", domain.ErrObjectTypeMismatch, domain.ObjectTypeTree, object.Type())
 	}
 	return tree, nil
 }
@@ -94,22 +94,9 @@ func (o *ObjectService) ReadCommit(hash domain.Hash) (*domain.Commit, error) {
 
 	commit, ok := object.(*domain.Commit)
 	if !ok {
-		return nil, domain.ErrInvalidObjectType
+		return nil, fmt.Errorf("%w: expected %s, got %s", domain.ErrObjectTypeMismatch, domain.ObjectTypeCommit, object.Type())
 	}
 	return commit, nil
-}
-
-func (o *ObjectService) ReadTreeAndDeserializeEntries(treeHash domain.Hash) ([]domain.TreeEntry, error) {
-	tree, err := o.ReadTree(treeHash)
-	if err != nil {
-		return nil, err
-	}
-
-	treeEntries, err := tree.Deserialize()
-	if err != nil {
-		return nil, err
-	}
-	return treeEntries, nil
 }
 
 func (o *ObjectService) Exists(hash domain.Hash) (bool, error) {
@@ -125,7 +112,7 @@ func (o *ObjectService) ComputeObjectHash(path domain.AbsolutePath) (domain.Hash
 	blob := domain.NewBlob(data)
 	serializedData := blob.Serialize()
 	hexHash := ComputeSHA256(serializedData)
-	hash, err := domain.NewHash(hexHash)
+	hash, err := domain.NewHashFromHex(hexHash)
 	if err != nil {
 		return domain.Hash{}, nil, err
 	}

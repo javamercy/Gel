@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
-// ErrInvalidIdentityFormat is returned when identity input violates required shape or validation rules.
-var ErrInvalidIdentityFormat = errors.New("invalid identity format")
+var (
+	// ErrInvalidIdentity is returned when an identity cannot be serialized safely.
+	ErrInvalidIdentity = errors.New("invalid identity")
+)
 
 // Identity stores commit author or committer metadata.
 type Identity struct {
@@ -32,17 +34,17 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 	name = strings.TrimSpace(name)
 	email = strings.TrimSpace(email)
 
-	if name == "" || email == "" {
-		return Identity{}, ErrInvalidIdentityFormat
+	if err := validateIdentityName(name); err != nil {
+		return Identity{}, err
 	}
-	if !isValidEmail(email) {
-		return Identity{}, ErrInvalidIdentityFormat
+	if err := validateIdentityEmail(email); err != nil {
+		return Identity{}, err
 	}
-	if _, err := strconv.ParseInt(timestamp, 10, 64); err != nil {
-		return Identity{}, ErrInvalidIdentityFormat
+	if err := validateIdentityTimestamp(timestamp); err != nil {
+		return Identity{}, err
 	}
-	if !isValidTimezone(timezone) {
-		return Identity{}, ErrInvalidIdentityFormat
+	if err := validateIdentityTimezone(timezone); err != nil {
+		return Identity{}, err
 	}
 	return Identity{
 		Name:      name,
@@ -54,38 +56,78 @@ func NewIdentity(name, email, timestamp, timezone string) (Identity, error) {
 
 // Serialize returns identity in commit-header form:
 // "<name> <email> <timestamp> <timezone>".
-func (identity Identity) Serialize() []byte {
+func (i Identity) Serialize() []byte {
 	return []byte(fmt.Sprintf(
 		"%s <%s> %s %s",
-		identity.Name,
-		identity.Email,
-		identity.Timestamp,
-		identity.Timezone,
+		i.Name,
+		i.Email,
+		i.Timestamp,
+		i.Timezone,
 	))
 }
 
-// isValidEmail reports whether email satisfies the minimal format expected by domain validation.
-func isValidEmail(email string) bool {
-	return strings.Contains(email, "@")
+func validateIdentityName(name string) error {
+	if name == "" {
+		return fmt.Errorf("%w: name is empty", ErrInvalidIdentity)
+	}
+	if strings.ContainsAny(name, "<>\n\x00") {
+		return fmt.Errorf("%w: name contains reserved characters", ErrInvalidIdentity)
+	}
+	return nil
 }
 
-// isValidTimezone reports whether timezone is in valid ±HHMM format and range.
-func isValidTimezone(timezone string) bool {
+func validateIdentityEmail(email string) error {
+	if email == "" {
+		return fmt.Errorf("%w: email is empty", ErrInvalidIdentity)
+	}
+	if strings.ContainsAny(email, "<> \t\n\x00") {
+		return fmt.Errorf("%w: email contains reserved characters", ErrInvalidIdentity)
+	}
+
+	atIndex := strings.IndexByte(email, '@')
+	if atIndex <= 0 || atIndex == len(email)-1 {
+		return fmt.Errorf("%w: email must contain local and domain parts", ErrInvalidIdentity)
+	}
+	return nil
+}
+
+func validateIdentityTimestamp(timestamp string) error {
+	if timestamp == "" {
+		return fmt.Errorf("%w: timestamp is empty", ErrInvalidIdentity)
+	}
+
+	unix, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return fmt.Errorf("%w: invalid timestamp %q", ErrInvalidIdentity, timestamp)
+	}
+	if unix < 0 {
+		return fmt.Errorf("%w: timestamp must be non-negative", ErrInvalidIdentity)
+	}
+	return nil
+}
+
+func validateIdentityTimezone(timezone string) error {
 	if len(timezone) != 5 {
-		return false
+		return fmt.Errorf("%w: timezone must be in ±HHMM format", ErrInvalidIdentity)
 	}
 	if timezone[0] != '+' && timezone[0] != '-' {
-		return false
+		return fmt.Errorf("%w: timezone must start with '+' or '-'", ErrInvalidIdentity)
 	}
 
-	hh, err := strconv.Atoi(timezone[1:3])
-	if err != nil || hh < 0 || hh > 23 {
-		return false
+	hours, err := strconv.Atoi(timezone[1:3])
+	if err != nil {
+		return fmt.Errorf("%w: invalid timezone hour in %q", ErrInvalidIdentity, timezone)
+	}
+	if hours > 23 {
+		return fmt.Errorf("%w: timezone hour out of range in %q", ErrInvalidIdentity, timezone)
 	}
 
-	mm, err := strconv.Atoi(timezone[3:5])
-	if err != nil || mm < 0 || mm > 59 {
-		return false
+	minutes, err := strconv.Atoi(timezone[3:5])
+	if err != nil {
+		return fmt.Errorf("%w: invalid timezone minute in %q", ErrInvalidIdentity, timezone)
 	}
-	return true
+	if minutes > 59 {
+		return fmt.Errorf("%w: timezone minute out of range in %q", ErrInvalidIdentity, timezone)
+	}
+	return nil
 }

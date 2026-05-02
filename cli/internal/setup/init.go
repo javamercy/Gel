@@ -87,7 +87,7 @@ func (i *InitService) Init(path string) (string, error) {
 		return "", fmt.Errorf("init: prepare refs directory: %w", err)
 	}
 
-	headRefContent := fmt.Sprintf("ref: %s\n", domain.MainRef)
+	headRefContent := fmt.Sprintf("ref: %s\n", domain.DefaultBranchRef)
 	if err := ensureRegularFile(headPath, []byte(headRefContent)); err != nil {
 		return "", fmt.Errorf("init: prepare HEAD: %w", err)
 	}
@@ -112,7 +112,7 @@ func ensureDirectory(path string) error {
 		return nil
 	}
 	if errors.Is(err, os.ErrNotExist) {
-		if err := os.MkdirAll(path, domain.DirPermission); err != nil {
+		if err := os.MkdirAll(path, domain.DefaultDirPermission); err != nil {
 			return fmt.Errorf("create directory %q: %w", path, err)
 		}
 		return nil
@@ -131,7 +131,7 @@ func ensureRegularFile(path string, body []byte) error {
 		return nil
 	}
 	if errors.Is(err, os.ErrNotExist) {
-		if err := os.WriteFile(path, body, domain.FilePermission); err != nil {
+		if err := os.WriteFile(path, body, domain.DefaultFilePermission); err != nil {
 			return fmt.Errorf("create file %q: %w", path, err)
 		}
 		return nil

@@ -21,7 +21,7 @@ var updateIndexCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		normalizedPaths := make([]domain.NormalizedPath, len(args))
 		for i, path := range args {
-			normalizedPath, err := domain.NewNormalizedPath(workspace.RepoDir, path)
+			normalizedPath, err := domain.NewNormalizedPath(path, workspace.RepoDir)
 			if err != nil {
 				return err
 			}

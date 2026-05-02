@@ -56,7 +56,7 @@ func (r *CommitResolver) resolveBase(base string) (domain.Hash, error) {
 		return r.refService.Resolve(domain.HeadFileName)
 
 	case isFullHash(base):
-		hash, err := domain.NewHash(base)
+		hash, err := domain.NewHashFromHex(base)
 		if err != nil {
 			return domain.Hash{}, err
 		}
@@ -95,7 +95,7 @@ func (r *CommitResolver) ensureCommit(hash domain.Hash) error {
 		if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("commit not found: %w", err)
 		}
-		if errors.Is(err, domain.ErrInvalidObjectType) {
+		if errors.Is(err, domain.ErrObjectTypeMismatch) {
 			return fmt.Errorf("object is not a commit: %w", err)
 		}
 		return err

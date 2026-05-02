@@ -2,7 +2,6 @@ package domain
 
 import "os"
 
-// SHA-256 related constants used throughout the domain package.
 const (
 	// SHA256HexLength is the length of a SHA-256 hash encoded as hexadecimal.
 	SHA256HexLength = 64
@@ -11,7 +10,6 @@ const (
 	SHA256ByteLength = 32
 )
 
-// Repository layout constants used to construct paths under .gel.
 const (
 	// GelDirName is the repository metadata directory name.
 	GelDirName string = ".gel"
@@ -33,21 +31,20 @@ const (
 
 	// ConfigFileName is the repository config file name.
 	ConfigFileName string = "config.toml"
-
-	// MainBranchName is the default branch name.
-	MainBranchName string = "main"
 )
 
-// MainRef is the full ref path for the default branch.
 const (
-	MainRef string = "refs/heads/main"
+	// DefaultBranchName is the default branch name.
+	DefaultBranchName string = "main"
+
+	// DefaultBranchRef is the full ref path for the default branch.
+	DefaultBranchRef string = "refs/heads/main"
 )
 
-// File permission constants used when writing repository files and directories.
 const (
-	// FilePermission is the default permission for regular files written by Gel.
-	FilePermission os.FileMode = 0o644
+	// DefaultFilePermission is the default permission for regular files written by Gel.
+	DefaultFilePermission os.FileMode = 0o644
 
-	// DirPermission is the default permission for directories created by Gel.
-	DirPermission os.FileMode = 0o755
+	// DefaultDirPermission is the default permission for directories created by Gel.
+	DefaultDirPermission os.FileMode = 0o755
 )

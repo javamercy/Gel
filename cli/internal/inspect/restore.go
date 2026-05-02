@@ -121,10 +121,10 @@ func (r *RestoreService) restoreIndexVsWorkingTree(paths []domain.AbsolutePath) 
 		}
 
 		dir := filepath.Dir(path.String())
-		if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+		if err := os.MkdirAll(dir, domain.DefaultDirPermission); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path.String(), blob.Body(), domain.FilePermission); err != nil {
+		if err := os.WriteFile(path.String(), blob.Body(), domain.DefaultFilePermission); err != nil {
 			return err
 		}
 	}
@@ -176,10 +176,10 @@ func (r *RestoreService) restoreCommitVsWorkingTree(commitHash domain.Hash, path
 			}
 
 			dir := filepath.Dir(path.String())
-			if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+			if err := os.MkdirAll(dir, domain.DefaultDirPermission); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path.String(), blob.Body(), domain.FilePermission); err != nil {
+			if err := os.WriteFile(path.String(), blob.Body(), domain.DefaultFilePermission); err != nil {
 				return err
 			}
 		}
@@ -235,8 +235,8 @@ func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
 	switch source {
 	case domain.HeadFileName:
 		return r.refService.Resolve(domain.HeadFileName)
-	case domain.MainBranchName:
-		ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, domain.MainBranchName)
+	case domain.DefaultBranchName:
+		ref := filepath.Join(domain.RefsDirName, domain.HeadsDirName, domain.DefaultBranchName)
 		return r.refService.Read(ref)
 	}
 
@@ -250,5 +250,5 @@ func (r *RestoreService) resolveSource(source string) (domain.Hash, error) {
 	} else if !errors.Is(err, core.ErrRefNotFound) {
 		return domain.Hash{}, err
 	}
-	return domain.NewHash(source)
+	return domain.NewHashFromHex(source)
 }

@@ -1,114 +1,206 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 )
 
-// RootPath represents an empty normalized path, used for the repository root.
-const RootPath = NormalizedPath("")
+var (
+	// ErrInvalidAbsolutePath is returned when a path cannot represent an absolute filesystem path.
+	ErrInvalidAbsolutePath = errors.New("invalid absolute path")
 
-// NormalizedPath represents a path relative to the repository root,
-// using forward slashes (e.g., "src/main.go").
-// It cannot be absolute, contain backslashes, or contain null bytes.
-type NormalizedPath string
+	// ErrInvalidNormalizedPath is returned when a path is not in repository-normalized form.
+	ErrInvalidNormalizedPath = errors.New("invalid normalized path")
 
-// NewNormalizedPath resolves path and converts it to a repository-relative normalized path.
-func NewNormalizedPath(repoDir string, path string) (NormalizedPath, error) {
+	// ErrPathOutsideRepository is returned when a path cannot be represented inside a repository.
+	ErrPathOutsideRepository = errors.New("path outside repository")
+)
+
+// NormalizedPath represents a repository-relative path using forward slashes.
+//
+// The root path is represented by the empty string. Non-root paths must not be
+// absolute, contain backslashes, contain null bytes, contain empty segments, or
+// contain "." / ".." traversal segments.
+type NormalizedPath struct {
+	value string
+}
+
+// NewNormalizedPath resolves path against the current working directory and
+// converts it to a repository-relative normalized path.
+//
+// Use this for command/filesystem input. Use ParseNormalizedPath for paths read
+// from .gel data structures.
+func NewNormalizedPath(path string, repoDir AbsolutePath) (NormalizedPath, error) {
 	absPath, err := NewAbsolutePath(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to create absolute path: %w", err)
+		return NormalizedPath{}, fmt.Errorf("normalized path: resolve %q: %w", path, err)
 	}
 	return absPath.ToNormalizedPath(repoDir)
 }
 
-// NewNormalizedPathUnchecked creates a NormalizedPath without converting through
-// the filesystem. It validates that the path is in normalized format.
-func NewNormalizedPathUnchecked(path string) (NormalizedPath, error) {
+// ParseNormalizedPath validates path as a stored repository-normalized path.
+//
+// This is intended for paths read from .gel data structures such as the index
+// or tree objects. It does not resolve through the current working directory.
+func ParseNormalizedPath(path string) (NormalizedPath, error) {
 	if err := validateNormalizedFormat(path); err != nil {
-		return "", err
+		return NormalizedPath{}, err
 	}
-	return NormalizedPath(path), nil
+	return NormalizedPath{value: path}, nil
 }
 
-// ToAbsolutePath converts a normalized path to an absolute path within repoDir.
-func (p NormalizedPath) ToAbsolutePath(repoDir string) (AbsolutePath, error) {
-	absPath := filepath.Join(repoDir, filepath.FromSlash(p.String()))
-	return AbsolutePath(absPath), nil
+// ToAbsolutePath converts p to an absolute filesystem path under repoDir.
+func (n NormalizedPath) ToAbsolutePath(repoDir AbsolutePath) (AbsolutePath, error) {
+	if err := validateNormalizedFormat(n.value); err != nil {
+		return AbsolutePath{}, err
+	}
+	if err := repoDir.validate(); err != nil {
+		return AbsolutePath{}, fmt.Errorf("normalized path: invalid repository path: %w", err)
+	}
+	absolutePath := filepath.Join(repoDir.value, filepath.FromSlash(n.value))
+	if inside, err := pathWithinDir(repoDir.value, absolutePath); err != nil {
+		return AbsolutePath{}, fmt.Errorf("normalized path: compare with repository: %w", err)
+	} else if !inside {
+		return AbsolutePath{}, fmt.Errorf("%w: %q", ErrPathOutsideRepository, n.value)
+	}
+	return AbsolutePath{value: absolutePath}, nil
 }
 
-// Equals reports whether two normalized paths are identical.
-func (p NormalizedPath) Equals(o NormalizedPath) bool {
-	return p == o
+// IsRoot reports whether p represents the repository root.
+func (n NormalizedPath) IsRoot() bool {
+	return n.value == ""
+}
+
+// IsWithin reports whether p is equal to or below root.
+func (n NormalizedPath) IsWithin(root NormalizedPath) bool {
+	if root.IsRoot() {
+		return true
+	}
+	return n.value == root.value || strings.HasPrefix(n.value, root.value+"/")
+}
+
+// Equals reports whether p and other are identical.
+func (n NormalizedPath) Equals(other NormalizedPath) bool {
+	return n == other
 }
 
 // String returns the normalized path as a string.
-func (p NormalizedPath) String() string {
-	return string(p)
+func (n NormalizedPath) String() string {
+	return n.value
 }
 
-// validateNormalizedFormat checks that a path is in valid normalized format
-// (no leading slash, no backslashes, no null bytes).
+// AbsolutePath represents an absolute filesystem path.
+//
+// It does not require the path to exist on disk.
+type AbsolutePath struct {
+	value string
+}
+
+// NewAbsolutePath resolves path against the current working directory.
+func NewAbsolutePath(path string) (AbsolutePath, error) {
+	if path == "" {
+		return AbsolutePath{}, fmt.Errorf("%w: empty path", ErrInvalidAbsolutePath)
+	}
+	if strings.Contains(path, "\x00") {
+		return AbsolutePath{}, fmt.Errorf("%w: path contains null byte", ErrInvalidAbsolutePath)
+	}
+
+	absPath, err := filepath.Abs(filepath.FromSlash(path))
+	if err != nil {
+		return AbsolutePath{}, fmt.Errorf("%w: resolve %q: %v", ErrInvalidAbsolutePath, path, err)
+	}
+	return AbsolutePath{value: absPath}, nil
+}
+
+// ToNormalizedPath converts a to a repository-relative normalized path under repoDir.
+func (a AbsolutePath) ToNormalizedPath(repoDir AbsolutePath) (NormalizedPath, error) {
+	if err := a.validate(); err != nil {
+		return NormalizedPath{}, fmt.Errorf("absolute path: normalize %q: %w", a.value, err)
+	}
+	if err := repoDir.validate(); err != nil {
+		return NormalizedPath{}, fmt.Errorf("absolute path: invalid repository path: %w", err)
+	}
+
+	relPath, err := filepath.Rel(repoDir.value, a.value)
+	if err != nil {
+		return NormalizedPath{}, fmt.Errorf("absolute path: make %q relative to %q: %w", a.value, repoDir.value, err)
+	}
+	if relPath == "." {
+		return NormalizedPath{}, nil
+	}
+	if isRelativeOutside(relPath) {
+		return NormalizedPath{}, fmt.Errorf("%w: %q is outside %q", ErrPathOutsideRepository, a.value, repoDir.value)
+	}
+
+	normPath := filepath.ToSlash(relPath)
+
+	// TODO: is validation needed here?
+	if err := validateNormalizedFormat(normPath); err != nil {
+		return NormalizedPath{}, err
+	}
+	return NormalizedPath{value: normPath}, nil
+}
+
+// Equals reports whether p and other are identical.
+func (a AbsolutePath) Equals(other AbsolutePath) bool {
+	return a == other
+}
+
+// String returns the absolute path as a string.
+func (a AbsolutePath) String() string {
+	return a.value
+}
+
+func (a AbsolutePath) validate() error {
+	// TODO: we already validated during New, why validate again here? Maybe we can skip validation in ToNormalizedPath since it only accepts AbsolutePaths returned by NewAbsolutePath?
+	if a.value == "" {
+		return fmt.Errorf("%w: empty path", ErrInvalidAbsolutePath)
+	}
+	if strings.Contains(a.value, "\x00") {
+		return fmt.Errorf("%w: path contains null byte", ErrInvalidAbsolutePath)
+	}
+	if !filepath.IsAbs(a.value) {
+		return fmt.Errorf("%w: %q is not absolute", ErrInvalidAbsolutePath, a.value)
+	}
+	return nil
+}
+
 func validateNormalizedFormat(path string) error {
 	if path == "" {
 		return nil
 	}
-	if strings.HasPrefix(path, "/") {
-		return fmt.Errorf("normalized path cannot be absolute: %s", path)
+	if strings.HasPrefix(path, "/") || filepath.IsAbs(filepath.FromSlash(path)) {
+		return fmt.Errorf("%w: %q is absolute", ErrInvalidNormalizedPath, path)
 	}
 	if strings.Contains(path, "\\") {
-		return fmt.Errorf("normalized path must use forward slashes: %s", path)
+		return fmt.Errorf("%w: %q contains backslash", ErrInvalidNormalizedPath, path)
 	}
 	if strings.Contains(path, "\x00") {
-		return fmt.Errorf("normalized path cannot contain null bytes: %s", path)
+		return fmt.Errorf("%w: path contains null byte", ErrInvalidNormalizedPath)
 	}
 
 	segments := strings.Split(path, "/")
 	for _, segment := range segments {
 		switch segment {
 		case "":
-			return fmt.Errorf("normalized path cannot contain empty segments: %s", path)
+			return fmt.Errorf("%w: %q contains empty segment", ErrInvalidNormalizedPath, path)
 		case ".", "..":
-			return fmt.Errorf("normalized path cannot contain traversal segments: %s", path)
+			return fmt.Errorf("%w: %q contains traversal segment", ErrInvalidNormalizedPath, path)
 		}
 	}
 	return nil
 }
 
-// AbsolutePath represents an absolute filesystem path (for example,
-// "/home/user/project/src/main.go").
-type AbsolutePath string
-
-// NewAbsolutePath resolves path against the current working directory.
-func NewAbsolutePath(path string) (AbsolutePath, error) {
-	absPath, err := filepath.Abs(filepath.FromSlash(path))
+func pathWithinDir(repoDir, targetPath string) (bool, error) {
+	relPath, err := filepath.Rel(repoDir, targetPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to get absolute path: %w", err)
+		return false, err
 	}
-	return AbsolutePath(absPath), nil
+	return !isRelativeOutside(relPath), nil
 }
 
-// ToNormalizedPath converts an absolute path to a normalized path relative
-// to the repository directory. Returns RootPath if the absolute path is exactly
-// the repository root.
-func (p AbsolutePath) ToNormalizedPath(repoDir string) (NormalizedPath, error) {
-	relPath, err := filepath.Rel(repoDir, p.String())
-	if err != nil {
-		return "", fmt.Errorf("failed to get relative path: %w", err)
-	}
-
-	normPath := filepath.ToSlash(relPath)
-	if normPath == "." {
-		return RootPath, nil
-	}
-	if err := validateNormalizedFormat(normPath); err != nil {
-		return "", fmt.Errorf("path is outside repository or invalid: %w", err)
-	}
-	return NormalizedPath(normPath), nil
-}
-
-// String returns the absolute path as a string.
-func (p AbsolutePath) String() string {
-	return string(p)
+func isRelativeOutside(path string) bool {
+	return path == ".." || strings.HasPrefix(path, ".."+string(filepath.Separator))
 }

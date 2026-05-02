@@ -33,7 +33,7 @@ var diffCmd = &cobra.Command{
 			if arg == domain.HeadFileName {
 				results, err = diffService.Diff(diff.DiffOptions{Mode: diff.DiffModeHeadVsWorkingTree})
 			} else {
-				baseCommitHash, hashErr := domain.NewHash(arg)
+				baseCommitHash, hashErr := domain.NewHashFromHex(arg)
 				if hashErr != nil {
 					return hashErr
 				}
@@ -44,11 +44,11 @@ var diffCmd = &cobra.Command{
 				)
 			}
 		case 2:
-			baseCommitHash, hashErr := domain.NewHash(args[0])
+			baseCommitHash, hashErr := domain.NewHashFromHex(args[0])
 			if hashErr != nil {
 				return err
 			}
-			targetCommitHash, hashErr := domain.NewHash(args[1])
+			targetCommitHash, hashErr := domain.NewHashFromHex(args[1])
 			if hashErr != nil {
 				return err
 			}

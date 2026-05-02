@@ -136,7 +136,7 @@ func (r *ResetService) checkoutWorkingTree(targetHash domain.Hash) error {
 		if err := os.Remove(absPath.String()); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("failed to delete '%s': %w", absPath, err)
 		}
-		if err := pruneEmptyParentDirs(absPath.String(), r.workspace.RepoDir); err != nil {
+		if err := pruneEmptyParentDirs(absPath.String(), r.workspace.RepoDir.String()); err != nil {
 			return fmt.Errorf("failed to prune empty parents for '%s': %w", absPath, err)
 		}
 	}
@@ -151,10 +151,10 @@ func (r *ResetService) checkoutWorkingTree(targetHash domain.Hash) error {
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DirPermission); err != nil {
+		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DefaultDirPermission); err != nil {
 			return fmt.Errorf("failed to create parent dir for '%s': %w", absPath.String(), err)
 		}
-		if err := os.WriteFile(absPath.String(), blob.Body(), domain.FilePermission); err != nil {
+		if err := os.WriteFile(absPath.String(), blob.Body(), domain.DefaultFilePermission); err != nil {
 			return fmt.Errorf("failed to write '%s': %w", absPath, err)
 		}
 	}

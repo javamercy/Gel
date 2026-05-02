@@ -201,10 +201,10 @@ func (s *SwitchService) checkoutWorkingTree(oldCommitHash, targetCommitHash doma
 			return err
 		}
 
-		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DirPermission); err != nil {
+		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DefaultDirPermission); err != nil {
 			return err
 		}
-		if err := os.WriteFile(absPath.String(), blob.Body(), domain.FilePermission); err != nil {
+		if err := os.WriteFile(absPath.String(), blob.Body(), domain.DefaultFilePermission); err != nil {
 			return err
 		}
 	}

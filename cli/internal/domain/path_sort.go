@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
-// SortedPaths sorts a slice of paths (NormalizedPath or AbsolutePath) in lexicographical order based on their string representation.
-func SortedPaths[T interface {
+type sortablePath interface {
 	NormalizedPath | AbsolutePath
 	String() string
-}](paths []T) {
+}
+
+// SortPaths sorts paths in-place by their string representation.
+func SortPaths[T sortablePath](paths []T) {
 	slices.SortFunc(
 		paths, func(a, b T) int {
 			return strings.Compare(a.String(), b.String())
@@ -17,14 +19,12 @@ func SortedPaths[T interface {
 	)
 }
 
-func SortedPathSet[T interface {
-	NormalizedPath | AbsolutePath
-	String() string
-}](paths map[T]bool) []T {
+// SortedPathSet returns the keys from paths sorted by their string representation.
+func SortedPathSet[T sortablePath](paths map[T]struct{}) []T {
 	out := make([]T, 0, len(paths))
 	for path := range paths {
 		out = append(out, path)
 	}
-	SortedPaths(out)
+	SortPaths(out)
 	return out
 }

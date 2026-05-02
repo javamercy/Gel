@@ -2,9 +2,9 @@ package domain
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -13,8 +13,17 @@ var (
 	// (empty, contains slash, null bytes, or path traversal components).
 	ErrInvalidTreeEntryName = errors.New("invalid tree entry name")
 
+	// ErrDuplicateTreeEntryName is returned when a tree contains duplicate entry names.
+	ErrDuplicateTreeEntryName = errors.New("invalid tree format: duplicate entry name")
+
+	// ErrTreeMissingModeSeparator is returned when a tree entry mode is not followed by a space.
+	ErrTreeMissingModeSeparator = errors.New("invalid tree format: missing space after mode")
+
 	// ErrTreeMissingNullByte is returned when a tree entry name is not null-terminated.
 	ErrTreeMissingNullByte = errors.New("invalid tree format: missing null byte after name")
+
+	// ErrTreeEntriesNotSorted is returned when tree entries are not in canonical order.
+	ErrTreeEntriesNotSorted = errors.New("invalid tree format: entries not in canonical order")
 
 	// ErrTreeTruncatedHash is returned when a tree entry hash is incomplete.
 	ErrTreeTruncatedHash = errors.New("invalid tree format: truncated hash")
@@ -23,15 +32,18 @@ var (
 // TreeEntry represents a single entry within a tree object.
 // Each entry corresponds to a file or subdirectory.
 type TreeEntry struct {
-	// Mode is the file mode (e.g., 100644 for regular file, 040000 for directory).
+	// Mode is the file mode.
 	Mode FileMode
+
 	// Hash is the SHA-256 content hash of the referenced object.
 	Hash Hash
-	// Name is the entry's filename (not a path).
+
+	// Name is the entry's filename, not a path.
 	Name string
 }
 
 // NewTreeEntry returns a TreeEntry without validating name or mode.
+// Tree entry validation is performed by NewTree and NewTreeFromEntries.
 func NewTreeEntry(mode FileMode, hash Hash, name string) TreeEntry {
 	return TreeEntry{
 		Mode: mode,
@@ -41,51 +53,44 @@ func NewTreeEntry(mode FileMode, hash Hash, name string) TreeEntry {
 }
 
 // Tree represents a directory structure in the object database.
-// It contains a list of entries (files and subdirectories) with their modes and hashes.
-// body stores the raw tree payload, entries caches the parsed entries.
 type Tree struct {
 	body    []byte
 	entries []TreeEntry
-}
-
-// Body returns a defensive copy of the raw tree body bytes.
-func (t *Tree) Body() []byte {
-	return append([]byte(nil), t.body...)
 }
 
 // NewTree parses raw tree body bytes and returns a validated Tree.
 // The input is copied to prevent external mutation.
 func NewTree(body []byte) (*Tree, error) {
 	bodyCopy := append([]byte(nil), body...)
-	tree := &Tree{
-		body: bodyCopy,
-	}
-	entries, err := tree.Deserialize()
+	entries, err := parseTreeEntries(bodyCopy)
 	if err != nil {
 		return nil, err
 	}
-	tree.entries = entries
-	return tree, nil
+
+	return &Tree{
+		body: bodyCopy, entries: entries,
+	}, nil
 }
 
 // NewTreeFromEntries validates entries and returns a Tree built from them.
+// Entries are serialized in canonical tree order.
 func NewTreeFromEntries(entries []TreeEntry) (*Tree, error) {
-	var buffer bytes.Buffer
-	for _, entry := range entries {
-		if err := validateTreeEntryName(entry.Name); err != nil {
-			return nil, err
-		}
-		if !entry.Mode.IsValid() {
-			return nil, ErrInvalidFileMode
-		}
-
-		buffer.Write([]byte(fmt.Sprintf("%s %s\x00", entry.Mode, entry.Name)))
-		buffer.Write(entry.Hash[:])
+	entriesCopy := append([]TreeEntry(nil), entries...)
+	if err := validateTreeEntries(entriesCopy); err != nil {
+		return nil, err
 	}
+
+	SortTreeEntries(entriesCopy)
+
 	return &Tree{
-		body:    buffer.Bytes(),
-		entries: entries,
+		body:    serializeTreeEntries(entriesCopy),
+		entries: append([]TreeEntry(nil), entriesCopy...),
 	}, nil
+}
+
+// Body returns a defensive copy of the raw tree body bytes.
+func (t *Tree) Body() []byte {
+	return append([]byte(nil), t.body...)
 }
 
 // Type returns the domain object type for Tree.
@@ -98,63 +103,104 @@ func (t *Tree) Size() int {
 	return len(t.body)
 }
 
+func (t *Tree) Entries() []TreeEntry {
+	return append([]TreeEntry(nil), t.entries...)
+}
+
 // Serialize returns the full object serialization in the form "<type> <size>\x00<body>".
 func (t *Tree) Serialize() []byte {
 	return SerializeObject(ObjectTypeTree, t.body)
 }
 
-// Deserialize parses the raw tree body into a slice of TreeEntry.
-// It validates each entry's mode, name, and hash format.
-func (t *Tree) Deserialize() ([]TreeEntry, error) {
-	body := t.body
+func serializeTreeEntries(entries []TreeEntry) []byte {
+	var buffer bytes.Buffer
+	for _, entry := range entries {
+		buffer.WriteString(entry.Mode.String())
+		buffer.WriteByte(' ')
+		buffer.WriteString(entry.Name)
+		buffer.WriteByte(0)
+		buffer.Write(entry.Hash[:])
+	}
+	return buffer.Bytes()
+}
+
+func parseTreeEntries(body []byte) ([]TreeEntry, error) {
 	var entries []TreeEntry
-	i := 0
-	for i < len(body) {
-		modeStart := i
-		for i < len(body) && body[i] != ' ' {
-			i++
-		}
-		if i >= len(body) {
-			return nil, ErrInvalidFileMode
-		}
-		modeStr := string(body[modeStart:i])
-		mode := ParseFileModeFromString(modeStr)
-		if !mode.IsValid() {
-			return nil, ErrInvalidFileMode
+	seenNames := make(map[string]struct{})
+	previousSortName := ""
+	hasPrevious := false
+	offset := 0
+	for offset < len(body) {
+		spaceOffset := bytes.IndexByte(body[offset:], ' ')
+		if spaceOffset == -1 {
+			return nil, fmt.Errorf("%w at offset %d", ErrTreeMissingModeSeparator, offset)
 		}
 
-		i++
-
-		nameStart := i
-		for i < len(body) && body[i] != 0 {
-			i++
-		}
-		if i >= len(body) {
-			return nil, ErrTreeMissingNullByte
-		}
-		name := string(body[nameStart:i])
-		i++
-
-		if i+32 > len(body) {
-			return nil, ErrTreeTruncatedHash
-		}
-
-		hashBytes := body[i : i+32]
-		hash, err := NewHash(hex.EncodeToString(hashBytes))
+		modeText := string(body[offset : offset+spaceOffset])
+		fileMode, err := NewFileModeFromTreeMode(modeText)
 		if err != nil {
 			return nil, err
 		}
 
-		i += 32
-		entry := NewTreeEntry(mode, hash, name)
-		entries = append(entries, entry)
+		offset += spaceOffset + 1
+		nameOffset := offset
+		nullOffset := bytes.IndexByte(body[offset:], 0)
+		if nullOffset == -1 {
+			return nil, fmt.Errorf("%w at offset %d", ErrTreeMissingNullByte, nameOffset)
+		}
+
+		name := string(body[offset : offset+nullOffset])
+		if err := validateTreeEntryName(name); err != nil {
+			return nil, fmt.Errorf("%w: %q", err, name)
+		}
+		if err := validateUniqueTreeEntryName(seenNames, name); err != nil {
+			return nil, err
+		}
+
+		sortName := treeEntrySortKey(name, fileMode.IsDirectory())
+		if hasPrevious && previousSortName > sortName {
+			return nil, fmt.Errorf("%w: %q before %q", ErrTreeEntriesNotSorted, previousSortName, sortName)
+		}
+
+		previousSortName = sortName
+		hasPrevious = true
+		offset += nullOffset + 1
+		if offset+SHA256ByteLength > len(body) {
+			return nil, fmt.Errorf(
+				"%w: expected %d bytes at offset %d, got %d",
+				ErrTreeTruncatedHash,
+				SHA256ByteLength,
+				offset,
+				len(body)-offset,
+			)
+		}
+
+		hash, err := NewHashFromBytes(body[offset : offset+SHA256ByteLength])
+		if err != nil {
+			return nil, err
+		}
+		offset += SHA256ByteLength
+		entries = append(entries, NewTreeEntry(fileMode, hash, name))
 	}
 	return entries, nil
 }
 
-// validateTreeEntryName checks that an entry name is valid for tree serialization.
-// Returns ErrInvalidTreeEntryName if name is empty, contains path separators,
-// null bytes, or path traversal components.
+func validateTreeEntries(entries []TreeEntry) error {
+	seenNames := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		if !entry.Mode.IsValid() {
+			return fmt.Errorf("%w: %06o", ErrInvalidFileMode, entry.Mode.Uint32())
+		}
+		if err := validateTreeEntryName(entry.Name); err != nil {
+			return fmt.Errorf("%w: %q", err, entry.Name)
+		}
+		if err := validateUniqueTreeEntryName(seenNames, entry.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func validateTreeEntryName(name string) error {
 	if name == "" || name == "." || name == ".." {
 		return ErrInvalidTreeEntryName
@@ -166,4 +212,29 @@ func validateTreeEntryName(name string) error {
 		return ErrInvalidTreeEntryName
 	}
 	return nil
+}
+
+func validateUniqueTreeEntryName(seenNames map[string]struct{}, name string) error {
+	if _, exists := seenNames[name]; exists {
+		return fmt.Errorf("%w: %q", ErrDuplicateTreeEntryName, name)
+	}
+	seenNames[name] = struct{}{}
+	return nil
+}
+
+func SortTreeEntries(entries []TreeEntry) {
+	slices.SortFunc(
+		entries, func(a, b TreeEntry) int {
+			return strings.Compare(
+				treeEntrySortKey(a.Name, a.Mode.IsDirectory()),
+				treeEntrySortKey(b.Name, b.Mode.IsDirectory()),
+			)
+		},
+	)
+}
+func treeEntrySortKey(name string, isDirectory bool) string {
+	if isDirectory {
+		return name + "/"
+	}
+	return name
 }

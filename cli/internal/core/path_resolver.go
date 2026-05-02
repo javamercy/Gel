@@ -44,13 +44,13 @@ type ResolvedPath struct {
 
 // PathResolver expands pathspecs to normalized repository-relative paths.
 type PathResolver struct {
-	repoDir         string
+	repoDir         domain.AbsolutePath
 	ignoredPatterns map[string]bool
 }
 
 // NewPathResolver creates a resolver rooted at repoDir.
 // When ignoredPatterns is nil, a default set of VCS/editor directories is used.
-func NewPathResolver(repoDir string, ignoredPatterns map[string]bool) *PathResolver {
+func NewPathResolver(repoDir domain.AbsolutePath, ignoredPatterns map[string]bool) *PathResolver {
 	if ignoredPatterns == nil {
 		// TODO: implement gelignore.
 		ignoredPatterns = map[string]bool{
@@ -87,7 +87,7 @@ func (p *PathResolver) Resolve(pathspecs []string) ([]ResolvedPath, error) {
 
 		normalizedPaths := make(map[domain.NormalizedPath]bool)
 		for _, path := range paths {
-			normalizedPath, err := domain.NewNormalizedPath(p.repoDir, path)
+			normalizedPath, err := domain.NewNormalizedPath(path, p.repoDir)
 			if err != nil {
 				return nil, err
 			}
@@ -143,11 +143,11 @@ func (p *PathResolver) normalizeScope(pathspec string, pathspecType PathspecType
 		PathspecTypeDirectory,
 		PathspecTypeGlobPattern,
 		PathspecTypeNonExistent:
-		np, err := domain.NewNormalizedPath(p.repoDir, pathspec)
+		normPath, err := domain.NewNormalizedPath(pathspec, p.repoDir)
 		if err != nil {
 			return "", err
 		}
-		return np.String(), nil
+		return normPath.String(), nil
 	default:
 		return "", ErrUnknownPathspecType
 	}

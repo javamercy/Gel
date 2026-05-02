@@ -1,9 +1,17 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
-// ErrInvalidFileMode indicates that the provided file mode is invalid or unrecognized.
-var ErrInvalidFileMode = errors.New("invalid file mode")
+var (
+	// ErrInvalidFileMode is returned when a mode is not one of Gel's supported file modes.
+	ErrInvalidFileMode = errors.New("invalid file mode")
+
+	// ErrUnsupportedFileType is returned when an OS file type cannot be represented by Gel.
+	ErrUnsupportedFileType = errors.New("unsupported file type")
+)
 
 // FileMode represents the type and permissions of a file in a tree entry.
 type FileMode uint32
@@ -12,62 +20,89 @@ type FileMode uint32
 const (
 	// FileModeRegular is a regular non-executable file (100644).
 	FileModeRegular FileMode = 0o100644
+
 	// FileModeExecutable is an executable file (100755).
 	FileModeExecutable FileMode = 0o100755
+
 	// FileModeDirectory is a directory (040000).
 	FileModeDirectory FileMode = 0o040000
-	// FileModeInvalid represents an unknown or invalid mode.
-	FileModeInvalid FileMode = 0
 )
 
-// ParseFileMode converts a raw uint32 mode value to a FileMode.
-func ParseFileMode(mode uint32) FileMode {
+const (
+	treeModeRegular             = "100644"
+	treeModeExecutable          = "100755"
+	treeModeDirectory           = "40000"
+	expectedStoredModes         = "100644, 100755, or 040000"
+	expectedTreeModes           = `"100644", "100755", or "40000"`
+	osModeTypeMask       uint32 = 0o170000
+	osModeTypeRegular    uint32 = 0o100000
+	osModeTypeDirectory  uint32 = 0o040000
+	osModeExecutableMask uint32 = 0o111
+)
+
+// NewFileMode converts a raw stored mode value to a FileMode.
+func NewFileMode(mode uint32) (FileMode, error) {
+	fileMode := FileMode(mode)
+	if fileMode.IsValid() {
+		return fileMode, nil
+	}
+	return 0, fmt.Errorf(
+		"%w: %s (expected %s)",
+		ErrInvalidFileMode,
+		formatStoredFileMode(mode),
+		expectedStoredModes,
+	)
+}
+
+// NewFileModeFromTreeMode converts a canonical tree-mode string to a FileMode.
+func NewFileModeFromTreeMode(mode string) (FileMode, error) {
 	switch mode {
-	case uint32(FileModeRegular):
-		return FileModeRegular
-	case uint32(FileModeExecutable):
-		return FileModeExecutable
-	case uint32(FileModeDirectory):
-		return FileModeDirectory
+	case treeModeRegular:
+		return FileModeRegular, nil
+	case treeModeExecutable:
+		return FileModeExecutable, nil
+	case treeModeDirectory:
+		return FileModeDirectory, nil
 	default:
-		return FileModeInvalid
+		return 0, fmt.Errorf(
+			"%w: %q (expected %s)",
+			ErrInvalidFileMode,
+			mode,
+			expectedTreeModes,
+		)
 	}
 }
 
-// ParseFileModeFromString converts a Git tree-mode string (for example, "100644") to a FileMode.
-func ParseFileModeFromString(mode string) FileMode {
-	switch mode {
-	case FileModeRegular.String():
-		return FileModeRegular
-	case FileModeExecutable.String():
-		return FileModeExecutable
-	case FileModeDirectory.String():
-		return FileModeDirectory
+// NewFileModeFromOSMode converts an OS file mode to a canonical Gel file mode.
+func NewFileModeFromOSMode(mode uint32) (FileMode, error) {
+	switch mode & osModeTypeMask {
+	case osModeTypeDirectory:
+		return FileModeDirectory, nil
+	case osModeTypeRegular:
+		if mode&osModeExecutableMask != 0 {
+			return FileModeExecutable, nil
+		}
+		return FileModeRegular, nil
 	default:
-		return FileModeInvalid
+		return 0, fmt.Errorf(
+			"%w: mode=%s type=%s",
+			ErrUnsupportedFileType,
+			formatStoredFileMode(mode),
+			formatStoredFileMode(mode&osModeTypeMask),
+		)
 	}
 }
 
-// ParseFileModeFromOsMode converts an OS file mode to a Git file mode.
-func ParseFileModeFromOsMode(osMode uint32) FileMode {
-	if osMode&0o170000 == 0o040000 {
-		return FileModeDirectory
-	} else if osMode&0o111 != 0 {
-		return FileModeExecutable
-	}
-	return FileModeRegular
-}
-
-// String returns the canonical Git mode string for f.
+// String returns the canonical tree-mode string for mode.
 // It returns an empty string for invalid modes.
 func (f FileMode) String() string {
 	switch f {
 	case FileModeRegular:
-		return "100644"
+		return treeModeRegular
 	case FileModeExecutable:
-		return "100755"
+		return treeModeExecutable
 	case FileModeDirectory:
-		return "40000"
+		return treeModeDirectory
 	default:
 		return ""
 	}
@@ -78,24 +113,19 @@ func (f FileMode) Uint32() uint32 {
 	return uint32(f)
 }
 
-// IsValid reports whether the mode is recognized.
+// IsValid reports whether mode is one of Gel's supported file modes.
 func (f FileMode) IsValid() bool {
-	return f != FileModeInvalid
+	switch f {
+	case FileModeRegular, FileModeExecutable, FileModeDirectory:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsDirectory reports whether the mode represents a directory.
 func (f FileMode) IsDirectory() bool {
 	return f == FileModeDirectory
-}
-
-// IsRegularFile reports whether the mode represents a regular non-executable file.
-func (f FileMode) IsRegularFile() bool {
-	return f == FileModeRegular
-}
-
-// IsExecutableFile reports whether the mode represents an executable file.
-func (f FileMode) IsExecutableFile() bool {
-	return f == FileModeExecutable
 }
 
 // ObjectType returns the domain object type corresponding to this mode.
@@ -106,11 +136,21 @@ func (f FileMode) ObjectType() (ObjectType, error) {
 	case FileModeDirectory:
 		return ObjectTypeTree, nil
 	default:
-		return "", ErrInvalidFileMode
+		return "", fmt.Errorf(
+			"%w: %s (expected %s)",
+			ErrInvalidFileMode,
+			formatStoredFileMode(f.Uint32()),
+			expectedStoredModes,
+		)
 	}
 }
 
 // Equals reports whether two modes are identical.
-func (f FileMode) Equals(other FileMode) bool {
-	return f == other
+func (f FileMode) Equals(o FileMode) bool {
+	return f == o
+}
+
+// formatStoredFileMode returns a zero-padded octal string representation of mode for error messages.
+func formatStoredFileMode(mode uint32) string {
+	return fmt.Sprintf("%06o", mode)
 }

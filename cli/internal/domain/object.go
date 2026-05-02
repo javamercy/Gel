@@ -3,24 +3,28 @@ package domain
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strconv"
 )
 
 var (
-	// ErrNoNullByteFound is returned when an object header is not null-terminated.
-	ErrNoNullByteFound = errors.New("invalid object format: header must be terminated with null byte")
+	// ErrObjectHeaderMissingTerminator is returned when an object header is not null-terminated.
+	ErrObjectHeaderMissingTerminator = errors.New("invalid object format: missing header terminator")
 
 	// ErrObjectSizeMismatch is returned when the body length does not match the header size.
-	ErrObjectSizeMismatch = errors.New("invalid object format: data size does not match header size")
+	ErrObjectSizeMismatch = errors.New("invalid object format: body size does not match header size")
 
-	// ErrNoSpaceInHeader is returned when the object header does not contain the required separator.
-	ErrNoSpaceInHeader = errors.New("invalid object header: type and size must be separated by space")
+	// ErrObjectHeaderMissingSeparator is returned when the object header does not contain the required separator.
+	ErrObjectHeaderMissingSeparator = errors.New("invalid object header: missing type/size separator")
 
-	// ErrUnknownObjectType is returned when the object type is not supported by the domain.
-	ErrUnknownObjectType = errors.New("invalid object header: unknown object type (expected 'blob' or 'tree')")
+	// ErrObjectTypeUnknown is returned when the object type is not supported.
+	ErrObjectTypeUnknown = errors.New("invalid object header: unknown object type")
 
-	// ErrInvalidSizeFormat is returned when the object size field is not a valid integer.
-	ErrInvalidSizeFormat = errors.New("invalid object header: size must be a valid integer")
+	// ErrObjectTypeMismatch is returned when an object has a different type than expected.
+	ErrObjectTypeMismatch = errors.New("object type mismatch")
+
+	// ErrObjectSizeInvalid is returned when the object size field is not a non-negative integer.
+	ErrObjectSizeInvalid = errors.New("invalid object header: size must be a non-negative integer")
 )
 
 // Object is implemented by Blob, Tree, and Commit.
@@ -42,40 +46,38 @@ type Object interface {
 // It validates the header format, checks size consistency, and dispatches
 // to the appropriate constructor based on object type.
 func DeserializeObject(data []byte) (Object, error) {
-	dataCopy := append([]byte(nil), data...)
-	nullIndex := bytes.IndexByte(dataCopy, 0)
+	nullIndex := bytes.IndexByte(data, 0)
 	if nullIndex == -1 {
-		return nil, ErrNoNullByteFound
+		return nil, ErrObjectHeaderMissingTerminator
 	}
 
-	header := dataCopy[:nullIndex]
-	objectType, size, err := deserializeObjectHeader(header)
+	objectType, size, err := deserializeObjectHeader(data[:nullIndex])
 	if err != nil {
 		return nil, err
 	}
 
-	body := dataCopy[nullIndex+1:]
+	body := data[nullIndex+1:]
 	if len(body) != size {
-		return nil, ErrObjectSizeMismatch
+		return nil, fmt.Errorf("%w: header=%d actual=%d", ErrObjectSizeMismatch, size, len(body))
 	}
 
 	switch objectType {
 	case ObjectTypeBlob:
 		return NewBlob(body), nil
-
 	case ObjectTypeTree:
 		return NewTree(body)
-
 	case ObjectTypeCommit:
 		return NewCommit(body)
-
 	default:
-		return nil, ErrUnknownObjectType
+		return nil, fmt.Errorf("%w: %q", ErrObjectTypeUnknown, objectType)
 	}
 }
 
 // SerializeObject returns the full object serialization in the form
 // "<type> <size>\x00<body>".
+//
+// It does not validate objectType. Callers must pass a valid ObjectType;
+// validation is performed when deserializing object data.
 func SerializeObject(objectType ObjectType, body []byte) []byte {
 	var buf bytes.Buffer
 	buf.WriteString(objectType.String())
@@ -89,28 +91,21 @@ func SerializeObject(objectType ObjectType, body []byte) []byte {
 // deserializeObjectHeader parses the object header ("<type> <size>") from raw bytes
 // and returns the object type and body size.
 func deserializeObjectHeader(data []byte) (ObjectType, int, error) {
-	spaceIndex := -1
-	for i, b := range data {
-		if b == ' ' {
-			spaceIndex = i
-			break
-		}
-	}
+	spaceIndex := bytes.IndexByte(data, ' ')
 	if spaceIndex == -1 {
-		return "", 0, ErrNoSpaceInHeader
+		return "", 0, ErrObjectHeaderMissingSeparator
 	}
 
-	objectTypeStr := string(data[:spaceIndex])
-	objectType, valid := ParseObjectType(objectTypeStr)
-	if !valid {
-		return "", 0, ErrUnknownObjectType
+	objectTypeName := string(data[:spaceIndex])
+	objectType, ok := ParseObjectType(objectTypeName)
+	if !ok {
+		return "", 0, fmt.Errorf("%w: %q", ErrObjectTypeUnknown, objectTypeName)
 	}
 
-	sizeStr := string(data[spaceIndex+1:])
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil {
-		return "", 0, ErrInvalidSizeFormat
+	sizeText := string(data[spaceIndex+1:])
+	size, err := strconv.Atoi(sizeText)
+	if err != nil || size < 0 {
+		return "", 0, fmt.Errorf("%w: %q", ErrObjectSizeInvalid, sizeText)
 	}
-
 	return objectType, size, nil
 }

@@ -92,7 +92,7 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 		}
 
 		var newEntry *domain.IndexEntry
-		stat, err := domain.ParseFileStatFromPath(absolutePath)
+		stat, err := domain.NewFileStatFromPath(absolutePath)
 		if err != nil {
 			return nil, fmt.Errorf("update-index: %w", err)
 		}
@@ -119,11 +119,18 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 			}
 
 			index.RemoveEntry(path)
+
+			// TODO: fix here
+			fileMode, err := domain.NewFileModeFromOSMode(stat.Mode)
+			if err != nil {
+				return nil, fmt.Errorf("update-index: %w", err)
+			}
+
 			newEntry = domain.NewIndexEntry(
 				path,
 				changeResult.NewHash,
 				stat.Size,
-				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				fileMode.Uint32(),
 				stat.Device,
 				stat.Inode,
 				stat.UserID,
@@ -148,11 +155,16 @@ func (u *UpdateIndexService) updateIndexWithAdd(
 				return nil, fmt.Errorf("update-index: %w", err)
 			}
 
+			// TODO: fix here
+			fileMode, err := domain.NewFileModeFromOSMode(stat.Mode)
+			if err != nil {
+				return nil, fmt.Errorf("update-index: %w", err)
+			}
 			newEntry = domain.NewIndexEntry(
 				path,
 				hash,
 				stat.Size,
-				domain.ParseFileModeFromOsMode(stat.Mode).Uint32(),
+				fileMode.Uint32(),
 				stat.Device,
 				stat.Inode,
 				stat.UserID,

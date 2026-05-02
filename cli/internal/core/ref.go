@@ -60,12 +60,12 @@ func (r *RefService) WriteSymbolic(name, ref string) error {
 	}
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DefaultDirPermission); err != nil {
 		return fmt.Errorf("ref: failed to create directory '%s': %w", dir, err)
 	}
 
 	contentStr := fmt.Sprintf("ref: %s\n", ref)
-	if err := os.WriteFile(path, []byte(contentStr), domain.FilePermission); err != nil {
+	if err := os.WriteFile(path, []byte(contentStr), domain.DefaultFilePermission); err != nil {
 		return fmt.Errorf("ref: failed to write symbolic ref '%s': %w", name, err)
 	}
 	return nil
@@ -78,7 +78,7 @@ func (r *RefService) Read(ref string) (domain.Hash, error) {
 		return domain.Hash{}, err
 	}
 
-	absPath := filepath.Join(r.workspace.GelDir, ref)
+	absPath := filepath.Join(r.workspace.GelDir.String(), ref)
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -91,7 +91,7 @@ func (r *RefService) Read(ref string) (domain.Hash, error) {
 	}
 
 	hexHash := strings.TrimSpace(string(contentBytes))
-	hash, err := domain.NewHash(hexHash)
+	hash, err := domain.NewHashFromHex(hexHash)
 	if err != nil {
 		return domain.Hash{}, fmt.Errorf("ref: %w", err)
 	}
@@ -105,14 +105,14 @@ func (r *RefService) Write(ref string, hash domain.Hash) error {
 		return err
 	}
 
-	absPath := filepath.Join(r.workspace.GelDir, ref)
+	absPath := filepath.Join(r.workspace.GelDir.String(), ref)
 	dir := filepath.Dir(absPath)
-	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DefaultDirPermission); err != nil {
 		return fmt.Errorf("ref: failed to create directory '%s': %w", dir, err)
 	}
 
 	contentStr := fmt.Sprintf("%s\n", hash)
-	if err := os.WriteFile(absPath, []byte(contentStr), domain.FilePermission); err != nil {
+	if err := os.WriteFile(absPath, []byte(contentStr), domain.DefaultFilePermission); err != nil {
 		return fmt.Errorf("ref: failed to write '%s': %w", ref, err)
 	}
 	return nil
@@ -124,7 +124,7 @@ func (r *RefService) Delete(ref string) error {
 		return err
 	}
 
-	path := filepath.Join(r.workspace.GelDir, ref)
+	path := filepath.Join(r.workspace.GelDir.String(), ref)
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("ref: failed to delete '%s': %w", ref, err)
 	}
@@ -138,7 +138,7 @@ func (r *RefService) Exists(ref string) (bool, error) {
 		return false, err
 	}
 
-	path := filepath.Join(r.workspace.GelDir, ref)
+	path := filepath.Join(r.workspace.GelDir.String(), ref)
 	ok, err := Exists(path)
 	if err != nil {
 		return false, fmt.Errorf("ref: %w", err)
@@ -163,7 +163,7 @@ func (r *RefService) symbolicPath(name string) (string, error) {
 		strings.HasPrefix(cleanName, ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("'%s': %w", name, ErrInvalidSymbolicRef)
 	}
-	return filepath.Join(r.workspace.GelDir, cleanName), nil
+	return filepath.Join(r.workspace.GelDir.String(), cleanName), nil
 }
 
 // validateRefPrefix ensures a direct reference path uses the refs/ namespace.

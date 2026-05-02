@@ -102,18 +102,18 @@ func (a *AddService) collectPaths(
 ) (
 	pathsToAdd []domain.NormalizedPath, pathsToRemove []domain.NormalizedPath, err error,
 ) {
-	pathsToAddSet := make(map[domain.NormalizedPath]bool)
-	pathsToRemoveSet := make(map[domain.NormalizedPath]bool)
+	pathsToAddSet := make(map[domain.NormalizedPath]struct{})
+	pathsToRemoveSet := make(map[domain.NormalizedPath]struct{})
 
 	for _, resolved := range resolvedPaths {
 		for path := range resolved.NormalizedPaths {
-			pathsToAddSet[path] = true
+			pathsToAddSet[path] = struct{}{}
 		}
 
 		var indexEntries []*domain.IndexEntry
 		switch resolved.Type {
 		case core.PathspecTypeFile, core.PathspecTypeNonExistent:
-			normalizedScope, err := domain.NewNormalizedPathUnchecked(resolved.NormalizedScope)
+			normalizedScope, err := domain.ParseNormalizedPath(resolved.NormalizedScope)
 			if err != nil {
 				return nil, nil, fmt.Errorf("add: %w", err)
 			}
@@ -138,7 +138,7 @@ func (a *AddService) collectPaths(
 
 		for _, entry := range indexEntries {
 			if !resolved.NormalizedPaths[entry.Path] {
-				pathsToRemoveSet[entry.Path] = true
+				pathsToRemoveSet[entry.Path] = struct{}{}
 			}
 		}
 		if len(resolved.NormalizedPaths) == 0 && len(indexEntries) == 0 {

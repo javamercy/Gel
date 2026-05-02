@@ -113,13 +113,9 @@ func (s *ShowService) Show(objectRef string, options ShowOptions) (*ShowResult, 
 			Blob: &ShowBlobResult{Hash: resolved.Hash, Body: obj.Body()},
 		}, nil
 	case *domain.Tree:
-		entries, err := obj.Deserialize()
-		if err != nil {
-			return nil, fmt.Errorf("show: %w", err)
-		}
 		return &ShowResult{
 			Mode: ShowModeTree,
-			Tree: &ShowTreeResult{Hash: resolved.Hash, TreeEntries: sortTreeEntries(entries)},
+			Tree: &ShowTreeResult{Hash: resolved.Hash, TreeEntries: sortTreeEntries(obj.Entries())},
 		}, nil
 	case *domain.Commit:
 		commitResult, err := s.buildShowCommitResult(resolved, obj)
@@ -165,7 +161,7 @@ func (s *ShowService) resolveObjectRef(objectRef string) (resolvedObjectRef, err
 		return resolvedObjectRef{Hash: hash, Decoration: objectRef}, nil
 	}
 
-	hash, err := domain.NewHash(objectRef)
+	hash, err := domain.NewHashFromHex(objectRef)
 	if err != nil {
 		return resolvedObjectRef{}, fmt.Errorf("'%s': %w", objectRef, core.ErrRefNotFound)
 	}

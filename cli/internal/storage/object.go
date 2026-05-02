@@ -27,10 +27,10 @@ func (o *ObjectStorage) Write(hash domain.Hash, data []byte) error {
 		return err
 	}
 	dir := filepath.Dir(objectPath.String())
-	if err := os.MkdirAll(dir, domain.DirPermission); err != nil {
+	if err := os.MkdirAll(dir, domain.DefaultDirPermission); err != nil {
 		return fmt.Errorf("failed to create directory '%s': %w", dir, err)
 	}
-	if err := os.WriteFile(objectPath.String(), data, domain.FilePermission); err != nil {
+	if err := os.WriteFile(objectPath.String(), data, domain.DefaultFilePermission); err != nil {
 		return fmt.Errorf("failed to write object '%s': %w", hash, err)
 	}
 	return nil
@@ -67,13 +67,13 @@ func (o *ObjectStorage) Exists(hash domain.Hash) (bool, error) {
 
 // hashToObjectPath converts a hash to .gel/objects/<2-char-prefix>/<remaining> path.
 func (o *ObjectStorage) hashToObjectPath(hash domain.Hash) (domain.AbsolutePath, error) {
-	hexHash := hash.ToHexString()
+	hexHash := hash.Hex()
 	dir := hexHash[:2]
 	file := hexHash[2:]
-	joined := filepath.Join(o.workspace.ObjectsDir, dir, file)
+	joined := filepath.Join(o.workspace.ObjectsDir.String(), dir, file)
 	absPath, err := domain.NewAbsolutePath(joined)
 	if err != nil {
-		return "", err
+		return domain.AbsolutePath{}, err
 	}
 	return absPath, nil
 }

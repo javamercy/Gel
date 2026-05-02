@@ -35,12 +35,12 @@ func NewTreeWalker(objectService *ObjectService, options WalkOptions) *TreeWalke
 // Walk traverses the tree identified by hash and calls processor for matching entries.
 // prefix is joined with each entry name to produce a repository-relative path.
 func (w *TreeWalker) Walk(hash domain.Hash, prefix string, processor Processor) error {
-	entries, err := w.objectService.ReadTreeAndDeserializeEntries(hash)
+	tree, err := w.objectService.ReadTree(hash)
 	if err != nil {
 		return err
 	}
 
-	for _, entry := range entries {
+	for _, entry := range tree.Entries() {
 		relPath := path.Join(prefix, entry.Name)
 		shouldProcess := w.shouldProcess(entry)
 		if shouldProcess {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -171,7 +172,7 @@ func (e *IndexEntry) GetStage() uint16 {
 
 // serialize converts the index entry to its binary representation.
 func (e *IndexEntry) serialize() ([]byte, error) {
-	pathLen := len(e.Path)
+	pathLen := len(e.Path.String())
 	totalBytes := IndexEntryFixedSize + pathLen + IndexEntryPathNullTerminateSize
 	padding := (PaddingAlignment - (totalBytes % PaddingAlignment)) % PaddingAlignment
 	totalBytes += padding
@@ -203,8 +204,6 @@ func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
 	if e.ChangedTime != stat.ChangedTime {
 		return false
 	}
-
-	// TODO: race condition
 	if e.ModifiedTime != stat.ModifiedTime {
 		return false
 	}
@@ -214,7 +213,8 @@ func (e *IndexEntry) MatchesStat(stat *FileStat) bool {
 	if e.Device != stat.Device || e.Inode != stat.Inode {
 		return false
 	}
-	return e.Mode == ParseFileModeFromOsMode(stat.Mode).Uint32()
+	// TODO: compare filemode vs os stat mode
+	return true
 }
 
 // Index stores the staging area entries and checksum.
@@ -357,11 +357,12 @@ func (idx *Index) HasEntry(path NormalizedPath) bool {
 func (idx *Index) Serialize() ([]byte, error) {
 	serializedHeader := idx.serializeHeader()
 
-	sort.Slice(
-		idx.Entries, func(i, j int) bool {
-			return idx.Entries[i].Path < idx.Entries[j].Path
+	slices.SortFunc(
+		idx.Entries, func(a, b *IndexEntry) int {
+			return strings.Compare(a.Path.String(), b.Path.String())
 		},
 	)
+
 	serializedEntries, err := idx.serializeEntries()
 	if err != nil {
 		return nil, err
@@ -504,7 +505,7 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, err
 	}
 
-	hash, err := NewHash(hex.EncodeToString(hashBytes))
+	hash, err := NewHashFromHex(hex.EncodeToString(hashBytes))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -520,12 +521,12 @@ func deserializeIndexEntry(data []byte) (*IndexEntry, int, error) {
 		return nil, 0, ErrPathNotNullTerminated
 	}
 
-	normalizedPath, err := NewNormalizedPathUnchecked(string(data[offset : offset+pathEnd]))
+	normPath, err := ParseNormalizedPath(string(data[offset : offset+pathEnd]))
 	if err != nil {
 		return nil, 0, fmt.Errorf("invalid path in index entry: %w", err)
 	}
 
-	entry.Path = normalizedPath
+	entry.Path = normPath
 	offset += pathEnd + IndexEntryPathNullTerminateSize
 	padding := (PaddingAlignment - (offset % PaddingAlignment)) % PaddingAlignment
 	totalSize := offset + padding

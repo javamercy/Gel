@@ -39,7 +39,7 @@ func NewBranchService(
 // List returns all local branches and marks the current branch.
 // Results are sorted by branch name for deterministic output.
 func (b *BranchService) List() ([]BranchListItem, error) {
-	headsDir := filepath.Join(b.workspace.GelDir, domain.RefsDirName, domain.HeadsDirName)
+	headsDir := b.workspace.HeadsDir.String()
 	currentBranchRef, err := b.refService.ReadSymbolic(domain.HeadFileName)
 	if err != nil {
 		return nil, fmt.Errorf("branch: failed to read symbolic ref: %w", err)
@@ -57,7 +57,7 @@ func (b *BranchService) List() ([]BranchListItem, error) {
 
 			// TODO: Ensure the branch is valid
 
-			ref := strings.TrimPrefix(p, b.workspace.GelDir+"/")
+			ref := strings.TrimPrefix(p, b.workspace.GelDir.String()+"/")
 			name := strings.TrimPrefix(p, headsDir+"/")
 			isCurrent := ref == currentBranchRef
 			branches[name] = isCurrent
@@ -135,7 +135,7 @@ func (b *BranchService) Create(name string, startPoint string) error {
 		return b.refService.Write(ref, commitHash)
 	}
 
-	startHash, err := domain.NewHash(startPoint)
+	startHash, err := domain.NewHashFromHex(startPoint)
 	if err != nil {
 		return fmt.Errorf("branch: '%s': %w", startPoint, ErrInvalidStartPoint)
 	}

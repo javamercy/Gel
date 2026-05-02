@@ -29,11 +29,11 @@ type ChangeResult struct {
 // ChangeDetector compares index entries to working tree files.
 type ChangeDetector struct {
 	objectService *ObjectService
-	repoDir       string
+	repoDir       domain.AbsolutePath
 }
 
 // NewChangeDetector creates a detector rooted at repoDir.
-func NewChangeDetector(objectService *ObjectService, repoDir string) *ChangeDetector {
+func NewChangeDetector(objectService *ObjectService, repoDir domain.AbsolutePath) *ChangeDetector {
 	return &ChangeDetector{
 		objectService: objectService,
 		repoDir:       repoDir,
@@ -46,12 +46,12 @@ func NewChangeDetector(objectService *ObjectService, repoDir string) *ChangeDete
 // returns FileStateUnchanged when stat metadata matches, and otherwise computes
 // a fresh blob hash and returns FileStateModified.
 func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry) (ChangeResult, error) {
-	absolutePath, err := entry.Path.ToAbsolutePath(c.repoDir)
+	absPath, err := entry.Path.ToAbsolutePath(c.repoDir)
 	if err != nil {
 		return ChangeResult{}, err
 	}
 
-	stat, err := domain.ParseFileStatFromPath(absolutePath)
+	stat, err := domain.NewFileStatFromPath(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return ChangeResult{FileState: FileStateDeleted}, nil
@@ -62,7 +62,7 @@ func (c *ChangeDetector) DetectFileChange(entry *domain.IndexEntry) (ChangeResul
 		return ChangeResult{FileState: FileStateUnchanged}, nil
 	}
 
-	hash, _, err := c.objectService.ComputeObjectHash(absolutePath)
+	hash, _, err := c.objectService.ComputeObjectHash(absPath)
 	if err != nil {
 		return ChangeResult{}, err
 	}

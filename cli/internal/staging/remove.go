@@ -37,7 +37,7 @@ type RemoveService struct {
 
 type removePlan struct {
 	paths      []domain.NormalizedPath
-	targets    map[domain.NormalizedPath]bool
+	targets    map[domain.NormalizedPath]struct{}
 	pruneRoots []domain.NormalizedPath
 }
 
@@ -110,8 +110,8 @@ func (r *RemoveService) collectPlan(
 	pathspecs []string,
 	recursive bool,
 ) (removePlan, error) {
-	targets := make(map[domain.NormalizedPath]bool)
-	pruneRoots := make(map[domain.NormalizedPath]bool)
+	targets := make(map[domain.NormalizedPath]struct{})
+	pruneRoots := make(map[domain.NormalizedPath]struct{})
 
 	for _, pathspec := range pathspecs {
 		normPath, err := r.normalizePathspec(pathspec)
@@ -120,7 +120,7 @@ func (r *RemoveService) collectPlan(
 		}
 
 		if entry, _ := index.FindEntry(normPath); entry != nil {
-			targets[entry.Path] = true
+			targets[entry.Path] = struct{}{}
 			continue
 		}
 
@@ -133,9 +133,9 @@ func (r *RemoveService) collectPlan(
 			return removePlan{}, newRemoveRecursiveRequiredError(displayPath)
 		}
 
-		pruneRoots[normPath] = true
+		pruneRoots[normPath] = struct{}{}
 		for _, entry := range descendants {
-			targets[entry.Path] = true
+			targets[entry.Path] = struct{}{}
 		}
 	}
 
@@ -150,22 +150,22 @@ func (r *RemoveService) collectPlan(
 func (r *RemoveService) normalizePathspec(pathspec string) (domain.NormalizedPath, error) {
 	absPath, err := filepath.Abs(filepath.FromSlash(pathspec))
 	if err != nil {
-		return "", err
+		return domain.NormalizedPath{}, err
 	}
 
-	relPath, err := filepath.Rel(r.workspace.RepoDir, absPath)
+	relPath, err := filepath.Rel(r.workspace.RepoDir.String(), absPath)
 	if err != nil {
-		return "", err
+		return domain.NormalizedPath{}, err
 	}
 
 	normPath := filepath.ToSlash(relPath)
 	if normPath == ".." || strings.HasPrefix(normPath, "../") {
-		return "", newRemoveOutsideRepositoryError(pathspec)
+		return domain.NormalizedPath{}, newRemoveOutsideRepositoryError(pathspec)
 	}
 
-	path, err := domain.NewNormalizedPathUnchecked(normPath)
+	path, err := domain.ParseNormalizedPath(normPath)
 	if err != nil {
-		return "", err
+		return domain.NormalizedPath{}, err
 	}
 	return path, nil
 }
@@ -311,7 +311,7 @@ func (r *RemoveService) pruneEmptyDirectories(paths, pruneRoots []domain.Normali
 			}
 			if err := pruneEmptyParentDirsWithin(
 				absolutePath.String(),
-				r.workspace.RepoDir,
+				r.workspace.RepoDir.String(),
 				rootPath.String(),
 			); err != nil {
 				return fmt.Errorf("failed to prune empty directories for '%s': %w", absolutePath, err)
@@ -334,9 +334,9 @@ func (r *RemoveService) restoreBackups(
 
 // restoreFileBackups recreates deleted files from their in-memory snapshots.
 func (r *RemoveService) restoreFileBackups(backups map[domain.NormalizedPath]fileBackup) error {
-	paths := make(map[domain.NormalizedPath]bool, len(backups))
+	paths := make(map[domain.NormalizedPath]struct{}, len(backups))
 	for path := range backups {
-		paths[path] = true
+		paths[path] = struct{}{}
 	}
 
 	for _, path := range domain.SortedPathSet(paths) {
@@ -345,7 +345,7 @@ func (r *RemoveService) restoreFileBackups(backups map[domain.NormalizedPath]fil
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DirPermission); err != nil {
+		if err := os.MkdirAll(filepath.Dir(absPath.String()), domain.DefaultDirPermission); err != nil {
 			return fmt.Errorf("failed to create directory for '%s': %w", absPath, err)
 		}
 		if err := os.WriteFile(absPath.String(), backup.body, backup.mode); err != nil {
@@ -377,13 +377,13 @@ func hasStagedChanges(
 // cloneIndexWithoutTargets derives the post-rm index state without mutating the original index.
 func cloneIndexWithoutTargets(
 	index *domain.Index,
-	targets map[domain.NormalizedPath]bool,
+	targets map[domain.NormalizedPath]struct{},
 ) *domain.Index {
 	clonedIndex := index.Clone()
 
 	entries := make([]*domain.IndexEntry, 0, len(clonedIndex.Entries))
 	for _, entry := range clonedIndex.Entries {
-		if !targets[entry.Path] {
+		if _, ok := targets[entry.Path]; ok {
 			entries = append(entries, entry)
 		}
 	}
@@ -394,7 +394,7 @@ func cloneIndexWithoutTargets(
 
 // pathWithinRoot reports whether a tracked path belongs to a recursive prune root.
 func pathWithinRoot(path, root domain.NormalizedPath) bool {
-	if root == domain.RootPath {
+	if root.IsRoot() {
 		return true
 	}
 	rootPrefix := root.String() + "/"
@@ -456,7 +456,7 @@ func shouldBypassSafetyChecks(options RemoveOptions) bool {
 
 // removeDisplayPath chooses the user-facing path shown in rm errors for in-repository targets.
 func removeDisplayPath(pathspec string, normPath domain.NormalizedPath) string {
-	if normPath == domain.RootPath {
+	if normPath.IsRoot() {
 		return pathspec
 	}
 	return normPath.String()

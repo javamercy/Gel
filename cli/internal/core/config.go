@@ -6,7 +6,8 @@ import (
 	"Gel/internal/validate"
 	"bytes"
 	"fmt"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -53,18 +54,13 @@ func (c *ConfigService) GetUserInfo() (string, string, error) {
 
 // Set writes section.key=value to config, creating missing sections as needed.
 func (c *ConfigService) Set(section, key, value string) error {
-	if err := validate.StringMustNotBeEmpty(section); err != nil {
-		return fmt.Errorf("config: %w", err)
-	}
-	if err := validate.StringMustNotBeEmpty(key); err != nil {
-		return fmt.Errorf("config: %w", err)
-	}
-
 	config, err := c.Read()
 	if err != nil {
 		return err
 	}
-	config.Set(section, key, value)
+	if err := config.Set(section, key, value); err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
 	return c.Write(config)
 }
 
@@ -91,43 +87,36 @@ func (c *ConfigService) Get(section, key string) (string, error) {
 // List returns all config entries in "section.key=value" format.
 // Results are sorted by section then key for deterministic ordering.
 func (c *ConfigService) List() ([]string, error) {
-	var out []string
 	config, err := c.Read()
 	if err != nil {
 		return nil, err
 	}
 
-	sectionNames := make([]string, 0, len(config.Sections))
-	for sectionName := range config.Sections {
-		sectionNames = append(sectionNames, sectionName)
-	}
-	sort.Strings(sectionNames)
+	entries := config.Entries()
+	slices.SortFunc(
+		entries, func(a, b domain.ConfigEntry) int {
+			if a.Section != b.Section {
+				return strings.Compare(a.Section, b.Section)
+			}
+			return strings.Compare(a.Key, b.Key)
+		},
+	)
 
-	for _, sectionName := range sectionNames {
-		section := config.Sections[sectionName]
-
-		keys := make([]string, 0, len(section))
-		for key := range section {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
-			value := section[key]
-			out = append(out, fmt.Sprintf("%s.%s=%s", sectionName, key, value))
-		}
+	out := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, fmt.Sprintf("%s.%s=%s", entry.Section, entry.Key, entry.Value))
 	}
 	return out, nil
 }
 
 // Write encodes and persists config data to storage.
 func (c *ConfigService) Write(config *domain.Config) error {
-	var buf bytes.Buffer
-	encoder := toml.NewEncoder(&buf)
-	if err := encoder.Encode(config.Sections); err != nil {
+	var buffer bytes.Buffer
+	encoder := toml.NewEncoder(&buffer)
+	if err := encoder.Encode(config.Sections()); err != nil {
 		return fmt.Errorf("config: failed to encode config: %w", err)
 	}
-	if err := c.configStorage.Write(buf.Bytes()); err != nil {
+	if err := c.configStorage.Write(buffer.Bytes()); err != nil {
 		return err
 	}
 	return nil
@@ -140,15 +129,15 @@ func (c *ConfigService) Read() (*domain.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(data) == 0 {
-		return &domain.Config{
-			Sections: make(map[string]domain.Section),
-		}, nil
-	}
 
-	sectionsMap := make(map[string]domain.Section)
-	if _, err := toml.Decode(string(data), &sectionsMap); err != nil {
+	sections := make(map[string]domain.ConfigSection)
+	if _, err := toml.Decode(string(data), sections); err != nil {
 		return nil, fmt.Errorf("config: failed to decode config: %w", err)
 	}
-	return domain.NewConfigFromMap(sectionsMap), nil
+
+	config, err := domain.NewConfigFromSections(sections)
+	if err != nil {
+		return nil, fmt.Errorf("config: invalid config: %w", err)
+	}
+	return config, nil
 }

@@ -146,13 +146,13 @@ func serializeBody(fields CommitFields) []byte {
 	var buffer bytes.Buffer
 	buffer.WriteString(CommitFieldTree)
 	buffer.WriteString(" ")
-	buffer.WriteString(fields.TreeHash.ToHexString())
+	buffer.WriteString(fields.TreeHash.Hex())
 	buffer.WriteString("\n")
 
 	for _, parentHash := range fields.ParentHashes {
 		buffer.WriteString(CommitFieldParent)
 		buffer.WriteString(" ")
-		buffer.WriteString(parentHash.ToHexString())
+		buffer.WriteString(parentHash.Hex())
 		buffer.WriteString("\n")
 	}
 	buffer.WriteString(CommitFieldAuthor)
@@ -277,7 +277,7 @@ func deserializeTreeOrParent(data []byte, start int) (Hash, int, error) {
 	}
 
 	hexHash := string(data[start:i])
-	hash, err := NewHash(hexHash)
+	hash, err := NewHashFromHex(hexHash)
 	if err != nil {
 		return Hash{}, i, err
 	}

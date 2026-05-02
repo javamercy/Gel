@@ -31,13 +31,13 @@ func NewReadTreeService(
 func (r *ReadTreeService) ReadTree(hash domain.Hash) error {
 	var indexEntries []*domain.IndexEntry
 	processor := func(entry domain.TreeEntry, path string) error {
-		normalizedPath, err := domain.NewNormalizedPathUnchecked(path)
+		normPath, err := domain.ParseNormalizedPath(path)
 		if err != nil {
 			return err
 		}
 
 		indexEntry := domain.NewIndexEntry(
-			normalizedPath,
+			normPath,
 			entry.Hash,
 			0,
 			entry.Mode.Uint32(),
@@ -45,7 +45,7 @@ func (r *ReadTreeService) ReadTree(hash domain.Hash) error {
 			0,
 			0,
 			0,
-			domain.ComputeIndexFlags(normalizedPath.String(), 0),
+			domain.ComputeIndexFlags(normPath.String(), 0),
 			time.Time{},
 			time.Time{},
 		)

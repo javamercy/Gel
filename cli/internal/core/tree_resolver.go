@@ -18,7 +18,7 @@ func (p PathHashes) ExtractPaths() (paths []domain.NormalizedPath) {
 
 func (p PathHashes) ExtractPathsSorted() (paths []domain.NormalizedPath) {
 	paths = p.ExtractPaths()
-	domain.SortedPaths(paths)
+	domain.SortPaths(paths)
 	return
 }
 
@@ -76,7 +76,7 @@ func (t *TreeResolver) ResolveCommit(hash domain.Hash) (PathHashes, error) {
 	walker := NewTreeWalker(t.objectService, WalkOptions{Recursive: true})
 	err = walker.Walk(
 		commit.TreeHash, "", func(e domain.TreeEntry, relPath string) error {
-			normalizedPath, err := domain.NewNormalizedPathUnchecked(relPath)
+			normalizedPath, err := domain.ParseNormalizedPath(relPath)
 			if err != nil {
 				return err
 			}
@@ -104,7 +104,7 @@ func (t *TreeResolver) ResolveIndex() (PathHashes, error) {
 // ResolveWorkingTree returns repository-wide working tree path hashes.
 // The scan is rooted at repository root so results are independent of current working directory.
 func (t *TreeResolver) ResolveWorkingTree() (PathHashes, error) {
-	resolvedPaths, err := t.pathResolver.Resolve([]string{t.workspace.RepoDir})
+	resolvedPaths, err := t.pathResolver.Resolve([]string{t.workspace.RepoDir.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -156,11 +156,11 @@ func (t *TreeResolver) LookupPathInTree(treeHash domain.Hash, path domain.Normal
 
 // lookupPathInTreeRecursive traverses a tree hierarchy using the given tree hash and path segments, returning the matching tree entry.
 func (t *TreeResolver) lookupPathInTreeRecursive(treeHash domain.Hash, segments []string) (domain.TreeEntry, error) {
-	entries, err := t.objectService.ReadTreeAndDeserializeEntries(treeHash)
+	tree, err := t.objectService.ReadTree(treeHash)
 	if err != nil {
 		return domain.TreeEntry{}, err
 	}
-	for _, entry := range entries {
+	for _, entry := range tree.Entries() {
 		if entry.Name == segments[0] {
 			if len(segments) == 1 {
 				return entry, nil

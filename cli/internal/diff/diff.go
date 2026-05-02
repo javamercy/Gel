@@ -148,7 +148,7 @@ func (d *DiffService) computeDiffResults(oldSnapshot *Snapshot, newSnapshot *Sna
 			results = append(
 				results, &DiffResult{
 					hunks, DiffStatusDeleted, oldPath,
-					"", oldHash, domain.Hash{},
+					domain.NormalizedPath{}, oldHash, domain.Hash{},
 				},
 			)
 		}

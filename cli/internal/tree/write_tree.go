@@ -79,7 +79,7 @@ func (w *WriteTreeService) writeTreeRecursive(root *directoryNode) (domain.Hash,
 
 	data := tree.Serialize()
 	hexHash := core.ComputeSHA256(data)
-	hash, err := domain.NewHash(hexHash)
+	hash, err := domain.NewHashFromHex(hexHash)
 	if err != nil {
 		return domain.Hash{}, err
 	}
@@ -112,9 +112,14 @@ func buildRootTree(entries []*domain.IndexEntry) *directoryNode {
 		names := strings.Split(entry.Path.String(), "/")
 
 		for i, name := range names {
+			fileMode, err := domain.NewFileMode(entry.Mode)
+			if err != nil {
+				// TODO: fix here
+				continue
+			}
 			if i == len(names)-1 {
 				fileNode := &fileNode{
-					mode: domain.ParseFileMode(entry.Mode),
+					mode: fileMode,
 					hash: entry.Hash,
 					name: name,
 				}

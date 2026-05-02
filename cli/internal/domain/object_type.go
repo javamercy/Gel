@@ -28,10 +28,12 @@ func (objectType ObjectType) String() string {
 }
 
 // ParseObjectType converts typeStr to an ObjectType and reports whether it is valid.
-func ParseObjectType(typeStr string) (ObjectType, bool) {
-	objectType := ObjectType(typeStr)
-	if objectType.IsValid() {
+func ParseObjectType(s string) (ObjectType, bool) {
+	objectType := ObjectType(s)
+	switch objectType {
+	case ObjectTypeBlob, ObjectTypeTree, ObjectTypeCommit:
 		return objectType, true
+	default:
+		return "", false
 	}
-	return "", false
 }
